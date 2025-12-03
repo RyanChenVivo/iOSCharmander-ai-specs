@@ -56,7 +56,7 @@ nano config.sh
 
 ```bash
 # CI 機器連線資訊
-CI_MACHINE="vivotekinc@172.18.2.83"  # 確認 IP 正確
+CI_MACHINE="vivotekinc@10.15.254.191"  # 確認 IP 正確
 
 # CI 測試報告路徑 (通常不需要改)
 CI_REPORT_BASE="/Users/vivotekinc/Documents/CICD/UITestReport"
@@ -66,16 +66,16 @@ CI_REPORT_BASE="/Users/vivotekinc/Documents/CICD/UITestReport"
 
 ```bash
 # 測試能否連到 CI 機器
-ping -c 1 172.18.2.83
+ping -c 1 10.15.254.191
 
 # 如果可以連線，設定 SSH key
-ssh-copy-id vivotekinc@172.18.2.83
+ssh-copy-id vivotekinc@10.15.254.191
 
 # 測試 SSH 連線
-ssh vivotekinc@172.18.2.83 "echo 'Connection successful'"
+ssh vivotekinc@10.15.254.191 "echo 'Connection successful'"
 
 # 測試能否存取測試報告目錄
-ssh vivotekinc@172.18.2.83 "ls /Users/vivotekinc/Documents/CICD/UITestReport/"
+ssh vivotekinc@10.15.254.191 "ls /Users/vivotekinc/Documents/CICD/UITestReport/"
 ```
 
 **注意**: 如果公司網路有防火牆限制，可能需要 IT 協助開通連線權限。
@@ -117,7 +117,7 @@ chmod +x setup-ai-dev.sh
 ./setup-ai-dev.sh
 ```
 
-### Q2: `ssh: connect to host 172.18.2.83 port 22: Connection refused`
+### Q2: `ssh: connect to host 10.15.254.191 port 22: Connection refused`
 
 **原因**: 無法連線到 CI 機器 (防火牆、VPN、IP 錯誤等)
 
@@ -170,7 +170,7 @@ IOSCHARMANDER_PATH="/實際/路徑/到/iOSCharmander"
 如果 CI 機器有共享資料夾：
 ```bash
 # 在 Finder 中: Go > Connect to Server
-# 輸入: smb://172.18.2.83
+# 輸入: smb://10.15.254.191
 # 掛載後資料夾會出現在 /Volumes/
 
 # 腳本會自動偵測掛載的路徑
