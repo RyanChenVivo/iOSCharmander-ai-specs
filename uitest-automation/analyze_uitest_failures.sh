@@ -41,7 +41,6 @@ fi
 
 # Script parameters
 XCRESULT_PATH=""
-ONLY_FAILURES=false
 DATE_PARAM=""
 
 # Help function
@@ -55,7 +54,6 @@ OPTIONS:
     -x, --xcresult PATH     Path to .xcresult bundle
     -d, --date DATE         Fetch report from CI machine by date (YYYY-MM-DD, default: today)
     -o, --output DIR        Output directory (default: ~/Downloads/UITestAnalysis)
-    -f, --only-failures     Export only failure-related attachments
     -h, --help              Show this help message
 
 EXAMPLES:
@@ -67,9 +65,6 @@ EXAMPLES:
 
     # Analyze local xcresult
     $(basename "$0") -x path/to/Test.xcresult
-
-    # Extract only failures
-    $(basename "$0") -d today -f
 
 CONFIGURATION:
     Create config.sh in the AI specs root directory with:
@@ -102,10 +97,6 @@ while [[ $# -gt 0 ]]; do
         -o|--output)
             OUTPUT_DIR="$2"
             shift 2
-            ;;
-        -f|--only-failures)
-            ONLY_FAILURES=true
-            shift
             ;;
         -h|--help)
             show_help
@@ -259,22 +250,13 @@ fi
 
 # Step 4: Export attachments (screenshots, etc.)
 echo -e "${YELLOW}[4/5] Exporting test attachments...${NC}"
-EXPORT_CMD="xcrun xcresulttool export attachments --path \"$XCRESULT_PATH\" --output-path \"$OUTPUT_DIR/attachments\""
+xcrun xcresulttool export attachments \
+    --path "$XCRESULT_PATH" \
+    --output-path "$OUTPUT_DIR/attachments" 2>/dev/null || echo -e "${YELLOW}Note: Some attachments may not be available${NC}"
 
-if [ "$ONLY_FAILURES" = true ] && [ "$FAILED_TESTS" -gt 0 ]; then
-    EXPORT_CMD="$EXPORT_CMD --only-failures"
-    echo -e "  ${BLUE}Exporting only failure attachments...${NC}"
-fi
-
-if [ "$FAILED_TESTS" -eq 0 ] && [ "$ONLY_FAILURES" = true ]; then
-    echo -e "${GREEN}✓ No failures to export${NC}"
-else
-    eval $EXPORT_CMD 2>/dev/null || echo -e "${YELLOW}Note: Some attachments may not be available${NC}"
-
-    # Count exported files
-    ATTACHMENT_COUNT=$(find "$OUTPUT_DIR/attachments" -type f ! -name "manifest.json" 2>/dev/null | wc -l | xargs)
-    echo -e "${GREEN}✓ Exported $ATTACHMENT_COUNT attachment(s) to: $OUTPUT_DIR/attachments/${NC}"
-fi
+# Count exported files
+ATTACHMENT_COUNT=$(find "$OUTPUT_DIR/attachments" -type f ! -name "manifest.json" 2>/dev/null | wc -l | xargs)
+echo -e "${GREEN}✓ Exported $ATTACHMENT_COUNT attachment(s) to: $OUTPUT_DIR/attachments/${NC}"
 
 # Step 5: Export diagnostics
 echo -e "${YELLOW}[5/5] Exporting diagnostics...${NC}"
