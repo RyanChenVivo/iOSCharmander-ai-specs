@@ -137,9 +137,19 @@ if [ ! -z "$DATE_PARAM" ]; then
     echo -e "Source: ${BLUE}$CI_MACHINE:$CI_XCRESULT${NC}"
 
     # Use scp to copy the xcresult bundle
-    if scp -r "$CI_MACHINE:$CI_XCRESULT" "$LOCAL_TEMP/$DATE_PARAM.xcresult" 2>/dev/null; then
+    # Remove existing directory to avoid nested structure
+    rm -rf "$LOCAL_TEMP/$DATE_PARAM.xcresult"
+    if scp -r "$CI_MACHINE:$CI_XCRESULT" "$LOCAL_TEMP/" 2>/dev/null; then
         echo -e "${GREEN}✓ Downloaded successfully${NC}"
         XCRESULT_PATH="$LOCAL_TEMP/$DATE_PARAM.xcresult"
+
+        # Fix nested structure if it exists (scp creates target dir inside destination)
+        if [ -d "$XCRESULT_PATH/$DATE_PARAM.xcresult" ]; then
+            echo -e "${YELLOW}Fixing nested xcresult structure...${NC}"
+            mv "$XCRESULT_PATH/$DATE_PARAM.xcresult" "$LOCAL_TEMP/temp_xcresult"
+            rm -rf "$XCRESULT_PATH"
+            mv "$LOCAL_TEMP/temp_xcresult" "$XCRESULT_PATH"
+        fi
     else
         echo -e "${RED}Error: Failed to download from CI machine${NC}"
         echo -e "${YELLOW}Trying alternative: direct path access...${NC}"
