@@ -1,10 +1,11 @@
 # Implementation Tasks
 
 ## 1. Fix testSignInWithSSO_Success (Priority: High)
-- [ ] 1.1 Update `CommonOperation.swift:204-207` `ssoConfirmToEnterApp()` to make "Stay signed in?" dialog optional
-- [ ] 1.2 Use `waitElementToAppearOptionally` instead of `waitElementToAppear` for the "Stay signed in?" dialog
-- [ ] 1.3 Run `testSignInWithSSO_Success` locally to verify fix
-- [ ] 1.4 Verify other SSO tests still pass (`testSignInWithSSO_ShouldFailed_whenTypeDifferentEmailOnMicrosoftPage`)
+- [x] 1.1 Add `handlePasskeyDialogIfNeeded()` function in `CommonOperation.swift:204-209` to handle new passkey setup dialog
+- [x] 1.2 Use `waitElementToAppearOptionally` to detect and dismiss passkey dialog with Cancel button
+- [x] 1.3 Keep `ssoConfirmToEnterApp()` logic unchanged to continue waiting for "Stay signed in?" dialog
+- [ ] 1.4 Run `testSignInWithSSO_Success` locally to verify fix
+- [ ] 1.5 Verify other SSO tests still pass (`testSignInWithSSO_ShouldFailed_whenTypeDifferentEmailOnMicrosoftPage`)
 
 ## 2. Fix testCannotRemoteUnlockDoorWhenDND (Priority: Medium)
 - [ ] 2.1 Investigate UAT test environment to determine current status of DND door

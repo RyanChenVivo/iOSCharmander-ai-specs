@@ -48,24 +48,33 @@ UITests depend on external services and APIs that we don't control. This documen
 
 **Workaround:**
 ```swift
-// After triggering SSO
-app.buttons["sign_in_sso_button"].tap()
+// In entraWebSSOSignIn() method, add after password entry:
 
-// Wait briefly for dialog to appear if it will
-Thread.sleep(forTimeInterval: 1.0)
-
-// Handle passkey dialog if present
-if app.alerts["Sign In"].exists {
-    app.buttons["Other Options"].tap()
+func handlePasskeyDialogIfNeeded() {
+    // Handle new passkey setup dialog that appears in simulator
+    UATHelper.waitElementToAppearOptionally(element: app.staticTexts["Simulator requires enrolled biometrics to use passkeys."]) {
+        UATHelper.waitElementToTap(app.buttons["Cancel"].firstMatch)
+    }
 }
 
-// Continue with password input
+// Execution order:
+enterAccount()
+enterPassword()
+otherCheckIfNeeded()
+handlePasskeyDialogIfNeeded()  // ← Add this
+ssoConfirmToEnterApp()         // ← Continue with "Stay signed in?" handling
 ```
 
+**Implementation Reference:**
+- File: `iOSCharmanderUITests/Infrastructure/CommonOperation.swift`
+- Lines: 204-209 (handlePasskeyDialogIfNeeded function)
+- Lines: 218 (call in execution flow)
+
 **History:**
-- **2025-12**: Passkey dialog introduced
-- **Prior:** "Stay signed in?" dialog was shown
-- **Trend:** Microsoft frequently updates auth UI
+- **2025-12-03**: Passkey dialog discovered in CI test failures - Fixed in change `fix-uitest-failures-2025-12-03`
+- **2025-12**: Passkey dialog introduced by Microsoft
+- **Prior**: "Stay signed in?" dialog was shown
+- **Trend**: Microsoft frequently updates auth UI
 
 **Monitoring:** Check monthly if behavior changed
 
@@ -278,10 +287,10 @@ changes/fix-sso-passkey-handling/
 
 ### Historical Changes
 
-| Date | Service | Change | Impact |
-|------|---------|--------|--------|
-| 2025-12 | Microsoft SSO | Added passkey dialog | testSignInWithSSO_Success failed |
-| [Add future changes] | | | |
+| Date | Service | Change | Impact | OpenSpec Change |
+|------|---------|--------|--------|----------------|
+| 2025-12-03 | Microsoft SSO | Added passkey dialog in simulator | testSignInWithSSO_Success failed | fix-uitest-failures-2025-12-03 |
+| [Add future changes] | | | | |
 
 ## Troubleshooting Guide
 
