@@ -452,3 +452,151 @@ openspec archive <change-id> [--yes|-y]  # Mark complete (add --yes for automati
 ```
 
 Remember: Specs are truth. Changes are proposals. Keep them in sync.
+
+## UITest Development Workflow
+
+### Context for UITest Tasks
+
+When implementing or fixing UITests, follow this workflow:
+
+**Read in order:**
+1. **`openspec/project.md` (lines 263-340)** - UITest conventions, patterns, and principles
+2. **`uitest-automation/PROJECT.md`** - Infrastructure overview and two modes of operation
+3. **`uitest-automation/test-specs/`** - Concrete resources:
+   - `ui-identifiers.md` - Accessibility IDs for UI elements
+   - `test-data.md` - Test accounts and data in UAT environment
+   - `timing-guidelines.md` - Timeout values and wait strategies
+   - `external-dependencies.md` - Known external service behaviors
+
+**Information Hierarchy:**
+- `project.md` → HOW (methodology, patterns, conventions)
+- `uitest-automation/` → WHAT (concrete data, IDs, timeouts)
+- Test code → IMPLEMENTATION
+
+### Writing New UITests
+
+**Workflow:**
+1. **Understand feature** - Read feature spec from `specs/[capability]/spec.md`
+2. **Check test-specs/** - See what resources already exist (IDs, test data, patterns)
+3. **Explore with simulator-mcp:**
+   - Launch app: `mcp__ios-simulator__launch_app`
+   - Navigate to feature: `ui_tap`, `ui_type`, `ui_swipe`
+   - Discover elements: `ui_describe_all()`
+   - Document: `screenshot()`, `ui_view()`
+4. **Document discoveries** - Add new IDs to `test-specs/ui-identifiers.md`
+5. **Implement test** - Follow patterns from `project.md`
+6. **Update knowledge base** - Add timing data, test data requirements to test-specs/
+
+**Task Planning Template:**
+```markdown
+## 1. Feature Exploration
+- [ ] 1.1 Read feature spec: specs/[capability]/spec.md
+- [ ] 1.2 Launch app and navigate to feature
+- [ ] 1.3 Use ui_describe_all() to discover accessibility IDs
+- [ ] 1.4 Screenshot key states
+
+## 2. Knowledge Base Check
+- [ ] 2.1 Check ui-identifiers.md for existing IDs
+- [ ] 2.2 Check test-data.md for required accounts/data
+- [ ] 2.3 Check timing-guidelines.md for timeout patterns
+
+## 3. Test Implementation
+- [ ] 3.1 Create test file following naming convention
+- [ ] 3.2 Implement test following project.md patterns
+- [ ] 3.3 Use UATHelper methods for waits
+- [ ] 3.4 Add assertions for testing criteria
+
+## 4. Knowledge Base Updates
+- [ ] 4.1 Add discovered IDs to ui-identifiers.md
+- [ ] 4.2 Document test data requirements in test-data.md
+- [ ] 4.3 Record timing observations in timing-guidelines.md
+```
+
+### Fixing Failed UITests
+
+**Workflow:**
+1. **Fetch results** - Run `analyze_uitest_failures.sh -d today`
+2. **Review analysis:**
+   - Read `ANALYSIS_REPORT.md` - High-level summary
+   - View `attachments/*.png` - Screenshots show actual UI state
+   - Check `test_failures.json` - Detailed error messages
+3. **Categorize failure:**
+   - **External dependency** - Check `external-dependencies.md`, may need to update
+   - **Timing issue** - Check `timing-guidelines.md`, adjust timeouts
+   - **Test bug** - Wrong ID, incorrect assertion, needs fix
+   - **App change** - Feature changed, test needs update
+4. **Apply fix:**
+   - For external changes: Create OpenSpec proposal documenting the change
+   - For test bugs: Fix directly and commit
+   - For timing: Update test and timing-guidelines.md
+5. **Document pattern** - Update test-specs/ if it reveals new information
+
+**Decision Tree:**
+```
+UITest failure?
+├─ External service changed (SSO UI, API endpoint)
+│  └─ Create OpenSpec proposal to document change
+│     └─ Update external-dependencies.md
+│     └─ Update affected tests
+├─ Timing too short
+│  └─ Fix directly
+│     └─ Update timing-guidelines.md with observed values
+├─ Test code bug (wrong ID, bad assertion)
+│  └─ Fix directly
+│     └─ Update ui-identifiers.md if ID was wrong
+└─ Feature changed
+   └─ Check if spec updated
+      ├─ Yes → Update test to match spec
+      └─ No → Ask if this was intentional change
+```
+
+### UITest OpenSpec Changes
+
+**When to create proposal:**
+- External dependency behavior changed (e.g., Microsoft SSO now shows passkey dialog)
+- New external service integration
+- Testing framework upgrade
+- CI environment changes
+
+**When to fix directly:**
+- Test code bugs (wrong element ID, incorrect assertion)
+- Timing adjustments based on empirical data
+- Test data setup issues
+- Documentation updates in test-specs/
+
+**UITest Change Template:**
+```markdown
+## Why
+[External service changed / New feature needs testing / Framework upgrade]
+
+## What Changes
+- Update test to handle [new behavior]
+- Document [new pattern] in test-specs/
+- [Breaking if test API changes]
+
+## Impact
+- Affected specs: [capability being tested]
+- Affected tests: [specific test files]
+- Affected docs: [which test-specs/ files need updates]
+```
+
+### Key Conventions
+
+**File References:**
+- Specs: `specs/[capability]/spec.md`
+- Test code: `iOSCharmanderUITests/[Feature]UITest.swift`
+- Test resources: `uitest-automation/test-specs/[file].md`
+
+**Test Naming:**
+- Pattern: `test[Feature]_[Scenario]_[ExpectedOutcome]()`
+- Example: `testSignInWithSSO_ValidCredentials_Success()`
+
+**Accessibility Identifiers:**
+- Pattern: `{feature}_{element_type}[_{descriptor}]`
+- Example: `floor_plan_search`, `cameraMarker_IB9365-001`
+
+**Wait Strategy:**
+- Always use `UATHelper` methods (waitElementToAppear, waitElementToDisappear, waitElementToTap)
+- Default timeout: 10 seconds (sufficient for most operations)
+- Override only when empirically proven necessary
+- Document timeout decisions in timing-guidelines.md
