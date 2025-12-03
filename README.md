@@ -114,4 +114,3 @@ git push
 ## 相關連結
 
 - 主專案: [iOSCharmander](https://github.com/VIVOTEK/iOSCharmander)
-- 管理方案說明: 請參考主專案的 `AI_SPECS_MANAGEMENT_PROPOSAL.md`
