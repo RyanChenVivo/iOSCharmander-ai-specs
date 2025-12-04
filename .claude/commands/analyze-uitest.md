@@ -53,9 +53,55 @@ For each failed test:
    - App behavior changed?
    - Test data issue?
 
-## Step 4: Create OpenSpec Change Proposals
+## Step 4: Verify Test Status Before Creating Proposals
 
-For each distinct issue found, create an OpenSpec change proposal using:
+**IMPORTANT**: Before creating any OpenSpec proposals, verify each failed test hasn't been fixed or doesn't already have a fix plan.
+
+For each failed test, check:
+
+### 4.1: Check Existing OpenSpec Proposals
+
+```bash
+# List all change proposals
+openspec list:change
+
+# Search for related proposals
+openspec list:change | grep -i "uitest\|test\|{test-name}"
+```
+
+**Decision logic**:
+- ✅ **No matching proposal found** → Safe to create new proposal
+- ⚠️ **Found `proposal` status** → Already has fix plan, DO NOT create duplicate
+- ✅ **Found `deployed` status** → Was fixed but might have regressed, safe to create new proposal
+
+### 4.2: Check Git History
+
+```bash
+# Check commits since the test failure date
+git log --since="{failure-date}" --grep="test\|uitest\|fix\|{test-name}" --oneline
+
+# Check if test file was modified
+git log --since="{failure-date}" --oneline -- "*UITests*/*{test-name}*"
+```
+
+**Decision logic**:
+- If recent commits mention the test → Might be fixed, mark as "⚠️ Needs Review"
+- If test file was modified → Likely being worked on, mark as "⚠️ Needs Review"
+- No related commits → Safe to create proposal
+
+### 4.3: Categorize Each Failed Test
+
+After verification, categorize each test:
+
+1. **🟢 CREATE_PROPOSAL** - No existing plan, no recent fixes
+2. **🟡 NEEDS_REVIEW** - Has related commits but no OpenSpec, might be fixed outside workflow
+3. **🔴 SKIP_DUPLICATE** - Already has OpenSpec proposal in progress
+
+**Only create proposals for tests marked as CREATE_PROPOSAL.**
+
+## Step 5: Create OpenSpec Change Proposals
+
+For each test categorized as **CREATE_PROPOSAL**, create an OpenSpec change proposal using:
 
 ```
 /openspec:proposal
@@ -73,7 +119,7 @@ When creating the proposal:
 - **Scope**: List the affected test files
 - **Testing**: Describe how to verify the fix
 
-## Step 5: Summarize Findings
+## Step 6: Summarize Findings
 
 Provide a summary report:
 
@@ -85,9 +131,16 @@ Provide a summary report:
 **Failed**: {failed}
 **Passed**: {passed}
 
-## Failed Tests
+## Failed Tests Status
 
-{List each failed test with brief description}
+### 🟢 Tests Needing New Proposals ({count})
+{List tests marked as CREATE_PROPOSAL}
+
+### 🟡 Tests Needing Review ({count})
+{List tests marked as NEEDS_REVIEW with reason}
+
+### 🔴 Tests with Existing Plans ({count})
+{List tests marked as SKIP_DUPLICATE with existing proposal reference}
 
 ## Root Causes Identified
 
@@ -95,11 +148,13 @@ Provide a summary report:
 
 ## OpenSpec Proposals Created
 
-{List the proposals created}
+{List the proposals actually created}
 
 ## Recommended Next Steps
 
-{Priority order for fixing}
+1. Review tests marked as NEEDS_REVIEW
+2. Implement fixes for created proposals
+3. {Other priority actions}
 ```
 
 ## Important Notes
