@@ -15,11 +15,12 @@
 - [ ] 2.5 Document expected door status in test comments
 
 ## 3. Fix testLicenseGracePeriod (Priority: Medium)
-- [ ] 3.1 Review license phase behavior specification for grace period
-- [ ] 3.2 Determine if camera settings button should be enabled or disabled during grace period
-- [ ] 3.3 Update test assertion at `LicensePhaseUITest.swift:43` to match actual expected behavior
-- [ ] 3.4 Run all LicensePhaseUITest tests to ensure consistency (`testLicenseNotice`, `testLicenseOverdue`)
-- [ ] 3.5 Document correct license phase behavior in test comments
+- [x] 3.1 Add `continueAfterFailure = false` in `setUpWithError()` to stop test immediately on first assertion failure
+- [x] 3.2 Identify exact failing assertion from error log: `LicensePhaseUITest.swift:65: XCTAssertTrue failed`
+- [x] 3.3 Fix banner value assertion at line 67 - grace period uses `alertStyle`, not `dangerStyle`
+- [x] 3.4 Refactor `switchLicensePhase` to use switch statement for clarity (handles all three phases explicitly)
+- [ ] 3.5 Run all LicensePhaseUITest tests to ensure consistency (`testLicenseNotice`, `testLicenseGracePeriod`, `testLicenseOverdue`)
+- [ ] 3.6 Verify tests pass consistently (run 3 times minimum)
 
 ## 4. Validation
 - [ ] 4.1 Run full UITest suite locally to ensure no regressions

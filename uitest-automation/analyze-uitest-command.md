@@ -84,19 +84,52 @@ If you find similar issues:
 
 ## Step 5: Analyze Failures
 
-For each failed test:
+For each failed test, follow this diagnostic process:
 
-1. **Identify the test file** in `/Users/ryanchen/code/VIVOTEK/iOSCharmander/iOSCharmanderUITests/`
-2. **Read the test code** to understand what it's testing
-3. **Examine failure screenshots** to see the actual UI state
-4. **Compare expected vs actual behavior**
-5. **Determine root cause**:
-   - UI element not found (identifier changed?)
-   - Timing issue (element not loaded yet?)
-   - Test assertion incorrect?
-   - App behavior changed?
-   - Test data issue?
-6. **Check historical patterns** - Did we see this before?
+### 5.1 Extract Error Information (in order of detail)
+
+1. **Read test_failures.json**: Get general error message
+   - Example: `"XCTAssertTrue failed"` or `"Element not found"`
+   - This may be too generic - proceed to next step
+
+2. **Read test_details.json**: Get **exact failure location with line numbers**
+   - Look for the failed test's detail node
+   - Extract the detailed error: e.g., `"LicensePhaseUITest.swift:65: XCTAssertTrue failed"`
+   - **This is crucial** - it tells you exactly which line failed
+
+3. **Examine failure screenshots**: See the actual UI state at time of failure
+   - Find screenshots in `attachments/` directory
+   - Use `manifest.json` to match screenshots to failed test
+   - Screenshot shows ground truth of what the UI looked like
+
+4. **Read test source code**: Understand the test logic
+   - Identify the test file in `/Users/ryanchen/code/VIVOTEK/iOSCharmander/iOSCharmanderUITests/`
+   - Go to the exact line number from step 2
+   - Understand what the assertion is checking
+   - Read surrounding code for context
+
+### 5.2 Determine Root Cause
+
+Compare all evidence sources:
+- **Error message** (what failed)
+- **Line number** (where it failed)
+- **Screenshot** (UI state when it failed)
+- **Test code** (what was expected)
+
+Common root causes:
+   - **UI element not found**: Identifier changed? Element not displayed? Wrong timing?
+   - **Assertion mismatch**: Test expects wrong value (e.g., wrong banner style)
+   - **Timing issue**: Element not loaded yet? Animation not complete?
+   - **App behavior changed**: Feature updated but test not updated?
+   - **Test data issue**: UAT environment data changed?
+   - **External dependency**: SSO provider changed UI? API response different?
+
+### 5.3 Verify Root Cause
+
+1. Read related app source code to confirm expected behavior
+2. Check if test expectations match actual implementation
+3. Look for recent changes in git history that might explain the failure
+4. Check historical patterns in Step 4 - have we seen this before?
 
 ## Step 6: Create OpenSpec Change Proposals
 
