@@ -4,7 +4,9 @@ You are an expert iOS UITest analyzer. Your task is to:
 
 1. **Fetch and analyze UITest results from CI machine**
 2. **Identify failed tests and root causes**
-3. **Create OpenSpec change proposals for fixes**
+3. **⚠️ Verify tests haven't been fixed (check git & openspec)**
+4. **Create analysis report MD file**
+5. **Create OpenSpec change proposals if needed**
 
 ## Step 1: Fetch UITest Results
 
@@ -53,7 +55,13 @@ For each failed test:
    - App behavior changed?
    - Test data issue?
 
-## Step 4: Verify Test Status Before Creating Proposals
+---
+**⚠️ STOP HERE** - Before proceeding to create proposals, you MUST complete Step 4 to avoid duplicate work.
+---
+
+## ⚠️ Step 4: CRITICAL - Verify Test Status Before Creating Proposals
+
+**🛑 DO NOT SKIP THIS STEP** - Many test failures are already fixed but haven't appeared in CI yet due to timing.
 
 **IMPORTANT**: Before creating any OpenSpec proposals, verify each failed test hasn't been fixed or doesn't already have a fix plan.
 
@@ -93,15 +101,66 @@ git log --since="{failure-date}" --oneline -- "*UITests*/*{test-name}*"
 
 After verification, categorize each test:
 
-1. **🟢 CREATE_PROPOSAL** - No existing plan, no recent fixes
-2. **🟡 NEEDS_REVIEW** - Has related commits but no OpenSpec, might be fixed outside workflow
-3. **🔴 SKIP_DUPLICATE** - Already has OpenSpec proposal in progress
+1. **⏰ FIXED_BUT_NOT_YET_TESTED** - Has recent fix commits after CI test time
+2. **🔴 HAS_EXISTING_PROPOSAL** - Already has OpenSpec proposal in progress
+3. **🟢 NEEDS_FIX** - No existing plan, no recent fixes, needs OpenSpec proposal
 
-**Only create proposals for tests marked as CREATE_PROPOSAL.**
+## Step 5: Create Analysis Report
 
-## Step 5: Create OpenSpec Change Proposals
+Create a markdown report file in `~/Downloads/UITestAnalysis/{DATE}/CLAUDE_ANALYSIS.md` with:
 
-For each test categorized as **CREATE_PROPOSAL**, create an OpenSpec change proposal using:
+```markdown
+# UITest Analysis Report - {DATE}
+
+Generated: {timestamp}
+
+## Summary
+- **Total Tests**: {total}
+- **Passed**: {passed}
+- **Failed**: {failed}
+- **Success Rate**: {percentage}%
+
+## Failed Tests Analysis
+
+### ⏰ Fixed But Not Yet Tested ({count})
+{List tests with recent fixes, expected to pass in next CI run}
+
+### 🔴 Has Existing Proposal ({count})
+{List tests with existing OpenSpec proposals}
+
+### 🟢 Needs Fix ({count})
+{List tests that need new OpenSpec proposals with root cause analysis}
+
+## Comparison with Previous Run
+- Fixed since last run: {list}
+- New failures: {list}
+- Persistent failures: {list}
+
+## Detailed Analysis
+{For each failed test, include:
+- Test name and file path
+- Failure message
+- Root cause analysis
+- Screenshots (if relevant)
+- Proposed fix approach}
+
+## Recommended Actions
+{Prioritized list of next steps}
+```
+
+## Step 6: Ask User for Confirmation
+
+After creating the analysis report, **ask the user**:
+
+> 已完成分析報告：`~/Downloads/UITestAnalysis/{DATE}/CLAUDE_ANALYSIS.md`
+>
+> 發現 {N} 個測試需要修復。是否要為這些測試建立 OpenSpec change proposals？
+
+**Wait for user confirmation before proceeding to Step 7.**
+
+## Step 7: Create OpenSpec Change Proposals (If User Confirms)
+
+Only proceed if user confirms. For each test categorized as **NEEDS_FIX**, create an OpenSpec change proposal using:
 
 ```
 /openspec:proposal
@@ -109,7 +168,7 @@ For each test categorized as **CREATE_PROPOSAL**, create an OpenSpec change prop
 
 When creating the proposal:
 
-- **Title**: `fix-uitest-{test-name}` (e.g., `fix-uitest-floor-plan-camera-selection`)
+- **Title**: `fix-uitest-{test-name}` (e.g., `fix-uitest-cloud-playback-speed`)
 - **Type**: `fix` (since we're fixing broken tests)
 - **Description**: Clearly explain:
   - Which test(s) are failing
@@ -118,44 +177,6 @@ When creating the proposal:
   - Proposed fix approach
 - **Scope**: List the affected test files
 - **Testing**: Describe how to verify the fix
-
-## Step 6: Summarize Findings
-
-Provide a summary report:
-
-```markdown
-# UITest Analysis Summary
-
-**Date**: {date}
-**Total Tests**: {total}
-**Failed**: {failed}
-**Passed**: {passed}
-
-## Failed Tests Status
-
-### 🟢 Tests Needing New Proposals ({count})
-{List tests marked as CREATE_PROPOSAL}
-
-### 🟡 Tests Needing Review ({count})
-{List tests marked as NEEDS_REVIEW with reason}
-
-### 🔴 Tests with Existing Plans ({count})
-{List tests marked as SKIP_DUPLICATE with existing proposal reference}
-
-## Root Causes Identified
-
-{Categorize failures by root cause}
-
-## OpenSpec Proposals Created
-
-{List the proposals actually created}
-
-## Recommended Next Steps
-
-1. Review tests marked as NEEDS_REVIEW
-2. Implement fixes for created proposals
-3. {Other priority actions}
-```
 
 ## Important Notes
 

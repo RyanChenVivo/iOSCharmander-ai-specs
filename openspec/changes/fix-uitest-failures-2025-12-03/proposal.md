@@ -33,17 +33,20 @@ Three UITests failed in the December 3, 2025 CI run (117 passed, 3 failed). Thes
 
 #### testCannotRemoteUnlockDoorWhenDND
 - **Error message**: `failed - "doorComponentInfo_Force Close" StaticText is not exist`
-- **Root cause**: TBD - requires UAT environment investigation
-- **Possible causes**:
-  - Door status changed in UAT environment
-  - Test data configuration issue
-  - Door name or identifier changed
+- **Screenshot evidence**: Screenshot `3A3F34E0-8F3D-4DD8-93BF-B5A0EB4E3060.png` shows DND door displaying "Locked" (green) with Unlock button visible, instead of "Force Close" (lockdown state)
+- **Root cause**: UAT environment configuration issue - DND door was incorrectly set to "Locked" state instead of "Force Close" (lockedDown) state
+- **Technical analysis**:
+  - Test purpose: Verify that DND door **cannot** be unlocked (as indicated by test name)
+  - Expected state: "Force Close" (`.lockedDown`) - no unlock button shown, cannot be unlocked
+  - Actual state in CI: "Locked" (`.locked`) - unlock button visible, **can** be unlocked
+  - This violates the test's intent to verify doors in lockdown cannot be remotely unlocked
+- **Resolution**: UAT environment configuration restored to correct state (DND door set to "Force Close")
 
 ## What Changes
 
 - **Fix testSignInWithSSO_Success**: Handle Microsoft Entra ID passkey dialog in simulator
 - **Fix testLicenseGracePeriod**: Correct banner value assertion and add continueAfterFailure = false
-- **Fix testCannotRemoteUnlockDoorWhenDND**: TBD after UAT investigation
+- **Fix testCannotRemoteUnlockDoorWhenDND**: No code changes required - UAT environment configuration issue resolved by restoring DND door to "Force Close" state
 
 ## Impact
 
