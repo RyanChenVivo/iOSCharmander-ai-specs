@@ -11,31 +11,82 @@ You are an expert iOS UITest analyzer. Your task is to:
 Run the analysis script to fetch today's CI test results:
 
 ```bash
-# Get the script directory relative to this AI specs repo
-SCRIPT_DIR="$(git rev-parse --show-toplevel)/Scripts"
-$SCRIPT_DIR/analyze_uitest_failures.sh -d today
+cd /Users/ryanchen/code/VIVOTEK/iOSCharmander-ai-specs
+./uitest-automation/analyze_uitest_failures.sh -d today
 ```
 
 If the script fails, try fetching a specific date:
 ```bash
-$SCRIPT_DIR/analyze_uitest_failures.sh -d 2025-12-03
+./uitest-automation/analyze_uitest_failures.sh -d 2025-12-03
 ```
 
-## Step 2: Load Analysis Results
+## Step 2: Check for Test Failures
 
-After the script completes, add the analysis directory to your context:
+**IMPORTANT:** Before proceeding, check if there are any test failures:
 
-1. Read the analysis report: `~/Downloads/UITestAnalysis/ANALYSIS_REPORT.md`
-2. If there are failures, read:
-   - `~/Downloads/UITestAnalysis/test_failures.json`
-   - `~/Downloads/UITestAnalysis/test_details.json`
-   - Screenshots in `~/Downloads/UITestAnalysis/attachments/`
+```bash
+# Find the latest analysis directory
+LATEST_DIR=$(ls -td ~/Downloads/UITestAnalysis/*/ | head -1)
 
-## Step 3: Analyze Failures
+# Check failure count
+FAILED_COUNT=$(jq -r '.failedTests' "${LATEST_DIR}test_summary.json")
+
+if [ "$FAILED_COUNT" -eq 0 ]; then
+  echo "✅ All tests passed! No failures to analyze."
+  exit 0
+fi
+
+echo "Found $FAILED_COUNT failed test(s). Proceeding with analysis..."
+```
+
+**Decision Point:**
+- If `failedTests == 0` → **STOP HERE** and report: "All tests passed successfully! ✅ No action needed."
+- If `failedTests > 0` → **Continue to Step 3**
+
+## Step 3: Load Failure Analysis Results
+
+After confirming there are failures, read the analysis data:
+
+1. **Read test summary first:**
+   ```bash
+   cat ~/Downloads/UITestAnalysis/*/test_summary.json
+   ```
+
+2. **Read failure details:**
+   - `~/Downloads/UITestAnalysis/*/test_failures.json` - Failure messages
+   - `~/Downloads/UITestAnalysis/*/test_details.json` - Full test tree
+   - `~/Downloads/UITestAnalysis/*/failed_test_ids.txt` - Failed test IDs
+
+3. **Check screenshots:**
+   - Look in `~/Downloads/UITestAnalysis/*/attachments/` for visual evidence
+
+## Step 4: Search Historical Fixes (Optional but Recommended)
+
+Before analyzing, search `openspec/archive/` for similar historical issues:
+
+```bash
+cd /Users/ryanchen/code/VIVOTEK/iOSCharmander-ai-specs
+
+# Search by error message pattern
+grep -r "StaticText is not exist" openspec/archive/*/proposal.md
+
+# Search by test class
+grep -r "AccessControlMessageUITest" openspec/archive/*/proposal.md
+
+# Search by error pattern tag
+grep -r "Error Pattern:" openspec/archive/*/proposal.md
+```
+
+If you find similar issues:
+- Review the previous diagnosis and solution
+- Reference the archived change in your new proposal
+- Reuse successful fix strategies
+
+## Step 5: Analyze Failures
 
 For each failed test:
 
-1. **Identify the test file** in `{iOSCharmander}/iOSCharmanderUITests/` (use relative path from config)
+1. **Identify the test file** in `/Users/ryanchen/code/VIVOTEK/iOSCharmander/iOSCharmanderUITests/`
 2. **Read the test code** to understand what it's testing
 3. **Examine failure screenshots** to see the actual UI state
 4. **Compare expected vs actual behavior**
@@ -45,8 +96,9 @@ For each failed test:
    - Test assertion incorrect?
    - App behavior changed?
    - Test data issue?
+6. **Check historical patterns** - Did we see this before?
 
-## Step 4: Create OpenSpec Change Proposals
+## Step 6: Create OpenSpec Change Proposals
 
 For each distinct issue found, create an OpenSpec change proposal using the slash command:
 
@@ -56,17 +108,36 @@ For each distinct issue found, create an OpenSpec change proposal using the slas
 
 When creating the proposal:
 
-- **Title**: `fix-uitest-{test-name}` (e.g., `fix-uitest-floor-plan-camera-selection`)
+- **Title**: `fix-uitest-{test-name}` (e.g., `fix-uitest-access-control-door-status`)
 - **Type**: `fix` (since we're fixing broken tests)
-- **Description**: Clearly explain:
-  - Which test(s) are failing
-  - What the failure symptoms are
-  - Root cause analysis
-  - Proposed fix approach
+- **Description Template**:
+  ```markdown
+  ## Test Failure Analysis
+
+  **Failed Test:** {TestClass}/{testMethod}
+  **Error Message:** {from test_failures.json}
+  **Error Pattern:** {UI_ELEMENT_NOT_FOUND | ASSERTION_FAILED | EXTERNAL_CHANGE | TIMING_ISSUE}
+  **Screenshots:** {list attachment paths}
+
+  ## Root Cause
+  {Your analysis based on test code, screenshots, and error messages}
+
+  ## Historical Context
+  {If found similar issue in archive, reference it here}
+  **Related Changes:** {link to openspec/archive/similar-change/}
+
+  ## Proposed Solution
+  {How to fix the test}
+
+  ## Prevention
+  {How to avoid similar issues in the future}
+  ```
 - **Scope**: List the affected test files
 - **Testing**: Describe how to verify the fix
 
-## Step 5: Summarize Findings
+**Important:** Include enough diagnostic information so that when this proposal is archived, it becomes a useful reference for future similar issues.
+
+## Step 7: Summarize Findings
 
 Provide a summary report:
 
