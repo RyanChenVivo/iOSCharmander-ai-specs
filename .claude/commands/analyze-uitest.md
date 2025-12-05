@@ -1,192 +1,252 @@
-# Analyze UITest Results and Create Fix Tasks
+# Analyze UITest Failures with Triage
 
-You are an expert iOS UITest analyzer. Your task is to:
+You are tasked with analyzing UITest failures from CI, performing triage to determine if action is needed, and conditionally creating an OpenSpec proposal for fixes.
 
-1. **Fetch and analyze UITest results from CI machine**
-2. **Identify failed tests and root causes**
-3. **⚠️ Verify tests haven't been fixed (check git & openspec)**
-4. **Create analysis report MD file**
-5. **Create OpenSpec change proposals if needed**
+## Your Mission
 
-## Step 1: Fetch UITest Results
+1. **Download test data from CI** (lightweight JSON files only)
+2. **Triage analysis** - Determine if failures need immediate attention
+3. **Ask user for decision** - Create proposal, download screenshots, observe, or ignore
+4. **Create OpenSpec proposal** (only if user decides to proceed)
 
-Run the analysis script to fetch today's CI test results:
+## Step 1: Download Test Data from CI (Lightweight)
 
-```bash
-# Navigate to AI specs repo and run the script
-cd ../iOSCharmander-ai-specs
-./uitest-automation/analyze_uitest_failures.sh -d today
-```
-
-If the script fails, try fetching a specific date:
-```bash
-./uitest-automation/analyze_uitest_failures.sh -d 2025-12-03
-```
-
-## Step 2: Load Analysis Results
-
-After the script completes, the results will be in a date-based directory.
-Find the latest analysis:
+Use the download script to get JSON files only (fast, ~100KB):
 
 ```bash
-# Find the most recent analysis directory
-ls -lt ~/Downloads/UITestAnalysis/ | head -5
+cd /path/to/iOSCharmander-ai-specs/uitest-automation
+./download_test_data.sh
 ```
 
-Then read:
-1. `~/Downloads/UITestAnalysis/{DATE}/ANALYSIS_REPORT.md`
-2. If there are failures:
-   - `~/Downloads/UITestAnalysis/{DATE}/test_failures.json`
-   - `~/Downloads/UITestAnalysis/{DATE}/test_details.json`
-   - Screenshots in `~/Downloads/UITestAnalysis/{DATE}/attachments/`
+**What you'll get:**
+- `test_summary.json` - Overall test results
+- `test_details.json` - Detailed info with exact line numbers
+- `test_failures.json` - Failure details (only if tests failed)
+- `failed_test_ids.txt` - List of failed test IDs
+- `metadata.json` - Extraction metadata
 
-## Step 3: Analyze Failures
+**Note:** Screenshots and diagnostics are NOT downloaded at this stage. They can be downloaded later if needed for deeper analysis.
 
-For each failed test:
+## Step 2: AI Triage Analysis
 
-1. **Identify the test file** in `iOSCharmanderUITests/`
-2. **Read the test code** to understand what it's testing
-3. **Examine failure screenshots** to see the actual UI state
-4. **Compare expected vs actual behavior**
-5. **Determine root cause**:
-   - UI element not found (identifier changed?)
-   - Timing issue (element not loaded yet?)
-   - Test assertion incorrect?
-   - App behavior changed?
-   - Test data issue?
+**IMPORTANT:** This step is performed by AI (Claude), not automated scripts. AI reads multiple sources and makes professional judgments based on context and historical knowledge.
 
----
-**⚠️ STOP HERE** - Before proceeding to create proposals, you MUST complete Step 4 to avoid duplicate work.
----
+### 2.1 Check for Failures
 
-## ⚠️ Step 4: CRITICAL - Verify Test Status Before Creating Proposals
-
-**🛑 DO NOT SKIP THIS STEP** - Many test failures are already fixed but haven't appeared in CI yet due to timing.
-
-**IMPORTANT**: Before creating any OpenSpec proposals, verify each failed test hasn't been fixed or doesn't already have a fix plan.
-
-For each failed test, check:
-
-### 4.1: Check Existing OpenSpec Proposals
+First, check if there are any failures to analyze:
 
 ```bash
-# List all change proposals
-openspec list:change
-
-# Search for related proposals
-openspec list:change | grep -i "uitest\|test\|{test-name}"
+cd "$HOME/Downloads/UITestAnalysis/latest"
+jq -r '.failedTests' metadata.json
 ```
 
-**Decision logic**:
-- ✅ **No matching proposal found** → Safe to create new proposal
-- ⚠️ **Found `proposal` status** → Already has fix plan, DO NOT create duplicate
-- ✅ **Found `deployed` status** → Was fixed but might have regressed, safe to create new proposal
+If 0 failures, stop here. Otherwise, proceed with triage.
 
-### 4.2: Check Git History
+### 2.2 Information Sources for Analysis
 
-```bash
-# Check commits since the test failure date
-git log --since="{failure-date}" --grep="test\|uitest\|fix\|{test-name}" --oneline
+AI should read and analyze the following sources:
 
-# Check if test file was modified
-git log --since="{failure-date}" --oneline -- "*UITests*/*{test-name}*"
-```
+#### Source 1: Test Failure Data (Downloaded)
+- **Location**: `$HOME/Downloads/UITestAnalysis/latest/`
+- **Files**:
+  - `test_failures.json` - Error messages and failure text
+  - `test_details.json` - Exact line numbers and detailed test info
+  - `metadata.json` - Test summary and statistics
+  - `test_summary.json` - Overall results
 
-**Decision logic**:
-- If recent commits mention the test → Might be fixed, mark as "⚠️ Needs Review"
-- If test file was modified → Likely being worked on, mark as "⚠️ Needs Review"
-- No related commits → Safe to create proposal
+#### Source 2: Test Source Code
+- **Location**: `/path/to/iOSCharmander/iOSCharmanderUITests/`
+- **Purpose**: Understand test intent and what was expected
+- **How**: Use line numbers from `test_details.json` to find exact failing code
 
-### 4.3: Categorize Each Failed Test
+#### Source 3: External Dependencies Knowledge
+- **Location**: `/path/to/iOSCharmander-ai-specs/uitest-automation/test-specs/external-dependencies.md`
+- **Purpose**: Check if failure matches known external service issues
+- **Key Information**:
+  - Microsoft SSO known behaviors (passkey dialog, timeouts)
+  - UAT Backend patterns (Monday slowness, rate limiting)
+  - Device connectivity issues
+  - Network and simulator limitations
+  - Historical changes to external services
 
-After verification, categorize each test:
+#### Source 4: Historical Fixes
+- **Location**: `/path/to/iOSCharmander-ai-specs/openspec/archive/`
+- **Purpose**: Find similar past failures and their solutions
+- **How**: Search for:
+  - Similar error patterns
+  - Same test class names
+  - Similar symptoms
 
-1. **⏰ FIXED_BUT_NOT_YET_TESTED** - Has recent fix commits after CI test time
-2. **🔴 HAS_EXISTING_PROPOSAL** - Already has OpenSpec proposal in progress
-3. **🟢 NEEDS_FIX** - No existing plan, no recent fixes, needs OpenSpec proposal
+### 2.3 Triage Analysis Process
 
-## Step 5: Create Analysis Report
+For each failed test, AI should determine:
 
-Create a markdown report file in `~/Downloads/UITestAnalysis/{DATE}/CLAUDE_ANALYSIS.md` with:
+#### Step 2.3.1: Read the Failure
+- Test name and identifier
+- Error message from `test_failures.json`
+- Exact line number from `test_details.json`
+
+#### Step 2.3.2: Read Test Source Code
+- What does the test expect?
+- What assertion failed?
+- What UI element or behavior is being tested?
+
+#### Step 2.3.3: Check External Dependencies
+- Does the error match a known external service issue?
+- Is it Monday morning? (Backend slowness)
+- Does it involve SSO? (Check for new Microsoft/Google changes)
+- Could it be network or simulator-related?
+
+#### Step 2.3.4: Search Historical Fixes
+- Has this test failed before?
+- Are there similar error patterns in the archive?
+- What was the solution last time?
+
+#### Step 2.3.5: Categorize the Failure
+
+Based on analysis, categorize as:
+
+1. **Environment Issue**
+   - Simulator not starting properly
+   - CI machine resource problems
+   - Network connectivity issues
+   - Recommendation: Usually transient, observe tomorrow
+
+2. **External Service Issue**
+   - Microsoft SSO changed behavior
+   - Backend API timeout or down
+   - Device offline
+   - Recommendation: Check external-dependencies.md, may need test update
+
+3. **Timing/Flaky Test**
+   - Race condition
+   - Insufficient wait time
+   - Network delay
+   - Recommendation: If happens once, observe. If consistent, needs fix.
+
+4. **Real Code/Test Bug**
+   - Assertion logic wrong
+   - App behavior changed
+   - UI element changed
+   - Recommendation: Needs investigation and fix
+
+5. **Known Issue**
+   - Already documented in external-dependencies.md
+   - Acceptable failure
+   - Recommendation: May not need action
+
+### 2.4 Generate Triage Report
+
+AI should create a triage report (`triage_report.md`) containing:
 
 ```markdown
-# UITest Analysis Report - {DATE}
+# UITest Failure Triage Report - [DATE]
 
-Generated: {timestamp}
-
-## Summary
-- **Total Tests**: {total}
-- **Passed**: {passed}
-- **Failed**: {failed}
-- **Success Rate**: {percentage}%
+## Test Summary
+- Total tests: X
+- Passed: Y
+- Failed: Z
 
 ## Failed Tests Analysis
 
-### ⏰ Fixed But Not Yet Tested ({count})
-{List tests with recent fixes, expected to pass in next CI run}
+### Test: [TestClass/testMethod]
 
-### 🔴 Has Existing Proposal ({count})
-{List tests with existing OpenSpec proposals}
-
-### 🟢 Needs Fix ({count})
-{List tests that need new OpenSpec proposals with root cause analysis}
-
-## Comparison with Previous Run
-- Fixed since last run: {list}
-- New failures: {list}
-- Persistent failures: {list}
-
-## Detailed Analysis
-{For each failed test, include:
-- Test name and file path
-- Failure message
-- Root cause analysis
-- Screenshots (if relevant)
-- Proposed fix approach}
-
-## Recommended Actions
-{Prioritized list of next steps}
+**Error Message:**
+```
+[Full error from test_failures.json]
 ```
 
-## Step 6: Ask User for Confirmation
+**Location:** [File:Line from test_details.json]
 
-After creating the analysis report, **ask the user**:
+**Test Intent:** [What the test is trying to verify]
 
-> 已完成分析報告：`~/Downloads/UITestAnalysis/{DATE}/CLAUDE_ANALYSIS.md`
->
-> 發現 {N} 個測試需要修復。是否要為這些測試建立 OpenSpec change proposals？
+**Failure Category:** [Environment/External Service/Timing/Code Bug/Known Issue]
 
-**Wait for user confirmation before proceeding to Step 7.**
+**Analysis:**
+- [What AI found in the test code]
+- [Matches with external-dependencies.md if any]
+- [Similar historical failures if any]
 
-## Step 7: Create OpenSpec Change Proposals (If User Confirms)
+**Root Cause Assessment:**
+[AI's professional judgment on why this failed]
 
-Only proceed if user confirms. For each test categorized as **NEEDS_FIX**, create an OpenSpec change proposal using:
+**Recommendation:**
+- [ ] Create OpenSpec proposal and fix
+- [ ] Download screenshots for visual confirmation
+- [ ] Observe tomorrow (likely transient)
+- [ ] No action needed (known/acceptable issue)
+
+---
+
+## Overall Assessment
+
+[Summary of all failures]
+
+## Recommended Next Steps
+
+[AI's recommendation based on all failures analyzed]
+```
+
+### 2.5 Screenshot Decision
+
+Based on triage analysis, AI determines if screenshots are needed:
+
+- **NOT needed** if: Error message is clear, matches known pattern, or clearly environmental
+- **NEEDED** if: UI-related issue, unclear what happened, or visual confirmation required
+
+If needed, provide download command:
+```bash
+scp -r "vivotekinc@10.15.254.191:/Users/vivotekinc/Documents/CICD/UITestAnalysisData/latest/attachments" "$HOME/Downloads/UITestAnalysis/latest/"
+```
+
+## Step 3: User Decision
+
+After completing triage analysis and generating the report, **ASK THE USER** what they want to do next.
+
+### Decision Options:
+
+**Option A: Create OpenSpec Proposal**
+- User wants to track and fix the issues
+- Proceed to Step 4
+
+**Option B: Download Screenshots for Further Analysis**
+- Error is unclear or UI-related
+- Need visual confirmation before deciding
+- Download screenshots, analyze them, then return to decision
+
+**Option C: Observe Tomorrow**
+- Failure appears transient (flaky test, timing issue)
+- Single occurrence, not critical
+- User wants to see if it happens again
+
+**Option D: No Action**
+- Known issue already documented in external-dependencies.md
+- Acceptable failure (e.g., external service down)
+- Environment issue that resolved itself
+
+### How to Ask
+
+Present the triage report and explicitly ask:
 
 ```
-/openspec:proposal
+Based on the triage analysis above, what would you like to do?
+
+A) Create OpenSpec proposal to track and fix
+B) Download screenshots for visual analysis
+C) Observe tomorrow (wait to see if it repeats)
+D) No action needed
+
+Please choose: A, B, C, or D
 ```
 
-When creating the proposal:
+**IMPORTANT:** Do NOT automatically proceed to create a proposal. Wait for user's explicit decision.
 
-- **Title**: `fix-uitest-{test-name}` (e.g., `fix-uitest-cloud-playback-speed`)
-- **Type**: `fix` (since we're fixing broken tests)
-- **Description**: Clearly explain:
-  - Which test(s) are failing
-  - What the failure symptoms are
-  - Root cause analysis
-  - Proposed fix approach
-- **Scope**: List the affected test files
-- **Testing**: Describe how to verify the fix
+## Step 4: Create OpenSpec Proposal (Conditional)
 
-## Important Notes
+**Only execute this step if user chose Option A.**
 
-- **CI Machine Access**: The script fetches from `vivotekinc@10.15.254.191`
-  - Ensure SSH key access is configured
-- **Test Data**: UITests depend on specific test accounts and data in UAT environment
-- **Screenshots**: Screenshots are crucial - always review them to understand visual failures
-- **Timing Issues**: Many UITest failures are timing-related; look for missing waits
+Use `/openspec:proposal` to create a fix proposal. The triage report from Step 2 contains all the necessary information - use it as the source for the proposal content.
 
-## Workflow
+---
 
-This command should be run from the **main iOSCharmander project directory**.
-The script will automatically download and analyze the latest UITest results from the CI machine.
+**Ready?** Run the download script and start the triage analysis!
