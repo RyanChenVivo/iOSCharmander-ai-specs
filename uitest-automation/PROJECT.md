@@ -18,14 +18,14 @@ This directory contains tools and documentation for automated UITest failure ana
 ```
 uitest-automation/
 ├── PROJECT.md                          # This file - infrastructure overview
-├── TESTING_GUIDE.md                    # How to fix UITest failures (future)
-├── analyze_uitest_failures.sh          # Main analysis script
-├── analyze-uitest-command.md           # Legacy command documentation
+├── README.md                           # Quick start and usage guide
+├── SETUP.md                            # Setup instructions
+├── download_test_data.sh              # Download lightweight JSON from CI
 ├── config.example.sh                   # Configuration template
-├── README.md                           # Quick start guide
-├── SETUP.md                            # Detailed setup instructions
-├── GUIDE.md                            # Usage guide
-├── CHECKLIST.md                        # Setup verification checklist
+│
+├── ci-scripts/                         # Scripts to run on CI machine
+│   ├── extract_uitest_data.sh         # Extract data from .xcresult
+│   └── README.md                      # CI scripts deployment guide
 │
 └── test-specs/                         # UITest Knowledge Base
     ├── ui-identifiers.md               # Accessibility IDs for UI elements
@@ -58,25 +58,31 @@ uitest-automation/
 **When:** UITests fail on CI and need diagnosis/repair
 
 **Workflow:**
-1. **Fetch Results** - Run `analyze_uitest_failures.sh -d today` to download CI test results
-2. **Analyze Failures** - Review `ANALYSIS_REPORT.md`, screenshots, and error messages
-3. **Diagnose Root Cause** - Categorize: external dependency, timing, test bug, or app change
-4. **Apply Fix** - Either create OpenSpec proposal or fix test directly
+1. **Download Data** - Run `download_test_data.sh` to fetch lightweight JSON (~100KB, 10-30 sec)
+2. **AI Triage** - Claude analyzes failures and categorizes them
+3. **User Decision** - Choose action based on triage:
+   - A: Create OpenSpec proposal
+   - B: Download screenshots for deeper analysis
+   - C: Observe tomorrow (likely transient)
+   - D: No action (known issue)
+4. **Apply Fix** (if chose A) - Implement fix via OpenSpec workflow
 5. **Update Documentation** - Record patterns in `test-specs/` for future reference
 
 **Key Resources:**
-- `ANALYSIS_REPORT.md` - Generated failure summary
-- `attachments/*.png` - Screenshots showing actual UI state
+- `metadata.json` - Test statistics and summary
 - `test_failures.json` - Detailed error messages
+- `test_details.json` - Exact line numbers
+- `attachments/*.png` - Screenshots (downloaded only when needed)
 - `test-specs/external-dependencies.md` - Known external service issues
-- Claude command: `/analyze-uitest` (existing)
+- Claude command: `/analyze-uitest`
 
 ## CI Test Environment
 
 **CI Machine:**
 - Host: `vivotekinc@10.15.254.191`
-- Reports: `/Users/vivotekinc/Documents/CICD/UITestReport/`
-- Format: `{YYYY-MM-DD}.xcresult`
+- XCResult: `/Users/vivotekinc/Documents/CICD/UITestReport/{YYYY-MM-DD}.xcresult`
+- Extracted Data: `/Users/vivotekinc/Documents/CICD/UITestAnalysisData/{YYYY-MM-DD}/`
+- Latest Link: `/Users/vivotekinc/Documents/CICD/UITestAnalysisData/latest` (symlink)
 
 **Test Environment:**
 - Simulator: iPhone 13 Pro Max
@@ -87,17 +93,37 @@ uitest-automation/
 - SSH key authentication required
 - See `SETUP.md` for configuration instructions
 
+**Data Flow:**
+```
+.xcresult (200-500 MB)
+  → extract_uitest_data.sh (runs on CI)
+  → UITestAnalysisData/ (5-20 MB)
+  → download_test_data.sh (downloads to local, ~100KB JSON only)
+  → AI Triage Analysis
+```
+
 ## Analysis Output
 
-**Location:** `~/Downloads/UITestAnalysis/{YYYY-MM-DD}/`
+**CI Location:** `/Users/vivotekinc/Documents/CICD/UITestAnalysisData/{YYYY-MM-DD}/`
 
-**Contents:**
-- `ANALYSIS_REPORT.md` - Human-readable summary
-- `test_summary.json` - Test statistics
-- `test_failures.json` - Failure details
-- `test_details.json` - Full test tree
-- `attachments/` - Screenshots (34 PNG), videos (3 MP4), logs (14 TXT)
+**CI Contents:**
+- `metadata.json` - Test statistics summary
+- `test_summary.json` - Test results summary
+- `test_details.json` - Full test tree with exact line numbers
+- `test_failures.json` - Failure details (only if failures exist)
+- `failed_test_ids.txt` - List of failed test IDs
+- `attachments/` - Screenshots (videos removed to save space)
 - `diagnostics/` - Crash reports and diagnostic data
+
+**Local Location (after download):** `~/Downloads/UITestAnalysis/latest/`
+
+**Local Contents:**
+- `metadata.json` - Test statistics
+- `test_summary.json` - Test results
+- `test_details.json` - Full test tree
+- `test_failures.json` - Failure details
+- `failed_test_ids.txt` - Failed test IDs
+- `attachments/` - (Downloaded separately if needed)
 
 ## Test Specs Knowledge Base
 
@@ -161,7 +187,7 @@ This separation allows:
    └─ Tests run automatically on push
 
 4. Failure Analysis (if needed)
-   ├─ Run analyze_uitest_failures.sh
+   ├─ Run download_test_data.sh
    ├─ Review analysis output
    └─ Fix and document patterns
 ```
@@ -169,17 +195,21 @@ This separation allows:
 ## Configuration
 
 **Local Setup:**
-1. Copy `config.example.sh` to `config.sh` (in repository root, not tracked by git)
-2. Verify CI machine connection: `ssh vivotekinc@10.15.254.191`
-3. Test analysis: `./uitest-automation/analyze_uitest_failures.sh -d today`
+1. Verify CI machine connection: `ssh vivotekinc@10.15.254.191`
+2. Test download: `./uitest-automation/download_test_data.sh`
+3. Verify data: `ls ~/Downloads/UITestAnalysis/latest/`
 
-**Configuration Variables:**
-- `CI_MACHINE` - SSH connection string (default: vivotekinc@10.15.254.191)
-- `CI_REPORT_BASE` - Remote path to test reports
-- `IOSCHARMANDER_PATH` - Local path to main project
-- `OUTPUT_DIR` - Local analysis output directory
+**Configuration Variables (in download_test_data.sh):**
+- `CI_MACHINE` - SSH connection string (vivotekinc@10.15.254.191)
+- `CI_DATA_BASE` - Remote path to extracted data (/Users/vivotekinc/Documents/CICD/UITestAnalysisData)
+- `OUTPUT_DIR` - Local analysis output directory ($HOME/Downloads/UITestAnalysis)
 
-See `SETUP.md` for detailed setup instructions.
+**CI Setup (one-time):**
+1. Deploy `ci-scripts/extract_uitest_data.sh` to CI machine
+2. Integrate into Jenkins UITest job
+3. Verify data extraction after test run
+
+See `SETUP.md` and `ci-scripts/README.md` for detailed setup instructions.
 
 ## Best Practices
 
@@ -227,7 +257,6 @@ The `ios-simulator-mcp` tool is essential for UITest development:
 
 Planned improvements to this infrastructure:
 
-- [ ] `TESTING_GUIDE.md` - Comprehensive guide for failure diagnosis
 - [ ] `/write-uitest` Claude command - Guided test implementation
 - [ ] Automated test-specs/ updates from simulator discoveries
 - [ ] Integration with OpenSpec for automatic change tracking
@@ -237,7 +266,7 @@ Planned improvements to this infrastructure:
 ## Support
 
 For questions or issues:
-1. Check `README.md` for quick answers
-2. Review `GUIDE.md` for detailed usage
-3. Consult `CHECKLIST.md` for setup verification
+1. Check `README.md` for usage guide
+2. Review `SETUP.md` for setup instructions
+3. Check `ci-scripts/README.md` for CI deployment (admins only)
 4. Contact: Ryan Chen (ryan.cl.chen@vivotek.com)
