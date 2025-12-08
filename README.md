@@ -11,13 +11,9 @@
   - `changes/` - 變更記錄和提案
 - `/.claude/` - Claude Code 的設定和自定義指令
 - `/uitest-automation/` - UITest 自動化分析工具
-  - `README.md` - 工具說明
-  - `SETUP.md` - 快速設定指南
-  - `GUIDE.md` - 詳細使用指南
-  - `analyze_uitest_failures.sh` - 主要分析腳本
-  - `analyze-uitest-command.md` - Claude Code 指令
-  - `config.example.sh` - 設定檔範例
-- `config.sh` - 本地設定檔 (不納入版控)
+  - 使用 AI 進行 UITest 失敗 triage 和修復追蹤
+  - 支援觀察機制，避免重複判斷暫時性問題
+  - 詳見 [uitest-automation/README.md](./uitest-automation/README.md)
 
 ## 用途
 
@@ -56,16 +52,7 @@ cd ../iOSCharmander
 
 #### 3. 設定 UITest 分析工具 (可選)
 
-如果需要使用 UITest 自動化分析功能：
-
-```bash
-# 複製設定檔範例
-cd iOSCharmander-ai-specs
-cp uitest-automation/config.example.sh config.sh
-
-# 編輯 config.sh，更新 CI 機器連線資訊
-nano config.sh
-```
+如果需要使用 UITest 自動化分析功能，請確認可連線到 CI 機器。
 
 詳細設定請參考 [uitest-automation/SETUP.md](./uitest-automation/SETUP.md)
 
@@ -93,15 +80,11 @@ git push
 #### UITest 失敗分析流程
 
 ```bash
-# 方法 1: 使用 Claude Code (推薦)
-# 在對話中載入指令文件:
-/add-file uitest-automation/analyze-uitest-command.md
-# 並詢問: "我們來看看今天UITest的狀況並且建立openspec格式的修正任務"
-
-# 方法 2: 手動執行腳本
-./uitest-automation/analyze_uitest_failures.sh -d today
-# 然後在 Claude Code 中: /add-dir ~/Downloads/UITestAnalysis
+# 在 Claude Code 中執行 (唯一推薦方式)
+/analyze-uitest
 ```
+
+AI 會自動下載測試資料、進行 triage 分析、並詢問處理方式。
 
 詳細說明請參考 [uitest-automation/README.md](./uitest-automation/README.md)
 
