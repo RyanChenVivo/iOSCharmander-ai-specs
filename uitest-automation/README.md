@@ -34,6 +34,11 @@ uitest-automation/
 │   ├── extract_uitest_data.sh     # 在 CI 機器上提取精簡資料
 │   └── README.md                  # CI 腳本部署說明
 │
+├── observations/                   # 觀察追蹤器（避免 context rot）
+│   ├── active.json                # 正在觀察的問題
+│   ├── resolved.json              # 已解決的觀察（30 天保留）
+│   └── README.md                  # 觀察機制說明
+│
 └── test-specs/                     # UITest 知識庫
     ├── ui-identifiers.md           # UI 元素 accessibility IDs
     ├── test-data.md                # 測試數據需求
@@ -71,16 +76,19 @@ nano config.sh
 1. 檢查是否有失敗測試
 2. 讀取測試源碼、錯誤訊息、失敗資訊
 3. 搜尋 `openspec/archive/` 查找類似歷史問題
-4. 檢查 `external-dependencies.md` 確認已知問題
-5. 生成 triage 報告並詢問用戶決策：
+4. 搜尋 `observations/` 檢查是否已在觀察中或曾經觀察過
+5. 檢查 `external-dependencies.md` 確認已知問題
+6. 生成 triage 報告並詢問用戶決策：
    - **A**: 建立 OpenSpec proposal 修復
    - **B**: 下載截圖深入分析
-   - **C**: 觀察明天（可能是暫時性問題）
+   - **C**: 觀察明天（可能是暫時性問題）→ 記錄到 `observations/active.json`
    - **D**: 不需處理（已知問題）
 
 **階段 3: 根據用戶決定執行**
 - 如選擇 A，建立包含完整診斷的 OpenSpec proposal
 - 如選擇 B，下載截圖並進行深入分析
+- 如選擇 C，記錄到 `observations/active.json` 並設定觀察期限
+- 如選擇 D，不記錄（已知可接受的問題）
 
 **為什麼統一使用 AI Agent？**
 - ✅ 所有經驗在同一流程中累積和疊代
@@ -111,6 +119,7 @@ nano config.sh
    ├─ 讀取測試源碼
    ├─ 分析錯誤訊息
    ├─ 搜尋 openspec/archive/ 尋找歷史問題
+   ├─ 搜尋 observations/ 檢查觀察記錄 ← 新增
    ├─ 檢查 external-dependencies.md 確認已知問題
    └─ 生成 triage 報告
    ↓
@@ -120,17 +129,25 @@ nano config.sh
    ├─ C: 觀察明天
    └─ D: 不需處理
    ↓
-7. [如選擇 A] AI Agent: 建立 OpenSpec Proposal
+7a. [如選擇 A] AI Agent: 建立 OpenSpec Proposal
    ├─ 記錄完整診斷過程
    ├─ 附上錯誤證據
+   ├─ 如在 observations/resolved.json 找到，註明「重複問題」
    └─ 建議修復方案
+   ↓
+7b. [如選擇 C] AI Agent: 記錄觀察 ← 新增
+   ├─ 加入 observations/active.json
+   ├─ 設定觀察期限（通常 2 天）
+   └─ 自動清理過期記錄
    ↓
 8. 開發者: 實作修復
    ↓
 9. 開發者: Archive OpenSpec Change
    └─ 知識自動累積到 openspec/archive/ ✨
    ↓
-10. 下次遇到類似問題時，AI Agent 可參考這次的修復經驗 🔄
+10. 下次遇到類似問題時，AI Agent 可參考：
+   ├─ openspec/archive/（已修復的問題）
+   └─ observations/（觀察中或曾觀察的問題）← 新增
 ```
 
 ## 📖 詳細文件
@@ -138,6 +155,7 @@ nano config.sh
 - **[PROJECT.md](./PROJECT.md)** - 架構設計、兩種操作模式、知識庫說明
 - **[SETUP.md](./SETUP.md)** - 環境設定指南
 - **[ci-scripts/README.md](./ci-scripts/README.md)** - CI 端腳本部署說明（CI 管理員）
+- **[observations/README.md](./observations/README.md)** - 觀察追蹤器機制說明
 
 ### 知識庫檔案
 

@@ -77,6 +77,16 @@ AI should read and analyze the following sources:
   - Same test class names
   - Similar symptoms
 
+#### Source 5: Observation Tracker
+- **Location**: `/path/to/iOSCharmander-ai-specs/uitest-automation/observations/`
+- **Files**:
+  - `active.json` - Currently observing issues (< 5 records typically)
+  - `resolved.json` - Recently resolved observations (30-day retention)
+- **Purpose**: Check if this failure is already under observation or was previously observed
+- **How**:
+  - Check `active.json` for ongoing observations
+  - Check `resolved.json` for issues that recurred after being marked as transient
+
 ### 2.3 Triage Analysis Process
 
 For each failed test, AI should determine:
@@ -97,10 +107,24 @@ For each failed test, AI should determine:
 - Does it involve SSO? (Check for new Microsoft/Google changes)
 - Could it be network or simulator-related?
 
-#### Step 2.3.4: Search Historical Fixes
-- Has this test failed before?
+#### Step 2.3.4: Search Historical Fixes and Observations
+
+**Search openspec/archive/:**
+- Has this test been fixed before?
 - Are there similar error patterns in the archive?
 - What was the solution last time?
+
+**Search observations/active.json:**
+- Is this test currently under observation?
+- When did it first fail?
+- How many times has it failed?
+
+**Search observations/resolved.json:**
+- Was this test previously observed and resolved?
+- Was it marked as "transient" (temporary issue)?
+- Is this a recurrence of a previously resolved issue?
+
+**Critical Pattern:** If found in `resolved.json` → This is NOT a first-time issue → Recommend fix (Option A) instead of observe
 
 #### Step 2.3.5: Categorize the Failure
 
@@ -218,11 +242,13 @@ After completing triage analysis and generating the report, **ASK THE USER** wha
 - Failure appears transient (flaky test, timing issue)
 - Single occurrence, not critical
 - User wants to see if it happens again
+- **Action after selection:** Record in `observations/active.json`
 
 **Option D: No Action**
 - Known issue already documented in external-dependencies.md
 - Acceptable failure (e.g., external service down)
 - Environment issue that resolved itself
+- **Action after selection:** No observation needed (don't record)
 
 ### How to Ask
 
@@ -241,11 +267,92 @@ Please choose: A, B, C, or D
 
 **IMPORTANT:** Do NOT automatically proceed to create a proposal. Wait for user's explicit decision.
 
-## Step 4: Create OpenSpec Proposal (Conditional)
+## Step 4: Record Observation (If Option C Selected)
+
+**Only execute if user chose Option C.**
+
+### 4.1 Read Current Observations
+
+```bash
+cat /path/to/iOSCharmander-ai-specs/uitest-automation/observations/active.json
+```
+
+### 4.2 Add New Observation
+
+For each failed test that user wants to observe, add to `active.json`:
+
+```json
+{
+  "id": "TestClassName.testMethodName",
+  "firstSeen": "2025-12-08",
+  "lastSeen": "2025-12-08",
+  "occurrences": 1,
+  "pattern": "UI_ELEMENT_NOT_FOUND",
+  "decision": "observe",
+  "expiresOn": "2025-12-10"
+}
+```
+
+**Field Definitions:**
+- `id`: Full test name (format: `ClassName.methodName`)
+- `firstSeen`: Today's date (ISO 8601)
+- `lastSeen`: Today's date (same as firstSeen for new observation)
+- `occurrences`: 1 (first time)
+- `pattern`: Error pattern from triage (e.g., `UI_ELEMENT_NOT_FOUND`, `TIMING_ISSUE`, `ASSERTION_FAILED`)
+- `decision`: Always `"observe"`
+- `expiresOn`: firstSeen + 2 days (observation period)
+
+### 4.3 Update active.json
+
+Use the Edit tool to add the new observation to the `observations` array in `active.json`.
+
+### 4.4 Cleanup Expired Observations (Automatic)
+
+Before adding new observations, check for expired ones:
+
+```javascript
+// Pseudo-code for AI logic
+const today = new Date("2025-12-08");
+const active = readJSON("observations/active.json");
+const resolved = readJSON("observations/resolved.json");
+
+// Move expired observations to resolved
+const expired = active.observations.filter(obs => new Date(obs.expiresOn) < today);
+expired.forEach(obs => {
+  resolved.observations.push({
+    ...obs,
+    outcome: "transient",
+    resolvedOn: today.toISOString().split('T')[0]
+  });
+});
+
+// Keep only active observations
+active.observations = active.observations.filter(obs => new Date(obs.expiresOn) >= today);
+
+// Clean resolved observations older than 30 days
+const thirtyDaysAgo = new Date(today);
+thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+resolved.observations = resolved.observations.filter(
+  obs => new Date(obs.resolvedOn) > thirtyDaysAgo
+);
+```
+
+## Step 5: Create OpenSpec Proposal (If Option A Selected)
 
 **Only execute this step if user chose Option A.**
 
 Use `/openspec:proposal` to create a fix proposal. The triage report from Step 2 contains all the necessary information - use it as the source for the proposal content.
+
+**Important:** If the issue was found in `observations/resolved.json`, include this context in the proposal:
+
+```markdown
+## Historical Context
+
+This issue was previously observed on [DATE] and marked as transient.
+However, it has recurred, indicating it's not a temporary problem and requires a fix.
+
+Reference: observations/resolved.json
+```
 
 ---
 
