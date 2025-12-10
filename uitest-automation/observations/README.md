@@ -284,5 +284,5 @@ async function cleanupObservations(today) {
 ## 📝 相關文件
 
 - [README.md](../README.md) - UITest 自動化分析總覽
-- [PROJECT.md](../PROJECT.md) - 架構設計
-- [external-dependencies.md](../test-specs/external-dependencies.md) - 已知外部依賴問題
+- [WRITING_GUIDE.md](../WRITING_GUIDE.md) - UITest 編寫指南
+- [external-dependencies.md](../knowledge/external-dependencies.md) - 已知外部依賴問題

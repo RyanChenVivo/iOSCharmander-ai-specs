@@ -9,11 +9,11 @@ You are helping implement a new UITest for an iOS application. Follow this struc
 
 **Key Resources:**
 - UITest conventions: `openspec/project.md` (lines 263-340)
-- Infrastructure guide: `uitest-automation/PROJECT.md`
-- UI element IDs: `uitest-automation/test-specs/ui-identifiers.md`
-- Test data: `uitest-automation/test-specs/test-data.md`
-- Timing patterns: `uitest-automation/test-specs/timing-guidelines.md`
-- External services: `uitest-automation/test-specs/external-dependencies.md`
+- Writing guide: `uitest-automation/WRITING_GUIDE.md`
+- UI element IDs: `uitest-automation/reference/ui-identifiers.md`
+- Test data: `uitest-automation/reference/test-data.md`
+- Timing patterns: `uitest-automation/knowledge/timing-guidelines.md`
+- External services: `uitest-automation/knowledge/external-dependencies.md`
 
 ## Your Task
 

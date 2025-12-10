@@ -209,7 +209,7 @@ cp -r /path/to/copied/data ~/Downloads/UITestAnalysis/
 
 設定完成後，請參考：
 - [README.md](./README.md) - 快速開始與使用指南
-- [PROJECT.md](./PROJECT.md) - 架構說明與技術細節
+- [WRITING_GUIDE.md](./WRITING_GUIDE.md) - UITest 編寫指南
 - [ci-scripts/README.md](./ci-scripts/README.md) - CI 端腳本部署（CI 管理員）
 
 ## 需要協助？

@@ -25,7 +25,8 @@
 ```
 uitest-automation/
 ├── README.md                       # 本檔案 - 快速開始與使用指南
-├── PROJECT.md                      # 完整架構說明與技術細節
+├── UITEST_AGENT.md                 # 故障分析工作流程主入口
+├── WRITING_GUIDE.md                # UITest 編寫指南
 ├── SETUP.md                        # 環境設定指南
 ├── download_test_data.sh          # 輕量下載腳本（僅下載 JSON）
 ├── config.example.sh              # 設定檔範例
@@ -39,11 +40,15 @@ uitest-automation/
 │   ├── resolved.json              # 已解決的觀察（30 天保留）
 │   └── README.md                  # 觀察機制說明
 │
-└── test-specs/                     # UITest 知識庫
-    ├── ui-identifiers.md           # UI 元素 accessibility IDs
+├── knowledge/                      # 知識庫（AI 分析用）
+│   ├── patterns.md                 # 已知故障模式
+│   ├── decision-tree.md            # 決策邏輯
+│   ├── external-dependencies.md    # 外部依賴行為記錄
+│   └── timing-guidelines.md        # 等待時間指南
+│
+└── reference/                      # 參考文檔（測試編寫用）
     ├── test-data.md                # 測試數據需求
-    ├── timing-guidelines.md        # 等待時間指南
-    └── external-dependencies.md    # 外部依賴行為記錄
+    └── ui-identifiers.md           # UI 元素 accessibility IDs
 ```
 
 ## 🚀 快速開始
@@ -152,17 +157,23 @@ nano config.sh
 
 ## 📖 詳細文件
 
-- **[PROJECT.md](./PROJECT.md)** - 架構設計、兩種操作模式、知識庫說明
+- **[UITEST_AGENT.md](./UITEST_AGENT.md)** - 故障分析工作流程（Phase 1-4）
+- **[WRITING_GUIDE.md](./WRITING_GUIDE.md)** - UITest 編寫指南
 - **[SETUP.md](./SETUP.md)** - 環境設定指南
 - **[ci-scripts/README.md](./ci-scripts/README.md)** - CI 端腳本部署說明（CI 管理員）
 - **[observations/README.md](./observations/README.md)** - 觀察追蹤器機制說明
 
-### 知識庫檔案
+### 知識庫與參考文檔
 
-- **[test-specs/ui-identifiers.md](./test-specs/ui-identifiers.md)** - UI 元素 accessibility IDs 目錄
-- **[test-specs/test-data.md](./test-specs/test-data.md)** - UAT 測試數據需求
-- **[test-specs/timing-guidelines.md](./test-specs/timing-guidelines.md)** - 等待時間與 timeout 指南
-- **[test-specs/external-dependencies.md](./test-specs/external-dependencies.md)** - 外部服務行為記錄（如 Microsoft SSO）
+**Knowledge Base（AI 分析用）:**
+- **[knowledge/patterns.md](./knowledge/patterns.md)** - 已知故障模式庫
+- **[knowledge/decision-tree.md](./knowledge/decision-tree.md)** - 決策邏輯樹
+- **[knowledge/external-dependencies.md](./knowledge/external-dependencies.md)** - 外部服務行為記錄（如 Microsoft SSO）
+- **[knowledge/timing-guidelines.md](./knowledge/timing-guidelines.md)** - 等待時間與 timeout 指南
+
+**Reference（測試編寫用）:**
+- **[reference/test-data.md](./reference/test-data.md)** - UAT 測試數據需求
+- **[reference/ui-identifiers.md](./reference/ui-identifiers.md)** - UI 元素 accessibility IDs 目錄
 
 ## 💡 使用情境
 
