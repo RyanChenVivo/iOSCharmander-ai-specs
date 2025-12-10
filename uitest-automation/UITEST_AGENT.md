@@ -95,6 +95,97 @@ When CI UITests fail, this toolkit provides a systematic approach to analyze and
 
 ---
 
+## Crash Detection Protocol
+
+### When "Element Not Found" May Actually Be an App Crash
+
+**IMPORTANT:** Before deciding that a UITest failure is a timing issue, flakiness, or transient problem, check for hidden app crashes.
+
+UITests that fail with "element not found" or timeout errors may actually indicate the app crashed rather than just UI timing issues. CI test data alone cannot always distinguish between:
+- **UI timing/flakiness** (test framework issue)
+- **App crash** (production code bug)
+
+### Warning Signs
+
+Suspicious UITest failures that warrant crash detection:
+
+- [ ] Test reports "element not found" or timeout
+- [ ] No clear screenshots showing the UI state at failure
+- [ ] Test duration seems normal (not immediately terminated)
+- [ ] No .crash or .ips files in CI artifacts
+- [ ] Similar tests in same class pass (isolated failure)
+- [ ] Error happens consistently after specific user action
+
+**Critical example:** `test_cantDowngrade_activeLicenseExists` (2025-12-10)
+- CI error: `"License expired!" StaticText is not exist`
+- Appeared as timing issue (55 second duration, no crash logs)
+- **Manual testing revealed**: Threading crash when tapping "OK" button
+- Root cause: `dismiss()` called from background thread
+
+### Manual Testing Protocol
+
+When suspicious failure detected, **BEFORE** deciding to "observe tomorrow":
+
+1. **Open test in Xcode**
+   ```bash
+   open iOSCharmander/iOSCharmander.xcodeproj
+   ```
+
+2. **Run single failing test in simulator**
+   - Select test class
+   - Right-click failing test method
+   - Choose "Run [test name]"
+   - Watch console and simulator
+
+3. **Monitor for crash indicators**
+   - Threading errors: "main thread", "background thread", "layout engine"
+   - Swift runtime errors: "Fatal error", "Unexpectedly found nil"
+   - Objective-C crashes: "signal SIGABRT", "NSException"
+   - Any console errors containing "crash", "terminated", "exception"
+
+4. **Document findings**
+   - If crash detected: Create OpenSpec proposal immediately (production bug)
+   - If no crash: Continue with standard triage (timing, environment, observation)
+
+### Why CI Doesn't Always Show Crashes
+
+1. **UITest isolation**: UITests run in separate process; app crashes don't always generate test failure signals
+2. **Graceful degradation**: SwiftUI/UIKit sometimes recover from violations, leaving UI in broken state
+3. **Test continues**: UITest framework keeps waiting for elements, timing out naturally
+4. **No crash report**: Minor crashes or threading violations may not generate .crash files
+5. **Normal duration**: Test runs full duration waiting for UI elements instead of failing immediately
+
+### Decision Flow with Crash Detection
+
+```
+Phase 1: Triage Analysis
+  ↓
+Suspicious "element not found" failure?
+  ↓
+YES → Run Manual Crash Detection
+  ↓
+App crashed?
+├─ YES → Create OpenSpec Proposal Immediately (Production Bug)
+│   └─ Document how crash was discovered
+└─ NO → Continue Standard Triage
+    ├─ Root cause clear? → Observe or Fix
+    └─ Root cause unclear? → Phase 2 (Investigate)
+```
+
+### Documenting Crash Detection in Proposals
+
+When creating a proposal after discovering a crash through manual testing, include:
+
+1. **Initial symptoms** - What CI showed (error message, duration, etc.)
+2. **Why it appeared benign** - What made it look like timing issue
+3. **Manual testing revelation** - Exact crash error and location
+4. **Warning signs** - What should have triggered earlier suspicion
+5. **Lesson learned** - Add to this documentation for future reference
+
+**Example:** See `openspec/changes/fix-downgrade-threading-crash-2025-12-10/proposal.md`
+
+---
+
 ## Decision Guide
 
 ### Quick Decision Tree
