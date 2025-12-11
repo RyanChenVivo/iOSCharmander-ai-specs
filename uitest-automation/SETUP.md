@@ -41,6 +41,7 @@ cd iOSCharmander-ai-specs
 這會在主專案目錄下建立：
 - `openspec/` -> symlink to `../iOSCharmander-ai-specs/openspec/`
 - `.claude/` -> symlink to `../iOSCharmander-ai-specs/.claude/`
+- `uitest-automation/` -> symlink to `../iOSCharmander-ai-specs/uitest-automation/`
 
 ### 3. 驗證設定（新架構不需要 config.sh）
 
@@ -198,7 +199,7 @@ cp -r /path/to/copied/data ~/Downloads/UITestAnalysis/
 執行這個檢查清單：
 
 - [ ] Clone 完成，目錄結構正確
-- [ ] Symlinks 建立成功 (`ls -l iOScharmander/openspec`)
+- [ ] Symlinks 建立成功 (`ls -l iOScharmander/openspec`, `ls -l iOScharmander/.claude`, `ls -l iOScharmander/uitest-automation`)
 - [ ] jq 已安裝 (`jq --version`)
 - [ ] 可以連線到 CI 機器 (`ssh vivotekinc@10.15.254.191`)
 - [ ] 可以存取 CI 端提取的資料 (`ssh vivotekinc@10.15.254.191 "ls /Users/vivotekinc/Documents/CICD/UITestAnalysisData/latest"`)

@@ -50,6 +50,7 @@ cd ~/code/VIVOTEK/iOSCharmander  # 根據你的實際路徑調整
   ```bash
   ls -l openspec
   ls -l .claude
+  ls -l uitest-automation
   ```
   應該看到 `->` 符號指向 `../iOSCharmander-ai-specs/...`
 
