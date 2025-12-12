@@ -1,76 +1,34 @@
 {
   "observations": [
     {
-      "id": "AccessControlMessageUITest.testCanSeeSpecifiedAccessMessageByFilter",
-      "firstSeen": "2025-12-09",
-      "lastSeen": "2025-12-09",
-      "occurrences": 1,
-      "pattern": "EMPTY_MESSAGE_LIST",
-      "decision": "observe",
-      "expiresOn": "2025-12-11"
-    },
-    {
-      "id": "MessageUITests.test_cancelToSetUserFeedbackOnMessageDetail",
-      "firstSeen": "2025-12-10",
-      "lastSeen": "2025-12-10",
-      "occurrences": 1,
-      "pattern": "TIMING_ISSUE",
-      "decision": "observe",
-      "expiresOn": "2025-12-12"
-    },
-    {
-      "id": "MessageUITests.test_canReportFalseAlarmForOwner",
-      "firstSeen": "2025-12-10",
-      "lastSeen": "2025-12-10",
-      "occurrences": 1,
-      "pattern": "TIMING_ISSUE",
-      "decision": "observe",
-      "expiresOn": "2025-12-12"
-    },
-    {
-      "id": "MessageUITests.test_setUserFeedbackOnMessageDetail",
-      "firstSeen": "2025-12-10",
-      "lastSeen": "2025-12-10",
-      "occurrences": 1,
-      "pattern": "TIMING_ISSUE",
-      "decision": "observe",
-      "expiresOn": "2025-12-12"
-    },
-    {
-      "id": "MessageUITests.test_userFeedbackStatusShowOnVCAMessageDetail",
-      "firstSeen": "2025-12-10",
-      "lastSeen": "2025-12-10",
-      "occurrences": 1,
-      "pattern": "TIMING_ISSUE",
-      "decision": "observe",
-      "expiresOn": "2025-12-12"
-    },
-    {
       "id": "SigninWithSSO.testSignInWithSSO_Success",
       "firstSeen": "2025-12-10",
-      "lastSeen": "2025-12-10",
-      "occurrences": 1,
+      "lastSeen": "2025-12-12",
+      "occurrences": 3,
       "pattern": "EXTERNAL_SERVICE_BLOCKING",
-      "decision": "observe",
-      "expiresOn": "2025-12-12"
+      "decision": "report_generated",
+      "expiresOn": "2025-12-14",
+      "notes": "Microsoft Entra ID blocking CI machine. Screenshot evidence confirmed. Report: triage_report_2025-12-12.md. Requires IT/Azure admin intervention."
     },
     {
       "id": "SigninWithSSO.testSignInWithSSO_ShouldFailed_whenTypeDifferentEmailOnMicrosoftPage",
       "firstSeen": "2025-12-10",
-      "lastSeen": "2025-12-10",
-      "occurrences": 1,
+      "lastSeen": "2025-12-12",
+      "occurrences": 3,
       "pattern": "EXTERNAL_SERVICE_BLOCKING",
-      "decision": "observe",
-      "expiresOn": "2025-12-12"
+      "decision": "report_generated",
+      "expiresOn": "2025-12-14",
+      "notes": "Microsoft Entra ID blocking CI machine. Screenshot evidence confirmed. Report: triage_report_2025-12-12.md. Requires IT/Azure admin intervention."
     },
     {
       "id": "OrgForceMFAUITest.testSSOSignInWithOrgForceMFA",
       "firstSeen": "2025-12-10",
-      "lastSeen": "2025-12-10",
-      "occurrences": 1,
+      "lastSeen": "2025-12-12",
+      "occurrences": 3,
       "pattern": "EXTERNAL_SERVICE_BLOCKING",
-      "decision": "observe",
-      "expiresOn": "2025-12-12"
+      "decision": "report_generated",
+      "expiresOn": "2025-12-14",
+      "notes": "Microsoft Entra ID blocking CI machine. Screenshot evidence confirmed. Report: triage_report_2025-12-12.md. Requires IT/Azure admin intervention."
     }
   ]
 }

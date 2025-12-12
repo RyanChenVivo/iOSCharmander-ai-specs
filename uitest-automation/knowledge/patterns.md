@@ -61,7 +61,9 @@
 | Date | Issue | Resolution | Archive Link |
 |------|-------|------------|--------------|
 | 2025-12-03 | Passkey dialog introduced | Added `handlePasskeyDialogIfNeeded()` | [fix-uitest-failures-2025-12-03](../../openspec/changes/archive/fix-uitest-failures-2025-12-03/) |
-| 2025-12-10 | Microsoft blocking login | (TBD - under investigation) | (TBD) |
+| 2025-12-10 | Microsoft blocking login | Observed (Day 1) | - |
+| 2025-12-11 | Microsoft blocking continues | Observed (Day 2) | - |
+| 2025-12-12 | Microsoft blocking continues | Screenshot evidence confirmed. Report generated: triage_report_2025-12-12.md. Awaiting IT/management decision. | - |
 
 ### Notes
 - This is a **recurring pattern** with Microsoft auth changes

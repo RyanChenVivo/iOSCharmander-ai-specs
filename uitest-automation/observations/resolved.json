@@ -1,3 +1,94 @@
 {
-  "observations": []
+  "observations": [
+    {
+      "id": "AccessControlMessageUITest.testCanSeeSpecifiedAccessMessageByFilter",
+      "firstSeen": "2025-12-09",
+      "lastSeen": "2025-12-09",
+      "resolvedOn": "2025-12-10",
+      "occurrences": 1,
+      "pattern": "EMPTY_MESSAGE_LIST",
+      "outcome": "transient",
+      "notes": "Failed once on 2025-12-09, did not recur on 2025-12-10 and later. Likely timing or data initialization issue."
+    },
+    {
+      "id": "MessageUITests.test_cancelToSetUserFeedbackOnMessageDetail",
+      "firstSeen": "2025-12-10",
+      "lastSeen": "2025-12-11",
+      "resolvedOn": "2025-12-12",
+      "occurrences": 2,
+      "pattern": "TIMING_ISSUE",
+      "outcome": "transient",
+      "notes": "Failed 2025-12-10 and 2025-12-11 with 'sendUserFeedbackButton not enabled'. Resolved 2025-12-12. Likely backend timing or Monday slowness."
+    },
+    {
+      "id": "MessageUITests.test_canReportFalseAlarmForOwner",
+      "firstSeen": "2025-12-10",
+      "lastSeen": "2025-12-11",
+      "resolvedOn": "2025-12-12",
+      "occurrences": 2,
+      "pattern": "TIMING_ISSUE",
+      "outcome": "transient",
+      "notes": "Failed 2025-12-10 and 2025-12-11 with 'sendUserFeedbackButton not enabled'. Resolved 2025-12-12. Likely backend timing or Monday slowness."
+    },
+    {
+      "id": "MessageUITests.test_setUserFeedbackOnMessageDetail",
+      "firstSeen": "2025-12-10",
+      "lastSeen": "2025-12-11",
+      "resolvedOn": "2025-12-12",
+      "occurrences": 2,
+      "pattern": "TIMING_ISSUE",
+      "outcome": "transient",
+      "notes": "Failed 2025-12-10 and 2025-12-11 with 'sendUserFeedbackButton not enabled'. Resolved 2025-12-12. Likely backend timing or Monday slowness."
+    },
+    {
+      "id": "MessageUITests.test_userFeedbackStatusShowOnVCAMessageDetail",
+      "firstSeen": "2025-12-10",
+      "lastSeen": "2025-12-11",
+      "resolvedOn": "2025-12-12",
+      "occurrences": 2,
+      "pattern": "TIMING_ISSUE",
+      "outcome": "transient",
+      "notes": "Failed 2025-12-10 and 2025-12-11 with 'sendUserFeedbackButton not enabled'. Resolved 2025-12-12. Likely backend timing or Monday slowness."
+    },
+    {
+      "id": "OrganizationPlanUITest.test_cantDowngrade_activeLicenseExists",
+      "firstSeen": "2025-12-10",
+      "lastSeen": "2025-12-11",
+      "resolvedOn": "2025-12-12",
+      "occurrences": 2,
+      "pattern": "LICENSE_BANNER_DISPLAY",
+      "outcome": "transient",
+      "notes": "Failed 2025-12-10 (app crash due to threading), fixed in commit 768e54411. Failed again 2025-12-11 with 'License expired! not exist'. Resolved 2025-12-12. Threading fix successful, banner display issue was transient."
+    },
+    {
+      "id": "CameraSettingsUITest.test_focusAdjustment_manual",
+      "firstSeen": "2025-12-11",
+      "lastSeen": "2025-12-11",
+      "resolvedOn": "2025-12-12",
+      "occurrences": 1,
+      "pattern": "APP_CRASH",
+      "outcome": "transient",
+      "notes": "Failed once 2025-12-11 with connection lost error. Likely simulator instability. Did not recur."
+    },
+    {
+      "id": "ExportUITest.testExport_Create_ExportFile",
+      "firstSeen": "2025-12-11",
+      "lastSeen": "2025-12-11",
+      "resolvedOn": "2025-12-12",
+      "occurrences": 1,
+      "pattern": "NAVIGATION_TIMING",
+      "outcome": "transient",
+      "notes": "Failed once 2025-12-11 with 'Exports NavigationBar not exist'. Likely navigation timing. Did not recur."
+    },
+    {
+      "id": "MessageAlarmUITest.testPauseAlarm",
+      "firstSeen": "2025-12-11",
+      "lastSeen": "2025-12-11",
+      "resolvedOn": "2025-12-12",
+      "occurrences": 1,
+      "pattern": "UNKNOWN",
+      "outcome": "transient",
+      "notes": "Failed once 2025-12-11 with XCTAssertTrue failure (unclear assertion). Did not recur."
+    }
+  ]
 }
