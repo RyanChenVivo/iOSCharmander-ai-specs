@@ -62,12 +62,32 @@ For each failure group:
 - Each option includes: applicable tests, action steps, pros/cons, timeline
 
 ### 5. 風險評估 (Risk Assessment)
-- Impact analysis for each failure group
-- Business risk if left unfixed
+- **Format:** Simple table with 4 columns
+- **Content:** Priority, business impact, recommended timeline
+- **Length:** Keep concise - aim for 8-10 lines total
+- **Example:**
+  ```markdown
+  | 失敗群組 | 優先級 | 業務影響 | 建議行動時程 |
+  |----------|--------|----------|--------------|
+  | SSO | 🔴 高 | 企業客戶關鍵功能 | 1-2 天內修復 |
+  | New User | 🟡 中 | 註冊流程測試受阻 | 3-5 天內處理 |
+
+  **總體風險**: [簡短一句話總結]
+  ```
 
 ### 6. 下一步行動建議 (Next Steps)
-- Detailed action plan with timeline
-- Clear responsibilities and decision points
+- **Format:** Simple action table
+- **Content:** What action to take (用自然語言描述), priority, timeline
+- **Length:** Keep concise - one row per failure group
+- **Do NOT include:** Detailed execution steps, task checklists, meeting schedules
+- **Example:**
+  ```markdown
+  | 失敗群組 | 建議行動 | 優先級 | 預期時程 |
+  |----------|----------|--------|----------|
+  | SSO | 更新測試處理 Passkey 流程 | 🔴 高 | 1-2 天 |
+  | New User | 建立環境還原機制 | 🟡 中 | 3-5 天 |
+  | AI Settings | 觀察是否重複發生 | 🟢 低 | 2 天 |
+  ```
 
 ### 7. 附錄 (Appendix)
 - A. Detailed failure test information (tables)
