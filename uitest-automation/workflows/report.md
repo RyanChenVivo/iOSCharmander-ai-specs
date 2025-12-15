@@ -70,42 +70,28 @@ For each failure group:
 - Failure type categorization
 - Historical context if applicable
 
-### 4. 建議方案 (Recommended Solutions)
-- Option A: Immediate investigation and fix
-- Option B: Observe and wait
-- Option C: Create OpenSpec proposal
-- Option D: Mixed strategy (分組處理) ⭐ Recommended
-- Each option includes: applicable tests, action steps, pros/cons, timeline
+### 4. 風險評估與建議行動 (Risk Assessment & Recommended Actions)
 
-### 5. 風險評估 (Risk Assessment)
-- **Format:** Simple table with 4 columns
-- **Content:** Priority, business impact, recommended timeline
-- **Length:** Keep concise - aim for 8-10 lines total
-- **Example:**
-  ```markdown
-  | 失敗群組 | 優先級 | 業務影響 | 建議行動時程 |
-  |----------|--------|----------|--------------|
-  | SSO | 🔴 高 | 企業客戶關鍵功能 | 1-2 天內修復 |
-  | New User | 🟡 中 | 註冊流程測試受阻 | 3-5 天內處理 |
+**本次建議**:
 
-  **總體風險**: [簡短一句話總結]
-  ```
+| 失敗群組 | 優先級 | 業務影響 | 建議處理 | 具體行動 | 預期時程 |
+|----------|--------|----------|----------|----------|----------|
+| [群組名] | 🔴/🟡/🟢 | [簡述業務影響] | investigate/fix/observe/report | [具體要做什麼] | [天數] |
 
-### 6. 下一步行動建議 (Next Steps)
-- **Format:** Simple action table
-- **Content:** What action to take (用自然語言描述), priority, timeline
-- **Length:** Keep concise - one row per failure group
-- **Do NOT include:** Detailed execution steps, task checklists, meeting schedules
-- **Example:**
-  ```markdown
-  | 失敗群組 | 建議行動 | 優先級 | 預期時程 |
-  |----------|----------|--------|----------|
-  | SSO | 更新測試處理 Passkey 流程 | 🔴 高 | 1-2 天 |
-  | New User | 建立環境還原機制 | 🟡 中 | 3-5 天 |
-  | AI Settings | 觀察是否重複發生 | 🟢 低 | 2 天 |
-  ```
+**總體風險**: [簡短一句話總結]
 
-### 7. 附錄 (Appendix)
+---
+
+**處理選項說明**:
+
+| 處理方式 | 說明 | 適用情況 |
+|----------|------|----------|
+| **investigate** | 下載截圖深入分析（Phase 2） | 錯誤訊息不清楚，需要視覺確認 |
+| **fix** | 創建 OpenSpec proposal 修復（Phase 4） | 根本原因明確，需要代碼變更 |
+| **observe** | 記錄到 observations，等待重複（Phase 4） | 可能是暫時性問題 |
+| **report** | 升級給管理層/外部團隊 | 需要外部協助或管理決策 |
+
+### 5. 附錄 (Appendix)
 - A. 詳細失敗測試資訊 (tables with test names, errors, durations)
 - B. 參考資料連結 (code locations, knowledge docs, archive links)
 - C. 截圖證據清單 (screenshot file references with descriptions)
