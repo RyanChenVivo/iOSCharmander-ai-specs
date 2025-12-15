@@ -52,8 +52,7 @@ This is a **non-linear workflow**:
   - Test failure data and source code
   - External dependencies knowledge
   - Historical fixes and observations
-  - **Failure pattern library** (`knowledge/patterns.md`)
-  - **Decision tree** (`knowledge/decision-tree.md`)
+  - Failure pattern library and decision tree
 - Present findings verbally
 - Ask user to choose next action (A/B/C/D/E)
 
@@ -73,8 +72,8 @@ This is a **non-linear workflow**:
 **When to use:** Need management decision, formal documentation
 
 - Generate comprehensive Traditional Chinese report
-- Include executive summary, detailed analysis, risk assessment
-- Provide multiple solution options with pros/cons
+- Include TL;DR, executive summary, detailed analysis
+- Provide unified risk assessment with actionable recommendations
 - Save as `triage_report_YYYY-MM-DD.md`
 
 ### Phase 4: Action (Optional Tool)
@@ -92,20 +91,18 @@ This is a **non-linear workflow**:
 ### Failure Pattern Library
 **File:** `uitest-automation/knowledge/patterns.md`
 
-- Records known failure patterns for consistent triage decisions
+Records known failure patterns for consistent triage decisions:
 - AI checks patterns **before** general reasoning
 - If failure matches pattern → use pattern's recommended decision
-- Currently includes:
-  - Pattern 1: SSO Authentication Blocked by Microsoft
-  - Pattern 2-3: Placeholders for future patterns
+- Patterns continuously updated as recurring issues are discovered
+- Each pattern includes identification triggers and recommended actions
 
 ### Decision Tree
 **File:** `uitest-automation/knowledge/decision-tree.md`
 
-- Structured decision logic for different failure scenarios
-- Used when no known pattern matches
-- Considers: failure count, error type, test history, day/time context, test category
-- Provides decision matrix and examples
+Structured decision logic for failure scenarios when no pattern matches:
+- Considers failure count, error type, test history, timing context
+- Provides decision matrix and guidance for new failure types
 
 ---
 
@@ -172,7 +169,9 @@ You can also mix approaches for different failure groups.
 
 **Knowledge Base:**
 - `/uitest-automation/knowledge/patterns.md` - Known failure patterns
-- `/uitest-automation/knowledge/decision-tree.md` - Decision logic
+- `/uitest-automation/knowledge/decision-tree.md` - Decision logic for new failures
+- `/uitest-automation/knowledge/external-dependencies.md` - External service behaviors
+- `/uitest-automation/knowledge/timing-guidelines.md` - Timing and wait strategies
 
 **Data Files:**
 - `/uitest-automation/observations/active.json` - Currently observing
