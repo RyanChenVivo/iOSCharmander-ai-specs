@@ -120,22 +120,8 @@ For each failure group:
 
 ### Visual Elements
 - Use emoji indicators for priority: 🔴 (High), 🟡 (Medium), 🟢 (Low)
-- Use ⭐ to mark recommended options
 - Use checkboxes (✅/❌/⚠️) for status indicators
 - Include tables for structured data
-
----
-
-## Example Report
-
-See the example report created today:
-- `/Users/ryanchen/Downloads/UITestAnalysis/latest/triage_report_2025-12-10.md`
-
-This report demonstrates:
-- How to group failures by category
-- How to present recommendations with options
-- How to include both technical and business perspectives
-- How to structure for management decision-making
 
 ---
 
@@ -170,13 +156,13 @@ Include links to:
 - Archive fixes (if similar issues occurred before)
 - External dependencies docs
 
-### Step 5: Provide Decision Options
+### Step 5: Provide Risk Assessment and Actions
 
-Give management clear choices:
-- Multiple solution options (A/B/C/D)
-- Pros/cons for each
-- Time estimates
-- Risk assessments
+Present unified assessment and recommendations:
+- Risk assessment with business impact
+- Recommended handling method (investigate/fix/observe/report)
+- Specific actions for each failure group
+- Time estimates and priorities
 
 ---
 
@@ -199,14 +185,14 @@ Once report is generated:
    - Discuss in team meeting
 
 2. **Get decision**
-   - Which option (A/B/C/D) to proceed?
-   - Who will handle it?
-   - What's the timeline?
+   - 哪個失敗群組優先處理？
+   - 是否同意建議的處理方式（investigate/fix/observe/report）？
 
 3. **Execute based on decision**
-   - If fix → proceed to Phase 4 (action)
-   - If observe → proceed to Phase 4 (observe)
-   - If investigate more → back to Phase 2
+   - If investigate → proceed to Phase 2 (download screenshots)
+   - If fix → proceed to Phase 4 (create OpenSpec proposal)
+   - If observe → proceed to Phase 4 (record to observations)
+   - If report → escalate to management/external team
 
 ---
 
