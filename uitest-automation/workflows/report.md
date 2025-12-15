@@ -35,7 +35,23 @@ Use report generation when:
 
 ## Report Structure
 
-The report should include these 7 sections:
+The report should include these sections:
+
+### 0. TL;DR (開頭，標題和日期之後)
+- **Purpose:** Ultra-concise summary for busy executives
+- **Format:** 3-5 bullet points
+- **Content:** Test pass rate, key problems with recommended actions and timeline
+- **Example:**
+  ```markdown
+  ## TL;DR
+
+  **測試結果**: [總數] 測試，[失敗數] 失敗 ([通過率]% 通過率)
+
+  **關鍵問題與建議**:
+  - [優先級] [問題簡述] → **[建議行動]** ([預期時程])
+  - [優先級] [問題簡述] → **[建議行動]** ([預期時程])
+  - [優先級] [問題簡述] → **[建議行動]** ([預期時程])
+  ```
 
 ### 1. 執行摘要 (Executive Summary)
 - Total test count and failure rate
