@@ -104,6 +104,60 @@
 
 ---
 
+## Pattern 4: UAT Environment Cleanup Failure
+
+**Added:** 2025-12-15
+**Category:** Test Infrastructure
+**Priority:** 🟡 Medium
+
+### Identification Triggers
+- **Error contains:** `⚠️UATButton: [button_id] execute action failed`
+- **Common button IDs:** `uatDeleteOrgNUMButton`, `uatDeleteTestCameraButton`, etc.
+- **Occurs at:** End of test (cleanup/teardown stage)
+
+### Diagnostic Decision
+- **Recommended action:** `environment_cleanup_required`
+- **Reasoning:** NOT a test logic failure - cleanup step failed
+- **Impact:** May cause subsequent tests to fail (see Pattern 5)
+
+### Next Steps When This Pattern Matches
+1. Understand: Test's main logic likely passed, only cleanup failed
+2. Check for downstream failures (Pattern 5)
+3. Manual cleanup: Login to UAT and delete test data
+4. Re-run tests to verify
+
+---
+
+## Pattern 5: Environment State Residual
+
+**Added:** 2025-12-15
+**Category:** Test Infrastructure
+**Priority:** 🔴 High
+
+### Identification Triggers
+- **Multiple tests using same account fail at setup stage**
+- **Error indicates unexpected initial state:**
+  - `"illustration_users" Image is not exist`
+  - `"Email already exists"`
+- **Correlation:** Previous test(s) may have Pattern 4 failure
+
+### Diagnostic Decision
+- **Recommended action:** `environment_restore_required`
+- **Reasoning:** Environment not clean, NOT a code bug
+
+### Next Steps When This Pattern Matches
+1. Identify test account and residual data
+2. Manual cleanup: Login to UAT and delete test data
+3. Re-run tests
+4. Check previous runs for Pattern 4 failures
+
+### Historical Occurrences
+| Date | Test Account | Residual Data | Resolution |
+|------|--------------|---------------|------------|
+| 2025-12-15 | newToVORTEX | Organization | Manual deletion |
+
+---
+
 ## Adding New Patterns
 
 When adding a new pattern, include:
@@ -187,4 +241,4 @@ When adding a new pattern, include:
 
 ---
 
-**Last Updated:** 2025-12-10
+**Last Updated:** 2025-12-15
