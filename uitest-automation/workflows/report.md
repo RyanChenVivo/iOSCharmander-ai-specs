@@ -90,11 +90,15 @@ For each failure group:
   ```
 
 ### 7. 附錄 (Appendix)
-- A. Detailed failure test information (tables)
-- B. Reference materials (links to code, docs)
-- C. Screenshot evidence (file references)
-- D. Related code locations
-- E. Decision checklist for management
+- A. 詳細失敗測試資訊 (tables with test names, errors, durations)
+- B. 參考資料連結 (code locations, knowledge docs, archive links)
+- C. 截圖證據清單 (screenshot file references with descriptions)
+
+**Do NOT include:**
+- ❌ OpenSpec proposal templates (these belong in execution phase)
+- ❌ Quick decision guides (unnecessary - let readers decide how to read)
+- ❌ Task checklists or TODO lists
+- ❌ Meeting agendas or schedules
 
 ---
 
