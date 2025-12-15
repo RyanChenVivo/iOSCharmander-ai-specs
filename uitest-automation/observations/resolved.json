@@ -89,6 +89,26 @@
       "pattern": "UNKNOWN",
       "outcome": "transient",
       "notes": "Failed once 2025-12-11 with XCTAssertTrue failure (unclear assertion). Did not recur."
+    },
+    {
+      "id": "SigninWithSSO.testSignInWithSSO_ShouldFailed_whenTypeDifferentEmailOnMicrosoftPage",
+      "firstSeen": "2025-12-10",
+      "lastSeen": "2025-12-15",
+      "resolvedOn": "2025-12-15",
+      "occurrences": 4,
+      "pattern": "EXTERNAL_SERVICE_BLOCKING",
+      "outcome": "fixed",
+      "notes": "Microsoft Entra ID introduced new Passkey setup web page dialog. Fixed in openspec/changes/archive/2025-12-15-fix-uitest-sso-passkey-handling/ by adding handlePasskeyWebPageIfNeeded() to handle 'Setting up your passkey...' page. Test verified passing on 2025-12-15."
+    },
+    {
+      "id": "OrgForceMFAUITest.testSSOSignInWithOrgForceMFA",
+      "firstSeen": "2025-12-10",
+      "lastSeen": "2025-12-15",
+      "resolvedOn": "2025-12-15",
+      "occurrences": 4,
+      "pattern": "EXTERNAL_SERVICE_BLOCKING",
+      "outcome": "fixed",
+      "notes": "Microsoft Entra ID introduced new Passkey setup web page dialog. Fixed in openspec/changes/archive/2025-12-15-fix-uitest-sso-passkey-handling/ by adding handlePasskeyWebPageIfNeeded() to handle 'Setting up your passkey...' page. Test verified passing on 2025-12-15."
     }
   ]
 }
