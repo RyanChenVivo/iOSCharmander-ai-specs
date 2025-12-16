@@ -41,7 +41,71 @@ Otherwise → proceed with analysis
 
 ---
 
-## Step 3: Information Sources for Analysis
+## Step 3: Update Observation Status
+
+**Purpose:** Check if tests currently under observation have changed status today (passed/failed).
+
+Before analyzing new failures, update the status of tests we're already observing.
+
+### 3.1: Read Current Observations
+
+```bash
+cat uitest-automation/observations/active.json
+```
+
+Check `expiresOn` dates - any observations past their expiration date should be processed.
+
+### 3.2: Compare with Today's Results
+
+For each test in `active.json`:
+
+**If the test is NOT in today's failures:**
+- ✅ The test **passed** today
+- **Action**: Move to `resolved.json` with `outcome: "transient"`
+- **Note**: Record that it was resolved after observation
+
+**If the test IS in today's failures:**
+- ❌ The test **failed again** today
+- **Action**: Update `lastSeen` to today's date
+- **Action**: Increment `occurrences` count
+- **Decision**:
+  - If `occurrences >= 3` → Consider escalating from "observe" to "investigate"
+  - If still within observation period → Keep observing
+  - If past `expiresOn` → Escalate to "investigate" or "fix"
+
+### 3.3: Update Files
+
+**Update `active.json`:**
+- Remove tests that passed today
+- Update `lastSeen` and `occurrences` for tests that failed again
+- Update `decision` if escalation needed
+
+**Update `resolved.json`:**
+- Add newly resolved tests with:
+  - `resolvedOn`: today's date
+  - `outcome`: "transient" (if it self-resolved)
+  - `notes`: Summary of observation period and outcome
+
+### 3.4: Report Observation Updates
+
+When presenting findings (Step 6), include a summary:
+
+**Example:**
+```
+📊 Observation Status Update:
+- ✅ AIControlSettingUITest.testSPSLPRNotConfigure passed today → Moved to resolved (transient)
+- ❌ MessageAlarmUITest.testPauseAlarm failed again (occurrences: 2) → Continue observing
+```
+
+### Important Notes:
+
+- **Do this BEFORE analyzing new failures** - it provides context
+- **Keep it brief** - detailed updates can be done after presenting findings
+- **Flag escalations** - if an observed test needs to escalate, mention it prominently
+
+---
+
+## Step 4: Information Sources for Analysis
 
 AI should read and analyze the following sources:
 
@@ -97,27 +161,27 @@ AI should read and analyze the following sources:
 
 ---
 
-## Step 4: Triage Analysis Process
+## Step 5: Triage Analysis Process
 
 For each failed test, AI should determine:
 
-### 4.1: Read the Failure
+### 5.1: Read the Failure
 - Test name and identifier
 - Error message from `test_failures.json`
 - Exact line number from `test_details.json`
 
-### 4.2: Read Test Source Code
+### 5.2: Read Test Source Code
 - What does the test expect?
 - What assertion failed?
 - What UI element or behavior is being tested?
 
-### 4.3: Check External Dependencies
+### 5.3: Check External Dependencies
 - Does the error match a known external service issue?
 - Is it Monday morning? (Backend slowness)
 - Does it involve SSO? (Check for new Microsoft/Google changes)
 - Could it be network or simulator-related?
 
-### 4.4: Search Historical Fixes and Observations
+### 5.4: Search Historical Fixes and Observations
 
 **Search `knowledge/patterns.md`:**
 - Does this match a known pattern?
@@ -140,7 +204,7 @@ For each failed test, AI should determine:
 
 **Critical Pattern:** If found in `resolved.json` → This is NOT a first-time issue → Recommend fix instead of observe
 
-### 4.5: Categorize the Failure
+### 5.5: Categorize the Failure
 
 Based on analysis, categorize as:
 
@@ -175,17 +239,35 @@ Based on analysis, categorize as:
 
 ---
 
-## Step 5: Present Initial Findings
+## Step 6: Present Initial Findings
 
 AI should present findings verbally (NOT as formal report yet).
 
-**Format:** Brief summary for each failed test group, including:
-- Test names and error messages
-- Initial categorization (Environment/Service/Timing/Bug/Known)
-- Root cause hypothesis
-- Preliminary recommendation (investigate/observe/report/ignore)
+**Format:** Brief summary including:
+
+1. **Observation Status Updates** (from Step 3)
+   - Which observed tests passed today (moved to resolved)
+   - Which observed tests failed again (updated counts)
+   - Any escalations needed
+
+2. **New Failure Analysis** (for each failed test group)
+   - Test names and error messages
+   - Initial categorization (Environment/Service/Timing/Bug/Known)
+   - Root cause hypothesis
+   - Preliminary recommendation (investigate/observe/report/ignore)
+
+**Example Presentation:**
+```
+📊 Observation Status Update:
+- ✅ AIControlSettingUITest.testSPSLPRNotConfigure passed today → Moved to resolved (transient)
+- ❌ MessageAlarmUITest.testPauseAlarm failed again (occurrences: 2) → Continue observing
+
+📋 New Failures Analysis:
+[Present each failure group as usual]
+```
 
 **Important:**
+- **Always start with observation updates** - it provides context
 - Keep it concise and conversational
 - Focus on helping user decide next action
 - Reserve detailed formal report for Phase 3 (if needed)
@@ -193,7 +275,7 @@ AI should present findings verbally (NOT as formal report yet).
 
 ---
 
-## Step 6: Recommend Next Steps
+## Step 7: Recommend Next Steps
 
 Based on triage analysis, provide recommendations:
 

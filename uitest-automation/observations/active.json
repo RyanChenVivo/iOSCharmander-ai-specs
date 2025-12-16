@@ -1,14 +1,74 @@
 {
   "observations": [
     {
-      "id": "AIControlSettingUITest.testSPSLPRNotConfigure",
-      "firstSeen": "2025-12-15",
-      "lastSeen": "2025-12-15",
+      "id": "MultipleViewUITest.test_fisheye_dewarp_change",
+      "firstSeen": "2025-12-16",
+      "lastSeen": "2025-12-16",
       "occurrences": 1,
-      "pattern": "NETWORK_ISSUE",
+      "pattern": "CAPTURE_BUTTON_NOT_ENABLED",
       "decision": "observe",
-      "expiresOn": "2025-12-17",
-      "notes": "'Smart privacy switch' StaticText not found. Likely network connectivity issue during test execution. Environment may have temporary connectivity problems."
+      "expiresOn": "2025-12-18",
+      "notes": "'multipleViewCaptureButton' Button is not enabled. First-time failure. Likely video rendering/timing issue. Button waits for video stream to be ready. Observing to see if transient."
+    },
+    {
+      "id": "PlaybackEventModeUITest.test_hasEvents",
+      "firstSeen": "2025-12-16",
+      "lastSeen": "2025-12-16",
+      "occurrences": 1,
+      "pattern": "CAPTURE_BUTTON_NOT_ENABLED",
+      "decision": "observe",
+      "expiresOn": "2025-12-18",
+      "notes": "'multipleViewCaptureButton' Button is not enabled. First-time failure. Likely video rendering/timing issue. Button waits for video stream to be ready. Observing to see if transient."
+    },
+    {
+      "id": "PlaybackEventModeUITest.test_noEvent",
+      "firstSeen": "2025-12-16",
+      "lastSeen": "2025-12-16",
+      "occurrences": 1,
+      "pattern": "CAPTURE_BUTTON_NOT_ENABLED",
+      "decision": "observe",
+      "expiresOn": "2025-12-18",
+      "notes": "'multipleViewCaptureButton' Button is not enabled. First-time failure. Likely video rendering/timing issue. Button waits for video stream to be ready. Observing to see if transient."
+    },
+    {
+      "id": "MessageAlarmUITest.testPauseAlarm",
+      "firstSeen": "2025-12-11",
+      "lastSeen": "2025-12-16",
+      "occurrences": 2,
+      "pattern": "UNKNOWN_ASSERTION",
+      "decision": "observe",
+      "expiresOn": "2025-12-18",
+      "notes": "XCTAssertTrue failed (UATHelper.swift:73). Previously failed 2025-12-11, marked as transient and resolved 2025-12-12. RECURRED on 2025-12-16. Unclear assertion - may be UAT backend timing. Observing one more cycle before escalating to investigate."
+    },
+    {
+      "id": "SigninWithSSO.testSignInWithSSO_ShouldFailed_whenTypeDifferentEmailOnMicrosoftPage",
+      "firstSeen": "2025-12-10",
+      "lastSeen": "2025-12-16",
+      "occurrences": 7,
+      "pattern": "EXTERNAL_SERVICE_BLOCKING",
+      "decision": "observe",
+      "expiresOn": "2025-12-20",
+      "notes": "Microsoft Entra ID continues to block/change auth flow. 'Stay signed in?' not appearing. Failed 2025-12-10~12, temporarily fixed 2025-12-15 with Passkey web page handler, but FAILED AGAIN 2025-12-16. STRATEGY: Will implement multi-account rotation to avoid Microsoft rate limiting and detection. Test different SSO accounts to prevent single account being flagged. Observing with account rotation strategy."
+    },
+    {
+      "id": "SigninWithSSO.testSignInWithSSO_Success",
+      "firstSeen": "2025-12-10",
+      "lastSeen": "2025-12-16",
+      "occurrences": 7,
+      "pattern": "EXTERNAL_SERVICE_BLOCKING",
+      "decision": "observe",
+      "expiresOn": "2025-12-20",
+      "notes": "Microsoft Entra ID continues to block/change auth flow. 'Stay signed in?' not appearing. Failed 2025-12-10~12, temporarily fixed 2025-12-15 with Passkey web page handler, but FAILED AGAIN 2025-12-16. STRATEGY: Will implement multi-account rotation to avoid Microsoft rate limiting and detection. Test different SSO accounts to prevent single account being flagged. Observing with account rotation strategy."
+    },
+    {
+      "id": "OrgForceMFAUITest.testSSOSignInWithOrgForceMFA",
+      "firstSeen": "2025-12-10",
+      "lastSeen": "2025-12-16",
+      "occurrences": 7,
+      "pattern": "EXTERNAL_SERVICE_BLOCKING",
+      "decision": "observe",
+      "expiresOn": "2025-12-20",
+      "notes": "Microsoft Entra ID continues to block/change auth flow. 'Stay signed in?' not appearing. Failed 2025-12-10~12, temporarily fixed 2025-12-15 with Passkey web page handler, but FAILED AGAIN 2025-12-16. STRATEGY: Will implement multi-account rotation to avoid Microsoft rate limiting and detection. Test different SSO accounts to prevent single account being flagged. Observing with account rotation strategy."
     }
   ]
 }

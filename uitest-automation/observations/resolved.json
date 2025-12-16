@@ -97,8 +97,8 @@
       "resolvedOn": "2025-12-15",
       "occurrences": 4,
       "pattern": "EXTERNAL_SERVICE_BLOCKING",
-      "outcome": "fixed",
-      "notes": "Microsoft Entra ID introduced new Passkey setup web page dialog. Fixed in openspec/changes/archive/2025-12-15-fix-uitest-sso-passkey-handling/ by adding handlePasskeyWebPageIfNeeded() to handle 'Setting up your passkey...' page. Test verified passing on 2025-12-15."
+      "outcome": "partial_fix",
+      "notes": "Microsoft Entra ID introduced new Passkey setup web page dialog. Attempted fix in openspec/changes/archive/2025-12-15-fix-uitest-sso-passkey-handling/ by adding handlePasskeyWebPageIfNeeded() to handle 'Setting up your passkey...' page. Test appeared passing on 2025-12-15, but FAILED AGAIN on 2025-12-16. Fix was only temporary - Microsoft continues changing auth flow. Moved back to active observation with multi-account rotation strategy."
     },
     {
       "id": "OrgForceMFAUITest.testSSOSignInWithOrgForceMFA",
@@ -107,8 +107,18 @@
       "resolvedOn": "2025-12-15",
       "occurrences": 4,
       "pattern": "EXTERNAL_SERVICE_BLOCKING",
-      "outcome": "fixed",
-      "notes": "Microsoft Entra ID introduced new Passkey setup web page dialog. Fixed in openspec/changes/archive/2025-12-15-fix-uitest-sso-passkey-handling/ by adding handlePasskeyWebPageIfNeeded() to handle 'Setting up your passkey...' page. Test verified passing on 2025-12-15."
+      "outcome": "partial_fix",
+      "notes": "Microsoft Entra ID introduced new Passkey setup web page dialog. Attempted fix in openspec/changes/archive/2025-12-15-fix-uitest-sso-passkey-handling/ by adding handlePasskeyWebPageIfNeeded() to handle 'Setting up your passkey...' page. Test appeared passing on 2025-12-15, but FAILED AGAIN on 2025-12-16. Fix was only temporary - Microsoft continues changing auth flow. Moved back to active observation with multi-account rotation strategy."
+    },
+    {
+      "id": "AIControlSettingUITest.testSPSLPRNotConfigure",
+      "firstSeen": "2025-12-15",
+      "lastSeen": "2025-12-15",
+      "resolvedOn": "2025-12-16",
+      "occurrences": 1,
+      "pattern": "NETWORK_ISSUE",
+      "outcome": "transient",
+      "notes": "'Smart privacy switch' StaticText not found on 2025-12-15. Likely network connectivity issue during test execution. Did not recur on 2025-12-16. Confirmed as transient."
     }
   ]
 }
