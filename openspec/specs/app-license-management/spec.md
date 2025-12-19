@@ -1,39 +1,8 @@
-# App License Management Specification Delta
+# app-license-management Specification
 
-## MODIFIED Requirements
-
-### Requirement: License Plan Downgrade Flow
-The system SHALL handle license plan downgrade attempts safely and ensure all UI operations execute on the main thread to prevent crashes, particularly when dismissing views after error conditions.
-
-#### Scenario: Downgrade failure with active licenses
-- **GIVEN** a user attempts to downgrade to xLite plan
-- **AND** the organization has active licenses
-- **WHEN** the backend returns `VortexError.downgradeLicenseExists`
-- **AND** an alert is displayed: "Failed to proceed"
-- **AND** the user taps "OK" to dismiss the alert
-- **THEN** the dismiss action SHALL execute on the main thread
-- **AND** the app SHALL NOT crash with threading violations
-- **AND** the user SHALL be returned to the LicenseNoticeView
-- **AND** the "License expired!" banner SHALL be visible
-
-#### Scenario: Downgrade failure with general error cancellation
-- **GIVEN** a user attempts to downgrade to xLite plan
-- **AND** a general error occurs during the downgrade check
-- **WHEN** the error alert is displayed
-- **AND** the user taps "Cancel" to dismiss
-- **THEN** the dismiss action SHALL execute on the main thread
-- **AND** the app SHALL NOT crash with threading violations
-- **AND** the user SHALL be returned to the previous screen safely
-
-#### Scenario: Threading safety for all error handlers
-- **GIVEN** any async error handling in ViewModels
-- **WHEN** error callbacks invoke UI dismissal actions
-- **THEN** all dismissal actions SHALL be wrapped with `MainActor.run`
-- **AND** no UI modifications SHALL occur on background threads
-- **AND** the system SHALL prevent "Modifications to the layout engine must not be performed from a background thread" crashes
-
-## ADDED Requirements
-
+## Purpose
+TBD - created by archiving change fix-downgrade-threading-crash-2025-12-10. Update Purpose after archive.
+## Requirements
 ### Requirement: UITest Failure Crash Detection
 When UITests fail with "element not found" errors, teams SHALL follow a crash detection protocol before assuming the failure is a timing or flakiness issue.
 
@@ -92,3 +61,4 @@ The UITest triage process SHALL include explicit guidance on detecting crashes h
 - **THEN** the process SHALL require manual testing for suspicious failures
 - **AND** SHALL prevent marking failures as "transient" without crash detection
 - **AND** SHALL provide clear decision criteria for when manual testing is required
+
