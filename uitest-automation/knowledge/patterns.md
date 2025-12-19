@@ -64,11 +64,14 @@
 | 2025-12-10 | Microsoft blocking login | Observed (Day 1) | - |
 | 2025-12-11 | Microsoft blocking continues | Observed (Day 2) | - |
 | 2025-12-12 | Microsoft blocking continues | Screenshot evidence confirmed. Report generated: triage_report_2025-12-12.md. Awaiting IT/management decision. | - |
+| 2025-12-15 | Passkey web page introduced | Added `handlePasskeyWebPageIfNeeded()` for "Setting up your passkey..." | [2025-12-15-fix-uitest-sso-passkey-handling](../../openspec/changes/archive/2025-12-15-fix-uitest-sso-passkey-handling/) |
+| 2025-12-19 | Passwordless auth flow changed | Microsoft changed default to "Get a code to sign in". Added detection for new heading while maintaining backward compatibility with "Verify your email" | [fix-sso-passwordless-auth-flow-2025-12-19](../../openspec/changes/fix-sso-passwordless-auth-flow-2025-12-19/) |
 
 ### Notes
 - This is a **recurring pattern** with Microsoft auth changes
-- Each time may have different root cause (passkey vs blocking vs policy)
+- Each time may have different root cause (passkey vs blocking vs policy vs auth flow changes)
 - Always download screenshots - don't assume same issue as before
+- **Latest Change (2025-12-19):** Microsoft now defaults to passwordless "Get a code to sign in" page instead of direct password entry. Test must click "Use your password" link to bypass.
 
 ---
 

@@ -33,25 +33,92 @@ UITests depend on external services and APIs that we don't control. This documen
 
 ### Known Behaviors
 
-#### 1. Passkey Dialog (as of Dec 2025)
+#### 1. Passwordless Authentication Flow (as of Dec 2025)
 
-**Behavior:** Microsoft now prompts to set up passkey authentication
+**Behavior:** Microsoft Entra ID now defaults to passwordless authentication requiring one-time codes sent via email, instead of direct password entry.
 
-**UI:** System alert with:
+**UI Flow:**
+1. User enters email
+2. **NEW (2025-12-19):** Microsoft shows "Get a code to sign in" page
+   - Heading: "Get a code to sign in"
+   - Message: "We'll send a code to [email] to sign you in."
+   - Primary Button: "Send code"
+   - Link: "Use your password" (bypass option)
+3. **OLD (Pre-2025-12-19):** Microsoft showed "Verify your email" page (similar bypass flow)
+4. If password bypass used: Enter password
+5. Proceed to "Stay signed in?" dialog
+
+**Test Impact:**
+- Tests expecting direct password entry after email fail
+- Must detect and bypass passwordless flow
+- Need to support both "Get a code to sign in" (new) and "Verify your email" (old) for backward compatibility
+
+**Workaround:**
+```swift
+// In entraWebSSOSignIn() → enterPassword() method:
+
+// Handle "Get a code to sign in" passwordless page (Microsoft's new default flow as of Dec 2025)
+UATHelper.waitElementToAppearOptionally(element: app.webViews.staticTexts["Get a code to sign in"]) {
+    UATHelper.dragYOffset(element: app.webViews.staticTexts["Get a code to sign in"], offset: -10)
+    UATHelper.waitElementToAppearOptionally(element: app.webViews.buttons["Other ways to sign in"]) {
+        UATHelper.waitElementToTap(app.webViews.buttons["Other ways to sign in"].firstMatch)
+    }
+    UATHelper.waitElementToTap(app.webViews.buttons["Use your password"].firstMatch)
+    UATHelper.typeTextOnWeb(password, field: app.webViews.secureTextFields.firstMatch)
+    UATHelper.waitElementToTap(app.webViews.buttons["Next"].firstMatch)
+}
+
+// Handle "Verify your email" passwordless page (backward compatibility for older flow)
+UATHelper.waitElementToAppearOptionally(element: app.webViews.staticTexts["Verify your email"]) {
+    // ... same bypass logic
+}
+```
+
+**Implementation Reference:**
+- File: `iOSCharmanderUITests/Infrastructure/CommonOperation.swift`
+- Lines: 189-209 (passwordless flow detection in enterPassword function)
+
+**History:**
+- **2025-12-19**: Microsoft changed default to "Get a code to sign in" - Fixed in change `fix-sso-passwordless-auth-flow-2025-12-19`
+- **Pre-2025-12-19**: "Verify your email" heading used for passwordless flow
+- **Prior**: Direct password entry was default
+- **Trend**: Microsoft continues pushing passwordless authentication as default
+
+**Monitoring:** Check monthly if heading text changes
+
+#### 2. Passkey Setup Prompts (as of Dec 2025)
+
+**Behavior:** Microsoft prompts to set up passkey authentication (separate from passwordless email codes)
+
+**UI Variants:**
+
+**Web-based Passkey Page:**
+- Heading: "Setting up your passkey..."
+- Message: "Your device is opening a security window..."
+- Buttons: "Cancel", "Next"
+
+**Native System Dialog:**
 - Title: "Sign In"
 - Message: "Simulator requires enrolled biometrics to use passkeys."
 - Buttons: "Cancel", "Other Options"
 
 **Test Impact:**
-- Tests expecting direct password prompt fail
-- Must handle optional dialog appearance
+- May appear after password entry, before "Stay signed in?"
+- Must handle both web and native versions
 
 **Workaround:**
 ```swift
 // In entraWebSSOSignIn() method, add after password entry:
 
+func handlePasskeyWebPageIfNeeded() {
+    // Handle Microsoft's web-based Passkey setup page
+    UATHelper.waitElementToAppearOptionally(element: app.webViews.staticTexts["Setting up your passkey..."]) {
+        UATHelper.waitElementToTap(app.webViews.buttons["Cancel"].firstMatch)
+    }
+}
+
 func handlePasskeyDialogIfNeeded() {
-    // Handle new passkey setup dialog that appears in simulator
+    // Handle native passkey setup dialog that appears in simulator
     UATHelper.waitElementToAppearOptionally(element: app.staticTexts["Simulator requires enrolled biometrics to use passkeys."]) {
         UATHelper.waitElementToTap(app.buttons["Cancel"].firstMatch)
     }
@@ -59,26 +126,27 @@ func handlePasskeyDialogIfNeeded() {
 
 // Execution order:
 enterAccount()
-enterPassword()
+enterPassword()  // ← Includes passwordless bypass if needed
 otherCheckIfNeeded()
-handlePasskeyDialogIfNeeded()  // ← Add this
-ssoConfirmToEnterApp()         // ← Continue with "Stay signed in?" handling
+handlePasskeyWebPageIfNeeded()   // ← Add this
+handlePasskeyDialogIfNeeded()    // ← Add this
+ssoConfirmToEnterApp()           // ← "Stay signed in?" handling
 ```
 
 **Implementation Reference:**
 - File: `iOSCharmanderUITests/Infrastructure/CommonOperation.swift`
-- Lines: 204-209 (handlePasskeyDialogIfNeeded function)
-- Lines: 218 (call in execution flow)
+- Lines: 216-221 (handlePasskeyWebPageIfNeeded function)
+- Lines: 222-227 (handlePasskeyDialogIfNeeded function)
+- Lines: 233-235 (call in execution flow)
 
 **History:**
-- **2025-12-03**: Passkey dialog discovered in CI test failures - Fixed in change `fix-uitest-failures-2025-12-03`
-- **2025-12**: Passkey dialog introduced by Microsoft
-- **Prior**: "Stay signed in?" dialog was shown
-- **Trend**: Microsoft frequently updates auth UI
+- **2025-12-15**: Web-based passkey page discovered - Fixed in change `2025-12-15-fix-uitest-sso-passkey-handling`
+- **2025-12-03**: Native passkey dialog discovered - Fixed in change `fix-uitest-failures-2025-12-03`
+- **Trend**: Microsoft frequently updates passkey UI
 
-**Monitoring:** Check monthly if behavior changed
+**Monitoring:** Check monthly if passkey prompts change
 
-#### 2. Page Load Times
+#### 3. Page Load Times
 
 **Normal:** 5-8 seconds for login page to appear
 
@@ -89,7 +157,7 @@ ssoConfirmToEnterApp()         // ← Continue with "Stay signed in?" handling
 
 **Recommendation:** Use 10-second timeout minimum
 
-#### 3. Session Persistence
+#### 4. Session Persistence
 
 **Behavior:** Microsoft may cache previous login
 
@@ -289,7 +357,9 @@ changes/fix-sso-passkey-handling/
 
 | Date | Service | Change | Impact | OpenSpec Change |
 |------|---------|--------|--------|----------------|
-| 2025-12-03 | Microsoft SSO | Added passkey dialog in simulator | testSignInWithSSO_Success failed | fix-uitest-failures-2025-12-03 |
+| 2025-12-03 | Microsoft SSO | Added native passkey dialog in simulator | testSignInWithSSO_Success failed | fix-uitest-failures-2025-12-03 |
+| 2025-12-15 | Microsoft SSO | Added web-based passkey setup page | SSO tests failed | 2025-12-15-fix-uitest-sso-passkey-handling |
+| 2025-12-19 | Microsoft SSO | Changed default auth to passwordless ("Get a code to sign in") | All 3 SSO tests failed | fix-sso-passwordless-auth-flow-2025-12-19 |
 | [Add future changes] | | | | |
 
 ## Troubleshooting Guide

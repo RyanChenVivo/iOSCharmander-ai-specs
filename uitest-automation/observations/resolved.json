@@ -119,6 +119,46 @@
       "pattern": "NETWORK_ISSUE",
       "outcome": "transient",
       "notes": "'Smart privacy switch' StaticText not found on 2025-12-15. Likely network connectivity issue during test execution. Did not recur on 2025-12-16. Confirmed as transient."
+    },
+    {
+      "id": "MultipleViewUITest.test_fisheye_dewarp_change",
+      "firstSeen": "2025-12-16",
+      "lastSeen": "2025-12-16",
+      "resolvedOn": "2025-12-19",
+      "occurrences": 1,
+      "pattern": "CAPTURE_BUTTON_NOT_ENABLED",
+      "outcome": "transient",
+      "notes": "'multipleViewCaptureButton' Button not enabled. Failed once 2025-12-16, passed 2025-12-19. Likely video rendering/timing issue. Confirmed as transient."
+    },
+    {
+      "id": "PlaybackEventModeUITest.test_hasEvents",
+      "firstSeen": "2025-12-16",
+      "lastSeen": "2025-12-16",
+      "resolvedOn": "2025-12-19",
+      "occurrences": 1,
+      "pattern": "CAPTURE_BUTTON_NOT_ENABLED",
+      "outcome": "transient",
+      "notes": "'multipleViewCaptureButton' Button not enabled. Failed once 2025-12-16, passed 2025-12-19. Likely video rendering/timing issue. Confirmed as transient."
+    },
+    {
+      "id": "PlaybackEventModeUITest.test_noEvent",
+      "firstSeen": "2025-12-16",
+      "lastSeen": "2025-12-16",
+      "resolvedOn": "2025-12-19",
+      "occurrences": 1,
+      "pattern": "CAPTURE_BUTTON_NOT_ENABLED",
+      "outcome": "transient",
+      "notes": "'multipleViewCaptureButton' Button not enabled. Failed once 2025-12-16, passed 2025-12-19. Likely video rendering/timing issue. Confirmed as transient."
+    },
+    {
+      "id": "MessageAlarmUITest.testPauseAlarm",
+      "firstSeen": "2025-12-11",
+      "lastSeen": "2025-12-16",
+      "resolvedOn": "2025-12-19",
+      "occurrences": 2,
+      "pattern": "UNKNOWN_ASSERTION",
+      "outcome": "transient",
+      "notes": "XCTAssertTrue failed (UATHelper.swift:73). Failed 2025-12-11 and 2025-12-16 (2 occurrences), passed 2025-12-19. Unclear assertion - likely UAT backend timing issue. Confirmed as transient after observation period."
     }
   ]
 }

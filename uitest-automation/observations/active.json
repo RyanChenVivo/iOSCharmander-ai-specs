@@ -1,74 +1,54 @@
 {
   "observations": [
     {
-      "id": "MultipleViewUITest.test_fisheye_dewarp_change",
-      "firstSeen": "2025-12-16",
-      "lastSeen": "2025-12-16",
-      "occurrences": 1,
-      "pattern": "CAPTURE_BUTTON_NOT_ENABLED",
-      "decision": "observe",
-      "expiresOn": "2025-12-18",
-      "notes": "'multipleViewCaptureButton' Button is not enabled. First-time failure. Likely video rendering/timing issue. Button waits for video stream to be ready. Observing to see if transient."
-    },
-    {
-      "id": "PlaybackEventModeUITest.test_hasEvents",
-      "firstSeen": "2025-12-16",
-      "lastSeen": "2025-12-16",
-      "occurrences": 1,
-      "pattern": "CAPTURE_BUTTON_NOT_ENABLED",
-      "decision": "observe",
-      "expiresOn": "2025-12-18",
-      "notes": "'multipleViewCaptureButton' Button is not enabled. First-time failure. Likely video rendering/timing issue. Button waits for video stream to be ready. Observing to see if transient."
-    },
-    {
-      "id": "PlaybackEventModeUITest.test_noEvent",
-      "firstSeen": "2025-12-16",
-      "lastSeen": "2025-12-16",
-      "occurrences": 1,
-      "pattern": "CAPTURE_BUTTON_NOT_ENABLED",
-      "decision": "observe",
-      "expiresOn": "2025-12-18",
-      "notes": "'multipleViewCaptureButton' Button is not enabled. First-time failure. Likely video rendering/timing issue. Button waits for video stream to be ready. Observing to see if transient."
-    },
-    {
-      "id": "MessageAlarmUITest.testPauseAlarm",
-      "firstSeen": "2025-12-11",
-      "lastSeen": "2025-12-16",
-      "occurrences": 2,
-      "pattern": "UNKNOWN_ASSERTION",
-      "decision": "observe",
-      "expiresOn": "2025-12-18",
-      "notes": "XCTAssertTrue failed (UATHelper.swift:73). Previously failed 2025-12-11, marked as transient and resolved 2025-12-12. RECURRED on 2025-12-16. Unclear assertion - may be UAT backend timing. Observing one more cycle before escalating to investigate."
-    },
-    {
       "id": "SigninWithSSO.testSignInWithSSO_ShouldFailed_whenTypeDifferentEmailOnMicrosoftPage",
       "firstSeen": "2025-12-10",
-      "lastSeen": "2025-12-16",
-      "occurrences": 7,
-      "pattern": "EXTERNAL_SERVICE_BLOCKING",
-      "decision": "observe",
+      "lastSeen": "2025-12-19",
+      "occurrences": 8,
+      "pattern": "EXTERNAL_SERVICE_CHANGE",
+      "decision": "escalate_to_fix",
       "expiresOn": "2025-12-20",
-      "notes": "Microsoft Entra ID continues to block/change auth flow. 'Stay signed in?' not appearing. Failed 2025-12-10~12, temporarily fixed 2025-12-15 with Passkey web page handler, but FAILED AGAIN 2025-12-16. STRATEGY: Will implement multi-account rotation to avoid Microsoft rate limiting and detection. Test different SSO accounts to prevent single account being flagged. Observing with account rotation strategy."
+      "notes": "Microsoft Entra ID changed auth flow to PASSWORDLESS authentication. Screenshot evidence (2025-12-19): Microsoft now shows 'Get a code to sign in' page requiring one-time code sent to email, bypassing password entry entirely. Test expects password entry → 'Stay signed in?' dialog, but flow never reaches that point. Failed consistently 2025-12-10~19 (8 occurrences). Previous passkey fix (2025-12-15) was temporary. ROOT CAUSE CONFIRMED: Microsoft passwordless flow change. ESCALATED from observe to fix - needs test code update to handle passwordless authentication."
     },
     {
       "id": "SigninWithSSO.testSignInWithSSO_Success",
       "firstSeen": "2025-12-10",
-      "lastSeen": "2025-12-16",
-      "occurrences": 7,
-      "pattern": "EXTERNAL_SERVICE_BLOCKING",
-      "decision": "observe",
+      "lastSeen": "2025-12-19",
+      "occurrences": 8,
+      "pattern": "EXTERNAL_SERVICE_CHANGE",
+      "decision": "escalate_to_fix",
       "expiresOn": "2025-12-20",
-      "notes": "Microsoft Entra ID continues to block/change auth flow. 'Stay signed in?' not appearing. Failed 2025-12-10~12, temporarily fixed 2025-12-15 with Passkey web page handler, but FAILED AGAIN 2025-12-16. STRATEGY: Will implement multi-account rotation to avoid Microsoft rate limiting and detection. Test different SSO accounts to prevent single account being flagged. Observing with account rotation strategy."
+      "notes": "Microsoft Entra ID changed auth flow to PASSWORDLESS authentication. Screenshot evidence (2025-12-19): Microsoft now shows 'Get a code to sign in' page requiring one-time code sent to email, bypassing password entry entirely. Test expects password entry → 'Stay signed in?' dialog, but flow never reaches that point. Failed consistently 2025-12-10~19 (8 occurrences). Previous passkey fix (2025-12-15) was temporary. ROOT CAUSE CONFIRMED: Microsoft passwordless flow change. ESCALATED from observe to fix - needs test code update to handle passwordless authentication."
     },
     {
       "id": "OrgForceMFAUITest.testSSOSignInWithOrgForceMFA",
       "firstSeen": "2025-12-10",
-      "lastSeen": "2025-12-16",
-      "occurrences": 7,
-      "pattern": "EXTERNAL_SERVICE_BLOCKING",
-      "decision": "observe",
+      "lastSeen": "2025-12-19",
+      "occurrences": 8,
+      "pattern": "EXTERNAL_SERVICE_CHANGE",
+      "decision": "escalate_to_fix",
       "expiresOn": "2025-12-20",
-      "notes": "Microsoft Entra ID continues to block/change auth flow. 'Stay signed in?' not appearing. Failed 2025-12-10~12, temporarily fixed 2025-12-15 with Passkey web page handler, but FAILED AGAIN 2025-12-16. STRATEGY: Will implement multi-account rotation to avoid Microsoft rate limiting and detection. Test different SSO accounts to prevent single account being flagged. Observing with account rotation strategy."
+      "notes": "Microsoft Entra ID changed auth flow to PASSWORDLESS authentication. Screenshot evidence (2025-12-19): Microsoft now shows 'Get a code to sign in' page requiring one-time code sent to email, bypassing password entry entirely. Test expects password entry → 'Stay signed in?' dialog, but flow never reaches that point. Failed consistently 2025-12-10~19 (8 occurrences). Previous passkey fix (2025-12-15) was temporary. ROOT CAUSE CONFIRMED: Microsoft passwordless flow change. ESCALATED from observe to fix - needs test code update to handle passwordless authentication."
+    },
+    {
+      "id": "FloorPlanUITest.testSelectCameraByTappingMarker",
+      "firstSeen": "2025-12-19",
+      "lastSeen": "2025-12-19",
+      "occurrences": 1,
+      "pattern": "NAVIGATION_ELEMENT_NOT_FOUND",
+      "decision": "observe",
+      "expiresOn": "2025-12-21",
+      "notes": "'NavigationHeaderView_View' StaticText not found after tapping floor plan marker. First-time failure. Could be navigation timing issue or UI bug. Observing to see if transient or requires investigation."
+    },
+    {
+      "id": "CameraSettingsUITest.test_rebootDevice",
+      "firstSeen": "2025-12-19",
+      "lastSeen": "2025-12-19",
+      "occurrences": 1,
+      "pattern": "UNKNOWN_ASSERTION",
+      "decision": "observe",
+      "expiresOn": "2025-12-21",
+      "notes": "XCTAssertTrue failed (CommonOperation.swift:97). First-time failure. Test involves rebooting camera device. Could be device offline, reboot timeout, or simulator connectivity issue. Observing to see if transient environment issue."
     }
   ]
 }
