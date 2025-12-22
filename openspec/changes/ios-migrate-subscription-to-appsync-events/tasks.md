@@ -20,53 +20,48 @@
 
 ## Phase 1: AWSServices Layer Implementation
 
-### 1.1 Protocol Definition
-- [ ] Create `AWSServices/AWSAppSyncEvents/AppSyncEventsClientProtocol.swift`
-- [ ] Define `connect(region:endpoint:)` method signature
-- [ ] Define `subscribe(channels:)` returning AsyncStream
-- [ ] Define `unsubscribe()` and `disconnect()` methods
-- [ ] Mark protocol as `Sendable`
-- [ ] Add comprehensive documentation comments
+### 1.1 Protocol Definition ✅ COMPLETED
+- [x] Create `AWSServices/AWSAppSyncEvents/AppSyncEventsClientProtocol.swift`
+- [x] Define `connect()` method signature
+- [x] Define `disconnect()` method signature
+- [x] Define `subscribe(channel:)` returning AsyncThrowingStream (single channel per call)
+- [x] Mark protocol as `Sendable`
+- [x] Add `AppSyncEventMessage` struct with `channel`, `data`, `eventType`, `timestamp`
+- [x] Add comprehensive documentation comments
+- [x] Add `MockAppSyncEventsClient` for testing
+- [x] Add DependencyValues extension for `appSyncEventsClient`
 
-**File**: `VortexFeatures/Sources/AWSServices/AWSAppSyncEvents/AppSyncEventsClientProtocol.swift`
+**File**: `VortexFeatures/Sources/AWSServices/AWSAppSyncEvents/AppSyncEventsClientProtocol.swift` ✅
 
-### 1.2 SDK Wrapper Implementation
-- [ ] Create `AWSServices/AWSAppSyncEvents/AppSyncEventsClientWrapper.swift`
-- [ ] Import `AppSyncEventsSDK` from `aws-appsync-events-swift` package
-- [ ] Create `AppSyncEventBridgeClient` instance with config
-- [ ] Implement JWT token provider conforming to SDK's auth protocol
-- [ ] Configure `AppSyncEventBridgeConfig` with endpoint, region, auth provider
-- [ ] Use SDK's `connect()` method (no manual WebSocket handling needed)
-- [ ] Use SDK's `subscribe(to:)` method for channel subscriptions
-- [ ] Map SDK errors to VortexError types
-- [ ] Add VortexLogger integration (trace, debug, error levels)
-- [ ] Make wrapper an Actor for thread safety
+### 1.2 SDK Wrapper Implementation - SKIPPED
+**Decision**: Direct SDK usage instead of wrapper layer for simpler implementation
 
-**File**: `VortexFeatures/Sources/AWSServices/AWSAppSyncEvents/AppSyncEventsClientWrapper.swift`
+~~SDK Wrapper tasks removed - using direct SDK integration~~
 
-### 1.3 Client Actor Implementation
-- [ ] Create `AWSServices/AWSAppSyncEvents/AppSyncEventsClient.swift` as Actor
-- [ ] Implement AppSyncEventsClientProtocol
-- [ ] Inject `@Dependency(\.vortexAuthService)` for JWT tokens
-- [ ] Inject `@Dependency(\.appSyncEventsClientWrapper)` for SDK access
-- [ ] Delegate connection management to SDK's `AppSyncEventBridgeClient`
-- [ ] Implement subscribe/unsubscribe logic using SDK's `subscribe(to:)` method
-- [ ] Configure SDK reconnection behavior (use SDK's built-in reconnection with 10-second delay if configurable)
-- [ ] Check user sign-in status before reconnecting
-- [ ] Handle SDK connection state changes (connected, disconnected, error)
-- [ ] Implement graceful disconnect on user sign-out
-- [ ] Map SDK's AsyncStream/events to our AsyncStream interface
+### 1.3 Client Actor Implementation ✅ COMPLETED (Updated with Lazy Init)
+- [x] Create `AWSServices/AWSAppSyncEvents/AppSyncEventsClient.swift` as Actor
+- [x] Implement AppSyncEventsClientProtocol
+- [x] Inject `@Dependency(\.authService)` for JWT tokens
+- [x] Use `Events` and `EventsWebSocketClient` from aws-appsync-events-swift directly
+- [x] ~~Implement `connect()` using `Events(endpointURL:)` and `AuthTokenAuthorizer`~~ REMOVED - lazy initialization
+- [x] Implement lazy `initializeClient()` - creates client on first subscribe() call
+- [x] Implement `subscribe(channel:)` using `webSocketClient.subscribe(channelName:)` with auto-connect
+- [x] Implement `disconnect()` with `flushEvents: true`
+- [x] Add `parseEventMessage` to transform SDK's JSONValue to AppSyncEventMessage
+- [x] Add VortexLogger integration
+- [x] Make internal init (use factory method)
+- [x] Add factory method in `AWSServices.makeAppSyncEventsClient(endpointURL:)` returning `any AppSyncEventsClientProtocol`
+- [x] SDK automatically cleans up tasks and streams on disconnect (no manual task management needed)
 
-**File**: `VortexFeatures/Sources/AWSServices/AWSAppSyncEvents/AppSyncEventsClient.swift`
+**Files**:
+- `VortexFeatures/Sources/AWSServices/AWSAppSyncEvents/AppSyncEventsClient.swift` ✅
+- `VortexFeatures/Sources/AWSServices/AWSAppSyncEvents/AppSyncEventsClientProtocol.swift` ✅ (connect() removed)
+- `VortexFeatures/Sources/AWSServices/AWSServices.swift` ✅ (factory method added)
 
-### 1.4 Event Types Definition
-- [ ] Create `AWSServices/AWSAppSyncEvents/AppSyncEventTypes.swift`
-- [ ] Define 9 channel path constants matching latest schema (all user-level: `vortex-app/user/{userId}/*`)
-- [ ] Define event type constants (e.g., "device/presenceChanged", "organization/licensePhaseChanged")
-- [ ] Add helper methods for channel path construction with userId
-- [ ] Document mapping between GraphQL subscriptions and AppSync user-level channels
+### 1.4 Event Types Definition - NOT NEEDED
+**Decision**: Channel names constructed inline in subscription types, no separate file needed
 
-**File**: `VortexFeatures/Sources/AWSServices/AWSAppSyncEvents/AppSyncEventTypes.swift`
+~~Event Types tasks removed - not implemented~~
 
 ### 1.5 Unit Tests - AWSServices Layer
 - [ ] Create `VortexFeaturesTests/AWSServices/AppSyncEventsClientTests.swift`
@@ -82,20 +77,32 @@
 
 ## Phase 2: BackendSubscriber Extension
 
-### 2.1 AppSync Events Subscriber Protocol
-- [ ] Create `BackendSubscriber/AppSyncEventsSubscriber.swift`
-- [ ] Define `AppSyncEventsSubscriber` protocol
-- [ ] Add `subscribe<R>(_ subscription:returning:)` method returning AsyncThrowingStream
-- [ ] Add `unsubscribe()` method
-- [ ] Mark protocol as `Sendable`
-- [ ] Implement `VortexAppSyncEventsSubscriber` actor
-- [ ] Inject `@Dependency(\.appSyncEventsClient)` for AppSync client
-- [ ] **NO event filtering needed** - backend handles all authorization
-- [ ] Implement event parsing from AppSync Events message format
-- [ ] Parse events directly without filtering (user-level channels provide only authorized events)
-- [ ] Add VortexLogger integration
+### 2.1 AppSync Events Subscriber Protocol ✅ COMPLETED (with Reconnection)
+- [x] Create `BackendSubscriber/AppSyncEventsSubscriber.swift`
+- [x] Define `AppSyncEventsSubscriberProtocol` protocol
+- [x] Add `subscribe<R>(_ subscription:returning:)` method returning AsyncStream (NOT AsyncThrowingStream)
+- [x] ~~Add `unsubscribe()` method~~ REPLACED with `disconnect()` method
+- [x] Add `disconnect()` method for organization switching
+- [x] Mark protocol as `Sendable`
+- [x] Implement `AppSyncEventsSubscriber` actor
+- [x] Inject `@Dependency(\.appSyncEventsClient)` for AppSync client
+- [x] Inject `@Dependency(\.vortexAuthService)` for user ID and sign-in status
+- [x] **NO event filtering needed** - backend handles all authorization
+- [x] Implement event parsing from AppSync Events message format
+- [x] Parse events directly without filtering (user-level channels provide only authorized events)
+- [x] Add VortexLogger integration
+- [x] **RECONNECTION IMPLEMENTED**:
+  - [x] Infinite retry loop with 10-second delay (matching GraphQL VortexBackendSubscriber)
+  - [x] Coordinate reconnection across all channels (avoid multiple disconnect calls)
+  - [x] Use `isReconnecting` flag and `reconnectWaiters` continuations
+  - [x] Only reconnect on network errors (.network), not service/auth errors
+  - [x] Check `isSignIn()` before reconnecting - stop if user signed out
+  - [x] Return AsyncStream (errors handled internally, stream never throws)
+  - [x] SDK automatically cleans up tasks on disconnect (no manual task tracking)
+- [x] Add `MockAppSyncEventsSubscriber` for testing
+- [x] Add DependencyValues extension for `appSyncEventsSubscriber`
 
-**File**: `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/BackendSubscriber/AppSyncEventsSubscriber.swift`
+**File**: `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/BackendSubscriber/AppSyncEventsSubscriber.swift` ✅
 
 ### 2.2 AppSync Events Subscription Types
 - [ ] Create `BackendSubscriber/AppSyncEventsSubscription.swift`
