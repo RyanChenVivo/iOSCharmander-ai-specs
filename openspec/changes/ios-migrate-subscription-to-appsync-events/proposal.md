@@ -99,89 +99,82 @@ Create new subscription layer under `VortexFeatures/Sources/VortexFeatures/Commo
 - Properties: `channelName`, `eventType`
 - Similar to existing `GraphQLSubscription` protocol
 
-**Subscription Implementations** (9 types - all user-level channels):
-1. DevicePresenceSubscription → `vortex-app/user/{userId}/device/presenceChanged`
-2. DeviceRecordingSubscription → `vortex-app/user/{userId}/device/recordingStateChanged`
-3. DeviceFirmwareSubscription → `vortex-app/user/{userId}/device/firmwareUpdated`
-4. ArchiveStateEventsSubscription → `vortex-app/user/{userId}/archive/stateChanged`
-5. LicensePhaseSubscription → `vortex-app/user/{userId}/organization/licensePhaseChanged` ⚠️ NEW
-6. PlanTypeSubscription → `vortex-app/user/{userId}/organization/planChanged` ⚠️ NEW
-7. AISettingsSubscription → `vortex-app/user/{userId}/organization/aiSettingsChanged` ⚠️ NEW
-8. RoleChangeEventsSubscription → `vortex-app/user/{userId}/roleChanged`
-9. UserTokenRevokeEventsSubscription → `vortex-app/user/{userId}/tokenRevoked`
+**Subscription Implementations** (using wildcard patterns for efficiency):
+1. `.deviceWildcard` → `vortex-app/user/{userId}/device/*`
+   - Receives: `presenceChanged`, `recordingStateChanged`, `firmwareUpdated`
+2. `.organizationWildcard` → `vortex-app/user/{userId}/organization/*`
+   - Receives: `licensePhaseChanged`, `planChanged`, `aiSettingsChanged`
+3. `.archiveState` → `vortex-app/user/{userId}/archive/stateChanged`
+4. `.roleChange` → `vortex-app/user/{userId}/roleChanged`
+5. `.tokenRevoke` → `vortex-app/user/{userId}/tokenRevoked`
+
+**Individual channel definitions** (for reference, but wildcards used in practice):
+- Device: `presenceChanged`, `recordingStateChanged`, `firmwareUpdated`
+- Organization: `licensePhaseChanged`, `planChanged`, `aiSettingsChanged`
 
 **NO EventFilter Needed**:
 - Backend publishes to each user's channel separately
 - iOS receives only authorized events (no client-side filtering required)
 - Authorization enforced by AppSync custom authorizer (validates userId match)
 
-### 4. Update BackendNotifier with New AppSync Events Methods
+### 4. Update BackendNotifier with Wildcard Channel Subscriptions
 
-**Breaking Changes** - New API to match backend's 9-channel architecture:
+**NO Breaking Changes** - Preserve existing API using wildcard pattern subscriptions:
 
-**New Methods** (replacing old GraphQL methods):
+**Existing Methods** (interface unchanged):
 ```swift
-// Device events (3 SEPARATE methods - BREAKING CHANGE)
-func devicePresenceValues() async -> AsyncStream<DevicePresenceOutput>      // NEW - online state
-func deviceRecordingValues() async -> AsyncStream<DeviceRecordingOutput>    // NEW - recording state
-func deviceFirmwareValues() async -> AsyncStream<DeviceFirmwareOutput>      // NEW - firmware update
+// Device events - SAME interface, internal implementation changed
+func deviceValues() async -> AsyncStream<DeviceStateOutput>
 
-// Archive events
+// Archive events - SAME interface
 func archiveValues() async -> AsyncStream<ArchiveStateOutput>
 
-// Organization events (3 SEPARATE methods - BREAKING CHANGE)
-func licenseValues() async -> AsyncStream<LicenseStateOutput>     // NEW
-func planValues() async -> AsyncStream<PlanStateOutput>           // NEW
-func aiSettingsValues() async -> AsyncStream<AISettingsOutput>    // NEW
+// Organization events - SAME interface, internal implementation changed
+func organizationValues() async -> AsyncStream<OrganizationStateOutput>
 
-// User events
+// User events - SAME interface
 func roleValues() async -> AsyncStream<RoleChangeOutput>
 func revokeValues() async -> AsyncStream<UserTokenRevokeOutput>
 ```
 
 **Key Changes**:
-- `deviceValues()` is **REMOVED** - split into 3 separate methods (devicePresenceValues, deviceRecordingValues, deviceFirmwareValues)
-- `organizationValues()` is **REMOVED** - split into 3 separate methods
-- **Consistent API**: All backend channels map 1:1 to iOS methods (9 channels → 9 methods)
-- Consumers must update to subscribe to multiple streams
+- ✅ **NO API changes** - all existing methods preserved
+- ✅ **Wildcard subscriptions**: Use `device/*` and `organization/*` patterns to subscribe to multiple channels at once
+- ✅ **Backward compatible**: Existing consumer code requires NO changes
+- ✅ **Internal only**: Only subscription implementation changes, not the interface
 
 **Implementation**:
 ```swift
 actor BackendNotifier {
-    // Device events - 3 separate methods
-    func devicePresenceValues() async -> AsyncStream<DevicePresenceOutput> {
-        // Subscribe to vortex-app/user/{userId}/device/presenceChanged
-    }
+    private func handleOrganizationIDChanged(_ organizationID: String?) async {
+        // Device events - subscribe to device/* wildcard
+        // Receives: presenceChanged, recordingStateChanged, firmwareUpdated
+        subscribeDeviceTask = Task { [weak self] in
+            guard let self else { return }
+            for await event in await self.appSyncSubscriber.subscribe(.deviceWildcard, returning: DeviceStateOutput.self) {
+                await self.deviceObservers.values.forEach { $0.yield(event) }
+            }
+        }
 
-    func deviceRecordingValues() async -> AsyncStream<DeviceRecordingOutput> {
-        // Subscribe to vortex-app/user/{userId}/device/recordingStateChanged
-    }
+        // Organization events - subscribe to organization/* wildcard
+        // Receives: licensePhaseChanged, planChanged, aiSettingsChanged
+        subscribeOrganizationTask = Task { [weak self] in
+            guard let self else { return }
+            for await event in await self.appSyncSubscriber.subscribe(.organizationWildcard, returning: OrganizationStateOutput.self) {
+                await self.organizationObservers.values.forEach { $0.yield(event) }
+            }
+        }
 
-    func deviceFirmwareValues() async -> AsyncStream<DeviceFirmwareOutput> {
-        // Subscribe to vortex-app/user/{userId}/device/firmwareUpdated
-    }
-
-    // Organization events - 3 separate methods
-    func licenseValues() async -> AsyncStream<LicenseStateOutput> {
-        // Subscribe to vortex-app/user/{userId}/organization/licensePhaseChanged
-    }
-
-    func planValues() async -> AsyncStream<PlanStateOutput> {
-        // Subscribe to vortex-app/user/{userId}/organization/planChanged
-    }
-
-    func aiSettingsValues() async -> AsyncStream<AISettingsOutput> {
-        // Subscribe to vortex-app/user/{userId}/organization/aiSettingsChanged
+        // Other channels remain single subscriptions
+        // archive/stateChanged, roleChanged, tokenRevoked
     }
 }
 ```
 
 **Migration approach**:
-- **Device events**: Replace `deviceValues()` with 3 separate subscriptions (devicePresenceValues, deviceRecordingValues, deviceFirmwareValues)
-- **Organization events**: Replace `organizationValues()` with 3 separate subscriptions
-- **Consistent 1:1 mapping**: 9 backend channels → 9 iOS methods
-- Update all consumer code (DeviceManager, etc.) to subscribe to multiple streams
-- Update all references across the codebase
+- ✅ **Zero consumer code changes** - existing consumers continue to work unchanged
+- ✅ **Only BackendNotifier internals change** - switch from GraphQL to AppSync Events
+- ✅ **Gradual rollout possible** - can test device/* and organization/* subscriptions independently
 
 ### 5. NO Client-Side Filtering Required
 
@@ -210,25 +203,32 @@ actor BackendNotifier {
 
 **Schema Validation**: All channel definitions and event types are validated against latest OpenAPI schema to ensure consistency with backend API contracts.
 
-Subscribe to the following AppSync Events channels (9 channels total - all user-level):
+**Wildcard Pattern Subscriptions** (efficient single-subscription approach):
 
-| Current GraphQL Subscription | AppSync Events Channel | Event Type | Filtering |
-|------------------------------|------------------------|------------|-----------|
-| `subscribeDeviceState` (online) | `vortex-app/user/{userId}/device/presenceChanged` | `device/presenceChanged` | Server-side |
-| `subscribeDeviceState` (recording) | `vortex-app/user/{userId}/device/recordingStateChanged` | `device/recordingStateChanged` | Server-side |
-| `subscribeDeviceState` (firmware) | `vortex-app/user/{userId}/device/firmwareUpdated` | `device/firmwareUpdated` | Server-side |
-| `subscribeArchiveState` | `vortex-app/user/{userId}/archive/stateChanged` | `archive/stateChanged` | Server-side |
-| `subscribeOrganizationState` (license) | `vortex-app/user/{userId}/organization/licensePhaseChanged` | `organization/licensePhaseChanged` | Server-side |
-| `subscribeOrganizationState` (plan) | `vortex-app/user/{userId}/organization/planChanged` | `organization/planChanged` | Server-side |
-| `subscribeOrganizationState` (AI) | `vortex-app/user/{userId}/organization/aiSettingsChanged` | `organization/aiSettingsChanged` | Server-side |
-| `subscribeRoleChange` | `vortex-app/user/{userId}/roleChanged` | `user/roleChanged` | Server-side |
-| `subscribeUserTokenRevoke` | `vortex-app/user/{userId}/tokenRevoked` | `user/tokenRevoked` | Server-side |
+| iOS Method | AppSync Events Subscription | Receives Event Types | Filtering |
+|------------|----------------------------|---------------------|-----------|
+| `deviceValues()` | `vortex-app/user/{userId}/device/*` | `presenceChanged`, `recordingStateChanged`, `firmwareUpdated` | Server-side |
+| `organizationValues()` | `vortex-app/user/{userId}/organization/*` | `licensePhaseChanged`, `planChanged`, `aiSettingsChanged` | Server-side |
+| `archiveValues()` | `vortex-app/user/{userId}/archive/stateChanged` | `stateChanged` | Server-side |
+| `roleValues()` | `vortex-app/user/{userId}/roleChanged` | `roleChanged` | Server-side |
+| `revokeValues()` | `vortex-app/user/{userId}/tokenRevoked` | `tokenRevoked` | Server-side |
 
-**Note**:
-- **ALL channels use user-level pattern**: `vortex-app/user/{userId}/*`
-- Backend publishes to each authorized user separately (server-side filtering)
-- The single GraphQL `subscribeDeviceState` subscription is split into 3 separate AppSync Events channels based on event type (presence, recording, firmware)
-- The single GraphQL `subscribeOrganizationState` subscription is split into 3 separate AppSync Events channels based on event type (license, plan, AI settings)
+**Individual Event Types** (for reference):
+
+| GraphQL Subscription | Event Type in Payload | AppSync Events Path |
+|----------------------|----------------------|---------------------|
+| `subscribeDeviceState` (online) | `device/presenceChanged` | `vortex-app/user/{userId}/device/presenceChanged` |
+| `subscribeDeviceState` (recording) | `device/recordingStateChanged` | `vortex-app/user/{userId}/device/recordingStateChanged` |
+| `subscribeDeviceState` (firmware) | `device/firmwareUpdated` | `vortex-app/user/{userId}/device/firmwareUpdated` |
+| `subscribeOrganizationState` (license) | `organization/licensePhaseChanged` | `vortex-app/user/{userId}/organization/licensePhaseChanged` |
+| `subscribeOrganizationState` (plan) | `organization/planChanged` | `vortex-app/user/{userId}/organization/planChanged` |
+| `subscribeOrganizationState` (AI) | `organization/aiSettingsChanged` | `vortex-app/user/{userId}/organization/aiSettingsChanged` |
+
+**Key Benefits**:
+- ✅ **Wildcard efficiency**: Subscribe to `device/*` once instead of 3 separate subscriptions
+- ✅ **Backward compatible**: `deviceValues()` returns unified stream, just like GraphQL
+- ✅ **Event type discrimination**: Use `eventType` field to distinguish event types if needed
+- ✅ **Server-side filtering**: Backend handles all authorization before publishing
 
 ### 7. Message Format
 
@@ -286,19 +286,20 @@ Most device/archive events include these **optional** fields:
 
 **Migration Strategy** (one-time deployment):
 - **Phase 1**: Implement AppSync Events infrastructure
-- **Phase 2**: Update BackendNotifier to use AppSync Events
-- **Phase 3**: Update all consumer code to use new API
-- **Phase 4**: Test thoroughly in staging environment
-- **Phase 5**: Deploy to production (one-time switch)
-- **Phase 6**: Monitor production closely after deployment
+- **Phase 2**: Update BackendNotifier internals to use AppSync Events (no API changes)
+- **Phase 3**: Test thoroughly in staging environment
+- **Phase 4**: Deploy to production (one-time switch)
+- **Phase 5**: Monitor production closely after deployment
 
 **Trade-offs**:
-- ❌ **Breaking changes** - all consumers must update code
-- ❌ **Code duplication** - both GraphQL and AppSync code exist
-- ❌ **Maintenance burden** - need to maintain unused GraphQL code
-- ✅ **Easier rollback** - can switch back to GraphQL implementation quickly
+- ✅ **NO breaking changes** - consumers require zero code changes
+- ✅ **Backward compatible** - existing API preserved completely
+- ✅ **Easier rollback** - can switch back to GraphQL implementation instantly (no consumer updates needed)
 - ✅ **No deletion risk** - GraphQL code preserved for reference
 - ✅ **Gradual cleanup** - can remove GraphQL later when confident
+- ✅ **Efficient subscriptions** - wildcard patterns reduce connection overhead
+- ❌ **Code duplication** - both GraphQL and AppSync code exist temporarily
+- ❌ **Maintenance burden** - need to maintain unused GraphQL code until cleanup
 
 ## Impact
 
@@ -307,64 +308,65 @@ Most device/archive events include these **optional** fields:
 **New Directory Structure**:
 ```
 VortexFeatures/Sources/
-├── AWervSSices/
+├── AWSServices/
+│   ├── AWSServices.swift                    ✏️ MODIFIED (added makeAppSyncEventsClient)
 │   └── AWSAppSyncEvents/                    📁 NEW
-│       ├── AppSyncEventsClientProtocol.swift
-│       ├── AppSyncEventsClient.swift
-│       ├── AppSyncEventsClientWrapper.swift
-│       └── AppSyncEventTypes.swift
+│       ├── AppSyncEventsClientProtocol.swift ✅ COMPLETED
+│       └── AppSyncEventsClient.swift         ✅ COMPLETED
 │
 └── VortexFeatures/Common/VortexBackend/
     ├── BackendSubscriber/
-    │   ├── AppSyncEventsSubscriber.swift    📄 NEW
-    │   └── AppSyncEventsSubscription.swift  📄 NEW
+    │   ├── AppSyncEventsSubscriber.swift    📄 NEW (pending)
+    │   └── AppSyncEventsSubscription.swift  📄 NEW (pending)
     │
     ├── BackendNotifier/
-    │   ├── BackendNotifier.swift            ✏️ MODIFIED (add new methods)
-    │   └── BackendNotifierProtocol.swift    ✏️ MODIFIED (optional)
+    │   └── BackendNotifier.swift            ✏️ MODIFIED (internal only, NO API changes)
     │
     └── Model/Subscribe/
-        ├── LicenseStateOutput.swift         📄 NEW
-        ├── PlanStateOutput.swift            📄 NEW
-        └── AISettingsOutput.swift           📄 NEW
+        ├── DeviceStateOutput.swift          ✏️ MODIFIED (add eventType, timestamp)
+        ├── OrganizationStateOutput.swift    ✏️ MODIFIED (add eventType, timestamp)
+        ├── ArchiveStateOutput.swift         ✏️ MODIFIED (add eventType, timestamp)
+        ├── RoleChangeOutput.swift           ✏️ MODIFIED (add eventType, timestamp)
+        └── UserTokenRevokeOutput.swift      ✏️ MODIFIED (add eventType, timestamp)
 ```
 
-**New Files - AWSServices Layer** (following AWSMqttClient pattern):
-- `AppSyncEventsClientProtocol.swift` - Protocol defining AppSync Events client interface
-- `AppSyncEventsClient.swift` - Actor implementing protocol with AWS SDK
-- `AppSyncEventsClientWrapper.swift` - Wrapper isolating AWS SDK dependency
-- `AppSyncEventTypes.swift` - Channel and event type definitions
+**New Files - AWSServices Layer** (simplified, direct SDK usage):
+- `AppSyncEventsClientProtocol.swift` ✅ - Protocol defining AppSync Events client interface, includes AppSyncEventMessage struct
+- `AppSyncEventsClient.swift` ✅ - Actor implementing protocol with direct AWS SDK usage (no wrapper layer)
+- `AWSServices.swift` ✅ - Added factory method `makeAppSyncEventsClient(endpointURL:)`
+- ~~`AppSyncEventsClientWrapper.swift`~~ - SKIPPED (direct SDK integration chosen)
+- ~~`AppSyncEventTypes.swift`~~ - SKIPPED (channel names inline in subscription types)
 
 **New Files - BackendSubscriber Layer** (GraphQL files preserved):
 - `AppSyncEventsSubscriber.swift` - Subscription interface and implementation
-- `AppSyncEventsSubscription.swift` - 9 subscription type definitions (all user-level channels)
+- `AppSyncEventsSubscription.swift` - 5 subscription type definitions (using wildcards for device/* and organization/*)
 - **Keep existing**: `GraphQLSubscriber.swift` (preserved but unused)
 - **Keep existing**: `GraphQLSubscription.swift` (preserved but unused)
 
-**New Files - Model Layer**:
-- `DevicePresenceOutput.swift` - Device presence event model (online state)
-- `DeviceRecordingOutput.swift` - Device recording event model (recording state)
-- `DeviceFirmwareOutput.swift` - Device firmware event model (firmware update state)
-- `LicenseStateOutput.swift` - License phase event model
-- `PlanStateOutput.swift` - Plan type event model
-- `AISettingsOutput.swift` - AI settings event model
+**NO New Model Files Required**:
+- ✅ Reuse existing `DeviceStateOutput` (add `eventType`, `timestamp` optional fields)
+- ✅ Reuse existing `OrganizationStateOutput` (add `eventType`, `timestamp` optional fields)
+- ✅ Reuse existing `ArchiveStateOutput` (add `eventType`, `timestamp` optional fields)
+- ✅ Reuse existing `RoleChangeOutput` (add `eventType`, `timestamp` optional fields)
+- ✅ Reuse existing `UserTokenRevokeOutput` (add `eventType`, `timestamp` optional fields)
 
 **Modified Files**:
-- `BackendNotifier.swift` - **BREAKING CHANGE**: Use AppSync Events methods
-  - Remove: `deviceValues() -> AsyncStream<DeviceStateOutput>`
-  - Remove: `organizationValues() -> AsyncStream<OrganizationStateOutput>`
-  - Add: `devicePresenceValues()`, `deviceRecordingValues()`, `deviceFirmwareValues()`
-  - Add: `licenseValues()`, `planValues()`, `aiSettingsValues()`
-  - Update: All other methods to use AppSync Events
+- `BackendNotifier.swift` - **NO BREAKING CHANGE**: Internal implementation only
+  - ✅ **Keep**: `deviceValues() -> AsyncStream<DeviceStateOutput>` (interface unchanged)
+  - ✅ **Keep**: `organizationValues() -> AsyncStream<OrganizationStateOutput>` (interface unchanged)
+  - 🔄 **Update**: Internal subscription logic to use AppSync Events with wildcard patterns
+  - 🔄 **Update**: `handleOrganizationIDChanged()` to subscribe to `device/*` and `organization/*`
   - **GraphQL implementation code preserved but unused**
 - `VortexFactoryProvider.swift` - Add AppSync Events factory methods
   - **Keep existing**: GraphQL factory methods (preserved but unused)
   - Add: AppSync Events factory methods
-- **Modified Output Models**:
-  - **`ArchiveStateOutput`** - Add `eventType` and `timestamp` fields
-  - **`RoleChangeOutput`** - Add `eventType` and `timestamp` fields
-  - **`UserTokenRevokeOutput`** - Add `eventType` and `timestamp` fields
-  - Note: `siteId` field is metadata only, NOT used for filtering (backend handles authorization)
+- **Modified Output Models** (all changes are optional fields - backward compatible):
+  - **`DeviceStateOutput`** - Add optional `eventType` and `timestamp` fields
+  - **`OrganizationStateOutput`** - Add optional `eventType` and `timestamp` fields
+  - **`ArchiveStateOutput`** - Add optional `eventType` and `timestamp` fields
+  - **`RoleChangeOutput`** - Add optional `eventType` and `timestamp` fields
+  - **`UserTokenRevokeOutput`** - Add optional `eventType` and `timestamp` fields
+  - Note: All existing fields remain unchanged; only adding metadata fields for debugging/logging
 
 **No Files Deleted**:
 - `GraphQLSubscriber.swift` - **Preserved** (unused but kept for rollback)
@@ -440,43 +442,51 @@ VortexFeatures/Sources/
 
 **Phase 2: BackendSubscriber Extension**
 - Implement AppSyncEventsSubscriber protocol and implementations
-- Create 9 user-level subscription type definitions (including 3 new organization state subscriptions)
+- Create 5 subscription type definitions using wildcards:
+  - `.deviceWildcard` → `device/*`
+  - `.organizationWildcard` → `organization/*`
+  - `.archiveState`, `.roleChange`, `.tokenRevoke`
 - **NO EventFilter needed** - backend handles all authorization
 - Write unit tests for subscription layer
 
-**Phase 3: BackendNotifier Migration**
-- **BREAKING CHANGE**: Use AppSync Events methods in BackendNotifier
-- Remove `organizationValues()` method
-- Add `licenseValues()`, `planValues()`, `aiSettingsValues()` methods
-- Create new Output models (LicenseStateOutput, PlanStateOutput, AISettingsOutput)
+**Phase 3: Output Model Updates**
+- Add optional `eventType` and `timestamp` fields to existing models:
+  - `DeviceStateOutput`
+  - `OrganizationStateOutput`
+  - `ArchiveStateOutput`
+  - `RoleChangeOutput`
+  - `UserTokenRevokeOutput`
+- **NO breaking changes** - all new fields are optional
+- Maintain backward compatibility with existing code
+
+**Phase 4: BackendNotifier Migration**
+- **NO BREAKING CHANGE**: Update internal implementation only
+- Keep all existing method signatures unchanged:
+  - `deviceValues()` → subscribes to `device/*`
+  - `organizationValues()` → subscribes to `organization/*`
+  - `archiveValues()`, `roleValues()`, `revokeValues()` → single channel subscriptions
+- Update `handleOrganizationIDChanged()` to use AppSync Events
 - **Keep GraphQL implementation files** (preserved but unused)
 - Update VortexFactoryProvider - **keep GraphQL factories**, add AppSync Events factories
 - Write integration tests
 
-**Phase 4: Schema Validation**
+**Phase 5: Schema Validation**
 - Validate all event types against latest OpenAPI schemas
 - Ensure field mappings are correct (verify `orgId`, `siteId`, `thingName`, etc.)
-- Note: `siteId` is metadata only - NOT used for client-side filtering
-- Update Output models if needed
+- Verify wildcard subscriptions receive all expected event types
 - Run schema validation tests
-
-**Phase 5: Consumer Code Migration**
-- Search for all usages of `organizationValues()` across codebase
-- Update each consumer to use 3 separate streams: `licenseValues()`, `planValues()`, `aiSettingsValues()`
-- Update tests to use new API
-- Ensure compiler passes with no references to old methods
 
 **Phase 6: Dev Environment Testing**
 - Deploy to dev environment with AppSync Events
-- Test all 9 user-level channels concurrently
+- Test wildcard subscriptions: `device/*` and `organization/*`
 - **Verify backend filtering** - iOS receives only authorized events
-- Test organization state split (license, plan, AI settings)
+- Test that existing consumers work without any code changes
 - Test reconnection and error scenarios
 - Monitor performance and stability
 
 **Phase 7: Staging Validation**
 - Deploy to staging environment
-- Run full regression testing
+- Run full regression testing (no consumer code changes needed)
 - Performance testing (latency, memory, battery)
 - Security validation
 - QA sign-off
@@ -484,7 +494,7 @@ VortexFeatures/Sources/
 **Phase 8: Production Deployment**
 - Deploy to production (one-time switch)
 - Close monitoring for first 24-48 hours
-- Rollback plan: Hotfix deployment with GraphQL code if critical issues
+- Rollback plan: Instant switch back to GraphQL (no consumer updates needed)
 - Post-deployment validation
 
 ## Success Criteria
@@ -496,32 +506,32 @@ VortexFeatures/Sources/
    - Actor isolation ensures thread-safety
 
 2. **Functional Parity**:
-   - All 9 user-level AppSync Events channels working correctly
-   - Event delivery matches GraphQL subscription behavior
+   - Wildcard subscriptions (`device/*`, `organization/*`) working correctly
+   - Event delivery matches GraphQL subscription behavior exactly
    - **Backend filtering verified** - iOS receives only authorized events
-   - Organization state split handled correctly (license, plan, AI settings)
+   - All event types properly handled (presence, recording, firmware, license, plan, AI settings)
    - Reconnection handles network disruption reliably
 
-3. **Code Migration**:
-   - All usage of `organizationValues()` replaced with 3 separate methods
-   - All consumers updated: `licenseValues()`, `planValues()`, `aiSettingsValues()`
-   - GraphQL code completely removed from codebase
-   - Existing tests updated to use new API
-   - Code compiles with no references to old GraphQL methods
+3. **Backward Compatibility**:
+   - ✅ **Zero consumer code changes** - all existing code works unchanged
+   - ✅ All existing method signatures preserved
+   - ✅ All existing tests pass without modification
+   - ✅ No breaking changes in public API
+   - ✅ Instant rollback capability (no consumer updates needed)
 
 4. **Schema Consistency**:
    - All event types validated against latest OpenAPI schema
    - Field mappings correct (verify `orgId`, `siteId`, `thingName`, etc.)
    - Note: `siteId` field present but NOT used for filtering
    - Zero schema drift detected
-   - Event types include `eventType` and `timestamp` fields
-   - New organization state models align with schema
+   - Optional `eventType` and `timestamp` fields added to all models
+   - Wildcard subscriptions receive all expected event types
 
 5. **Testing**:
    - Unit tests for all new components
-   - Integration tests for 9-channel subscription
+   - Integration tests for wildcard subscriptions
    - Performance tests validate <1s latency (P99)
-   - Organization state split tested independently
+   - Regression tests confirm existing functionality unchanged
 
 6. **Production Readiness**:
    - No increase in crash rates

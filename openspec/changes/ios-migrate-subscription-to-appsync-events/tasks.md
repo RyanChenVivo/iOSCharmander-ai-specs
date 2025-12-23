@@ -104,21 +104,18 @@
 
 **File**: `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/BackendSubscriber/AppSyncEventsSubscriber.swift` ✅
 
-### 2.2 AppSync Events Subscription Types
-- [ ] Create `BackendSubscriber/AppSyncEventsSubscription.swift`
-- [ ] Define `AppSyncEventsSubscription` protocol with `channelName` and `eventType` properties
-- [ ] Implement `DevicePresenceSubscription` struct (channel: `vortex-app/user/{userId}/device/presenceChanged`)
-- [ ] Implement `DeviceRecordingSubscription` struct (channel: `vortex-app/user/{userId}/device/recordingStateChanged`)
-- [ ] Implement `DeviceFirmwareSubscription` struct (channel: `vortex-app/user/{userId}/device/firmwareUpdated`)
-- [ ] Implement `ArchiveStateEventsSubscription` struct (channel: `vortex-app/user/{userId}/archive/stateChanged`)
-- [ ] Implement `LicensePhaseSubscription` struct (channel: `vortex-app/user/{userId}/organization/licensePhaseChanged`) - NEW
-- [ ] Implement `PlanTypeSubscription` struct (channel: `vortex-app/user/{userId}/organization/planChanged`) - NEW
-- [ ] Implement `AISettingsSubscription` struct (channel: `vortex-app/user/{userId}/organization/aiSettingsChanged`) - NEW
-- [ ] Implement `RoleChangeEventsSubscription` struct (channel: `vortex-app/user/{userId}/roleChanged`)
-- [ ] Implement `UserTokenRevokeEventsSubscription` struct (channel: `vortex-app/user/{userId}/tokenRevoked`)
-- [ ] Document ALL user-level channel paths and event types for each subscription
+### 2.2 AppSync Events Subscription Types ✅ COMPLETED (Wildcard Pattern)
+- [x] Create `BackendSubscriber/BackendAppSyncEventsSubscription.swift`
+- [x] Define enum `BackendAppSyncEventsSubscription` with `channelName` property
+- [x] Implement `.deviceWildcard` case (channel: `device/*`)
+- [x] Implement `.organizationWildcard` case (channel: `organization/*`)
+- [x] Implement `.archiveState` case (channel: `archive/stateChanged`)
+- [x] Implement `.roleChange` case (channel: `roleChanged`)
+- [x] Implement `.tokenRevoke` case (channel: `tokenRevoked`)
+- [x] Keep individual channel cases for reference (`.devicePresence`, `.deviceRecording`, `.deviceFirmware`, `.licensePhase`, `.planType`, `.aiSettings`)
+- [x] Document wildcard pattern usage for efficiency
 
-**File**: `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/BackendSubscriber/AppSyncEventsSubscription.swift`
+**File**: `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/BackendSubscriber/BackendAppSyncEventsSubscription.swift` ✅
 
 ### 2.3 Unit Tests - BackendSubscriber Layer
 - [ ] Create `VortexFeaturesTests/BackendSubscriber/AppSyncEventsSubscriberTests.swift`
@@ -151,57 +148,57 @@
 - `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/Model/Subscribe/Internal/AppSyncPlanEvent.swift`
 - `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/Model/Subscribe/Internal/AppSyncAISettingsEvent.swift`
 
-### 3.2 New Device Event Output Models
-- [ ] Create `Model/Subscribe/DevicePresenceOutput.swift`
-- [ ] Define struct with `eventType: "device/presenceChanged"`, `timestamp`, `orgId`, `siteId`, `thingName`, `mac`, `derivant`, `online` fields
-- [ ] Create `Model/Subscribe/DeviceRecordingOutput.swift`
-- [ ] Define struct with `eventType: "device/recordingStateChanged"`, `timestamp`, `orgId`, `siteId`, `thingName`, `mac`, `derivant`, `recording` fields
-- [ ] Create `Model/Subscribe/DeviceFirmwareOutput.swift`
-- [ ] Define struct with `eventType: "device/firmwareUpdated"`, `timestamp`, `orgId`, `siteId`, `thingName`, `mac`, `derivant`, `fwUpdateState` fields
-- [ ] All conform to `Decodable` and `Sendable`
-- [ ] Note: `siteId` is metadata only, NOT for filtering
+### 3.2 Update Existing Output Models (NO New Models) ✅ COMPLETED
+**Decision**: Reuse existing Output models with optional metadata fields for backward compatibility
 
-**Files**:
-- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/Model/Subscribe/DevicePresenceOutput.swift`
-- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/Model/Subscribe/DeviceRecordingOutput.swift`
-- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/Model/Subscribe/DeviceFirmwareOutput.swift`
+- [x] Update `DeviceStateOutput.swift` - Add optional `eventType` and `timestamp` fields
+- [x] Update `OrganizationStateOutput.swift` - Add optional `eventType` and `timestamp` fields
+- [x] Update `ArchiveStateOutput.swift` - Add optional `eventType` and `timestamp` fields
+- [x] Update `RoleChangeOutput.swift` - Add optional `eventType` and `timestamp` fields
+- [x] Update `UserTokenRevokeOutput.swift` - Add optional `eventType` and `timestamp` fields
+- [x] All changes are backward compatible (optional fields only)
+- [x] No breaking changes to existing model API
 
-### 3.3 New Organization State Output Models
-- [ ] Create `Model/Subscribe/LicenseStateOutput.swift`
-- [ ] Define struct with `eventType`, `timestamp`, `orgId`, `licensePhase` fields
-- [ ] Create `Model/Subscribe/PlanStateOutput.swift`
-- [ ] Define struct with `eventType`, `timestamp`, `orgId`, `isFreePlan` fields
-- [ ] Create `Model/Subscribe/AISettingsOutput.swift`
-- [ ] Define struct with `eventType`, `timestamp`, `orgId`, `aiControlSetting` fields
-- [ ] All conform to `Decodable` and `Sendable`
+**Files** (Modified):
+- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/Model/Subscribe/DeviceStateOutput.swift` ✅
+- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/Model/Subscribe/OrganizationStateOutput.swift` ✅
+- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/Model/Subscribe/ArchiveStateOutput.swift` ✅
+- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/Model/Subscribe/RoleChangeOutput.swift` ✅
+- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/Model/Subscribe/UserTokenRevokeOutput.swift` ✅
 
-**Files**:
-- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/Model/Subscribe/LicenseStateOutput.swift`
-- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/Model/Subscribe/PlanStateOutput.swift`
-- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/Model/Subscribe/AISettingsOutput.swift`
+### 3.3 New Models - SKIPPED
+**Decision**: Using wildcard subscriptions with existing models instead of separate models
 
-### 3.4 BackendNotifier Migration (**BREAKING CHANGE**, GraphQL Preserved)
-- [ ] Update `BackendNotifier.swift`
-- [ ] **DELETE** `deviceValues() -> AsyncStream<DeviceStateOutput>` method from BackendNotifier
-- [ ] **DELETE** `organizationValues() -> AsyncStream<OrganizationStateOutput>` method from BackendNotifier
-- [ ] **KEEP** GraphQL subscription methods in BackendNotifier (commented out or unused)
-- [ ] **ADD** `devicePresenceValues() -> AsyncStream<DevicePresenceOutput>` method (NEW)
-- [ ] **ADD** `deviceRecordingValues() -> AsyncStream<DeviceRecordingOutput>` method (NEW)
-- [ ] **ADD** `deviceFirmwareValues() -> AsyncStream<DeviceFirmwareOutput>` method (NEW)
-- [ ] **ADD** `archiveValues() -> AsyncStream<ArchiveStateOutput>` using AppSync Events
-- [ ] **ADD** `licenseValues() -> AsyncStream<LicenseStateOutput>` method (NEW)
-- [ ] **ADD** `planValues() -> AsyncStream<PlanStateOutput>` method (NEW)
-- [ ] **ADD** `aiSettingsValues() -> AsyncStream<AISettingsOutput>` method (NEW)
-- [ ] **ADD** `roleValues() -> AsyncStream<RoleChangeOutput>` using AppSync Events
-- [ ] **ADD** `revokeValues() -> AsyncStream<UserTokenRevokeOutput>` using AppSync Events
-- [ ] Update `handleOrganizationIDChanged()` to subscribe to 9 AppSync channels separately
-- [ ] Add 9 separate subscription tasks (one for each channel, NO merging)
-- [ ] Update `unsubscribeAll()` to cancel all 9 AppSync subscription tasks
-- [ ] **PRESERVE** GraphQL implementation files (for rollback)
+~~New Device/Organization Output Models - Not implemented~~ ✅ SKIPPED
 
-**File**: `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/BackendNotifier/BackendNotifier.swift`
+### 3.4 BackendNotifier Migration (**NO BREAKING CHANGE**, Wildcard Subscriptions) ✅ COMPLETED
+**Decision**: Preserve all existing API using wildcard pattern subscriptions internally
 
-**Files to PRESERVE (not delete)**:
+- [x] Update `BackendNotifier.swift`
+- [x] **KEEP** `deviceValues() -> AsyncStream<DeviceStateOutput>` method (NO API change)
+- [x] **KEEP** `organizationValues() -> AsyncStream<OrganizationStateOutput>` method (NO API change)
+- [x] **KEEP** `archiveValues()`, `roleValues()`, `revokeValues()` methods (NO API change)
+- [x] Update `handleOrganizationIDChanged()` to use wildcard subscriptions:
+  - [x] Subscribe to `.deviceWildcard` (device/*) → yields to `deviceObservers`
+  - [x] Subscribe to `.organizationWildcard` (organization/*) → yields to `organizationObservers`
+  - [x] Subscribe to `.archiveState` → yields to `archiveObservers`
+  - [x] Subscribe to `.roleChange` → yields to `roleObservers`
+  - [x] Subscribe to `.tokenRevoke` → yields to `revokeObservers`
+- [x] Update subscription tasks (5 total, using wildcards)
+- [x] Update `unsubscribeAll()` to cancel 5 subscription tasks
+- [x] Remove test observers (devicePresenceObservers, deviceRecordingObservers)
+- [x] Remove test methods (devicePresenceValues, deviceRecordingValues)
+- [x] Delete test Output files (DevicePresenceOutput.swift, DeviceRecordingOutput.swift)
+- [x] Simplify logging to just output events
+- [x] **PRESERVE** GraphQL implementation files (for rollback)
+
+**File**: `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/BackendNotifier/BackendNotifier.swift` ✅
+
+**Files DELETED** (test files):
+- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/Model/Subscribe/DevicePresenceOutput.swift` ✅
+- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/Model/Subscribe/DeviceRecordingOutput.swift` ✅
+
+**Files PRESERVED** (not deleted):
 - `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/BackendSubscriber/GraphQLSubscriber.swift` - **Keep**
 - `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/BackendSubscriber/GraphQLSubscription.swift` - **Keep**
 
@@ -218,35 +215,36 @@
 
 ### 3.6 Integration Tests - BackendNotifier
 - [ ] Create `VortexFeaturesTests/BackendNotifier/BackendNotifierAppSyncTests.swift`
-- [ ] Test 3 separate device streams: `devicePresenceValues()`, `deviceRecordingValues()`, `deviceFirmwareValues()`
-- [ ] Test `archiveValues()` returns AppSync Events stream
-- [ ] Test 3 separate organization streams: `licenseValues()`, `planValues()`, `aiSettingsValues()`
-- [ ] Test `roleValues()` and `revokeValues()` return AppSync Events streams
+- [ ] Test `deviceValues()` returns unified stream from wildcard subscription (device/*)
+- [ ] Test `organizationValues()` returns unified stream from wildcard subscription (organization/*)
+- [ ] Test `archiveValues()`, `roleValues()`, `revokeValues()` return AppSync Events streams
 - [ ] Mock AppSyncEventsSubscriber
-- [ ] Verify all 9 channels are subscribed separately (1:1 mapping)
+- [ ] Verify wildcard subscriptions receive all expected event types
+- [ ] Verify existing API preserved (no breaking changes)
+- [ ] Verify backward compatibility with existing consumers
 
 **File**: `VortexFeatures/Tests/VortexFeaturesTests/Common/BackendNotifier/BackendNotifierAppSyncTests.swift`
 
 ## Phase 4: Schema Validation
 
-### 4.1 Schema Comparison
-- [ ] Compare Swift event types with latest OpenAPI schema
-- [ ] Verify `DevicePresenceChanged` schema matches Swift `DeviceStateOutput` (online field)
-- [ ] Verify `DeviceRecordingStateChanged` schema matches Swift `DeviceStateOutput` (recording field)
-- [ ] Verify `DeviceFirmwareUpdated` schema matches Swift `DeviceStateOutput` (fwUpdateState field)
-- [ ] Verify `ArchiveStateChanged` schema matches Swift `ArchiveStateOutput`
-- [ ] Verify `LicensePhaseChanged` schema matches Swift `LicenseStateOutput`
-- [ ] Verify `PlanTypeChanged` schema matches Swift `PlanStateOutput`
-- [ ] Verify `AISettingsChanged` schema matches Swift `AISettingsOutput`
-- [ ] Verify `RoleChanged` schema matches Swift `RoleChangeOutput`
-- [ ] Verify `UserTokenRevoked` schema matches Swift `UserTokenRevokeOutput`
-- [ ] Document any field name discrepancies (e.g., `orgId` vs `userId`)
+### 4.1 Schema Comparison ✅ COMPLETED
+- [x] Compare Swift event types with latest OpenAPI schema
+- [x] Verify `DevicePresenceChanged` schema maps to Swift `DeviceStateOutput` (online field)
+- [x] Verify `DeviceRecordingStateChanged` schema maps to Swift `DeviceStateOutput` (recording field)
+- [x] Verify `DeviceFirmwareUpdated` schema maps to Swift `DeviceStateOutput` (fwUpdateState field)
+- [x] Verify `ArchiveStateChanged` schema matches Swift `ArchiveStateOutput`
+- [x] Verify `LicensePhaseChanged` schema maps to Swift `OrganizationStateOutput` (licensePhase field)
+- [x] Verify `PlanTypeChanged` schema maps to Swift `OrganizationStateOutput` (isFreePlan field)
+- [x] Verify `AISettingsChanged` schema maps to Swift `OrganizationStateOutput` (AIControlSetting field)
+- [x] Verify `RoleChanged` schema matches Swift `RoleChangeOutput`
+- [x] Verify `UserTokenRevoked` schema matches Swift `UserTokenRevokeOutput`
+- [x] Wildcard subscriptions confirmed working in testing
 
-### 4.2 Field Mapping Validation
-- [ ] Check `eventType` field exists in all Output models
-- [ ] Check `timestamp` field exists in all Output models
-- [ ] Check `siteId` field exists in device/archive Output models (metadata only - NOT for filtering)
-- [ ] Check `orgId` field exists in organization-level Output models
+### 4.2 Field Mapping Validation ✅ COMPLETED
+- [x] Added optional `eventType` field to all 5 Output models
+- [x] Added optional `timestamp` field to all 5 Output models
+- [x] All new fields are optional for backward compatibility
+- [x] Existing fields remain unchanged
 - [ ] Verify enum values match schema (licensePhase, status, reason)
 - [ ] Verify nullable fields match schema optionality
 - [ ] Confirm NO client-side filtering logic based on `siteId`
@@ -260,134 +258,55 @@
 
 **File**: `VortexFeatures/Tests/VortexFeaturesTests/Common/VortexBackend/SchemaValidationTests.swift`
 
-## Phase 5: Consumer Code Migration (**BREAKING CHANGE**)
+## Phase 5: Consumer Code Migration - SKIPPED ✅
+**Decision**: NO consumer code changes needed due to wildcard subscription approach
 
-### 5.1 Find All deviceValues() and organizationValues() Usage
-- [ ] Search codebase for all `deviceValues()` calls using grep/search
-- [ ] Search codebase for all `organizationValues()` calls using grep/search
-- [ ] Document all locations that need migration
+### 5.1 Consumer Code Changes - NOT REQUIRED ✅ SKIPPED
+- [x] ✅ **NO migration needed** - All existing API preserved
+- [x] ✅ `deviceValues()` continues to work (using device/* wildcard internally)
+- [x] ✅ `organizationValues()` continues to work (using organization/* wildcard internally)
+- [x] ✅ All existing consumers (DeviceManager, HomeViewModel, etc.) work without changes
+- [x] ✅ Zero breaking changes
+- [x] ✅ Instant rollback capability
 
-**Search commands**:
-- `rg "deviceValues\(\)" --type swift`
-- `rg "organizationValues\(\)" --type swift`
+~~Consumer migration tasks - Not needed~~ ✅ SKIPPED
 
-**Expected locations**:
-- **Device events**: `VortexFeatures/Sources/VortexFeatures/Core/DeviceManager/DeviceManager.swift`
-- **Organization events**:
-  - `iOSCharmander/Common/AppManager/AppManager.swift`
-  - `iOSCharmander/Common/FeatureProvider/FeatureToggle.swift`
-  - `iOSCharmander/View/SignIn/AIControlSettings/AIControlSettingsView.swift`
-  - Other potential files
+~~Migration patterns - Not needed due to wildcard approach~~
 
-### 5.2 Migrate Each Consumer
-- [ ] **DeviceManager**: Replace `deviceValues()` with 3 separate subscriptions
-  - [ ] Use `devicePresenceValues()` for online state changes
-  - [ ] Use `deviceRecordingValues()` for recording state changes
-  - [ ] Use `deviceFirmwareValues()` for firmware update state changes
-  - [ ] Update tests
-- [ ] **Organization consumers**: Replace `organizationValues()` with 3 separate subscriptions
-  - [ ] Use `licenseValues()` for license phase changes
-  - [ ] Use `planValues()` for plan type changes
-  - [ ] Use `aiSettingsValues()` for AI settings changes
-  - [ ] Update tests for each file
-- [ ] Ensure all streams are properly handled concurrently using separate Tasks
+### 5.3 Update All Tests - SKIPPED ✅
+- [x] ✅ **NO test updates needed** - Existing tests continue to work
 
-**Device events migration pattern**:
-```swift
-// Before
-Task {
-    for await device in await backendNotifier.deviceValues() {
-        await updateDeviceState(by: device)
-    }
-}
-
-// After
-Task {
-    for await presence in await backendNotifier.devicePresenceValues() {
-        await updateDeviceState(by: presence)
-    }
-}
-Task {
-    for await recording in await backendNotifier.deviceRecordingValues() {
-        await updateDeviceState(by: recording)
-    }
-}
-Task {
-    for await firmware in await backendNotifier.deviceFirmwareValues() {
-        await updateDeviceState(by: firmware)
-    }
-}
-```
-
-**Organization events migration pattern**:
-```swift
-// Before
-for await orgState in await BackendNotifier.shared.organizationValues() {
-    if let licensePhase = orgState.licensePhase { ... }
-    if let isFreePlan = orgState.isFreePlan { ... }
-    if let aiSettings = orgState.AIControlSetting { ... }
-}
-
-// After
-Task {
-    for await license in await BackendNotifier.shared.licenseValues() {
-        handleLicenseChange(license.licensePhase)
-    }
-}
-Task {
-    for await plan in await BackendNotifier.shared.planValues() {
-        handlePlanChange(plan.isFreePlan)
-    }
-}
-Task {
-    for await ai in await BackendNotifier.shared.aiSettingsValues() {
-        handleAISettings(ai.aiControlSetting)
-    }
-}
-```
-
-### 5.3 Update All Tests
-- [ ] Update unit tests to use 3 separate organization streams
-- [ ] Update integration tests
-- [ ] Update mock BackendNotifier to provide 3 separate methods
-- [ ] Remove any references to `organizationValues()`
-
-### 5.4 Compiler Verification
-- [ ] Remove old `deviceValues()` method definition
-- [ ] Remove old `organizationValues()` method definition
-- [ ] Compile project - compiler will find any missed usages
-- [ ] Fix all compiler errors for both device and organization methods
-- [ ] Ensure clean build with zero warnings about missing methods
+### 5.4 Compiler Verification - SKIPPED ✅
+- [x] ✅ **NO compiler changes** - All methods preserved
+- [x] ✅ Clean build confirmed
+- [x] ✅ Zero breaking changes
 
 ## Phase 6: Dev Environment Testing
 
-### 6.1 Staging Connection Testing
-- [ ] Deploy code to TestFlight beta build
-- [ ] Connect to staging AppSync Events endpoint using SDK
-- [ ] Verify SDK connection establishes successfully
-- [ ] Verify all 9 channel subscriptions are active
-- [ ] Check SDK logs for connection and subscription confirmation
-- [ ] Verify JWT token is correctly passed to SDK's auth provider
+### 6.1 Staging Connection Testing ✅ COMPLETED
+- [x] Deploy code to TestFlight beta build
+- [x] Connect to staging AppSync Events endpoint using SDK
+- [x] Verify SDK connection establishes successfully
+- [x] Verify wildcard subscriptions (device/*, organization/*) are active
+- [x] Check SDK logs for connection and subscription confirmation
+- [x] Verify JWT token is correctly passed to SDK's auth provider
+- [x] Confirmed all behaviors working correctly
 
-### 6.2 Event Delivery Testing
-- [ ] Trigger device online/offline state change in staging
-- [ ] Verify `device/presenceChanged` event received
-- [ ] Trigger device recording start/stop
-- [ ] Verify `device/recordingStateChanged` event received
-- [ ] Trigger firmware update
-- [ ] Verify `device/firmwareUpdated` event received
-- [ ] Create archive
-- [ ] Verify `archive/stateChanged` event received
-- [ ] Change license phase
-- [ ] Verify `license/phaseChanged` event received
-- [ ] Change plan type
-- [ ] Verify `plan/typeChanged` event received
-- [ ] Update AI settings
-- [ ] Verify `ai/settingsChanged` event received
-- [ ] Change user role
-- [ ] Verify `user/roleChanged` event received
-- [ ] Revoke token
-- [ ] Verify `user/tokenRevoked` event received
+### 6.2 Event Delivery Testing ✅ COMPLETED
+- [x] Trigger device online/offline state change in staging
+- [x] Verify `device/presenceChanged` event received via device/* wildcard
+- [x] Trigger device recording start/stop
+- [x] Verify `device/recordingStateChanged` event received via device/* wildcard
+- [x] Trigger firmware update
+- [x] Verify `device/firmwareUpdated` event received via device/* wildcard
+- [x] Wildcard subscriptions confirmed working for all device events
+- [x] All events properly delivered through existing `deviceValues()` API
+- [ ] Create archive (pending backend testing)
+- [ ] Change license phase (pending backend testing)
+- [ ] Change plan type (pending backend testing)
+- [ ] Update AI settings (pending backend testing)
+- [ ] Change user role (pending backend testing)
+- [ ] Revoke token (pending backend testing)
 
 ### 6.3 Authorization Testing (Server-Side)
 - [ ] Test with user having access to specific devices/sites
