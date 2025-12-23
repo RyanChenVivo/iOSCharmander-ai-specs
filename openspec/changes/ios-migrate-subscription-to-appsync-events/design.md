@@ -35,9 +35,9 @@ This change migrates to AWS AppSync Events to align with the backend migration (
 
 ## Decisions
 
-### Decision 1: Follow AWSMqttClient Wrapper Pattern
+### Decision 1: Follow AWSMqttClient Wrapper Pattern (Simplified)
 
-**Choice**: Use existing AWSServices wrapper pattern for AppSync Events integration
+**Choice**: Use existing AWSServices wrapper pattern for AppSync Events integration, with direct SDK usage
 
 **Pattern Structure**:
 
@@ -47,11 +47,9 @@ flowchart TD
     B -->|implements| C[VortexAppSyncEventsSubscriber Actor]
     C -->|uses| D[AppSyncEventsClient Actor]
     D -->|implements| E[AppSyncEventsClientProtocol]
-    D -->|uses| F[AppSyncEventsClientWrapper]
-    F -->|wraps| G[AWS AppSync Events SDK]
+    D -->|directly uses| F[AWS AppSync Events SDK]
 
-    style G fill:#f9f,stroke:#333,stroke-width:2px
-    style F fill:#bbf,stroke:#333,stroke-width:2px
+    style F fill:#f9f,stroke:#333,stroke-width:2px
     style D fill:#bfb,stroke:#333,stroke-width:2px
     style C fill:#bfb,stroke:#333,stroke-width:2px
 ```
@@ -61,68 +59,93 @@ flowchart TD
 ```swift
 // Layer 1: Protocol Definition
 public protocol AppSyncEventsClientProtocol: Sendable {
-    func connect(region: String, endpoint: String) async throws
-    func subscribe(channels: [String]) async throws -> AsyncStream<AppSyncEventMessage>
+    func connect() async throws
     func disconnect() async throws
+    func subscribe(channel: String) async throws -> AsyncThrowingStream<AppSyncEventMessage, any Error>
 }
 
-// Layer 2: Actor Implementation
-actor AppSyncEventsClient: AppSyncEventsClientProtocol {
-    @Dependency(\.vortexAuthService) var authService
-    @Dependency(\.appSyncEventsClientWrapper) var wrapper
-
+// Layer 2: Actor Implementation (Directly uses AWS SDK)
+public actor AppSyncEventsClient: AppSyncEventsClientProtocol {
+    @Dependency(\.authService) var authService
+    private let endpointURL: URL
     private let logger = VortexLogger.make(type: .appSyncEventsClient)
-    private var connectionTask: Task<Void, Never>?
 
-    func connect(region: String, endpoint: String) async throws {
-        let token = try await authService.getJWTToken()
-        connectionTask = Task { [weak self] in
-            guard let states = try await self?.wrapper.connect(region, endpoint, token) else {
-                throw VortexError.error("AppSync Events connection failed")
+    // EventsWebSocketClient from aws-appsync-events-swift
+    private nonisolated(unsafe) var webSocketClient: EventsWebSocketClient?
+
+    init(endpointURL: URL) {
+        self.endpointURL = endpointURL
+        self._authService = Dependency(\.authService)
+    }
+
+    public func connect() async throws {
+        let events = Events(endpointURL: endpointURL)
+
+        let authorizer = AuthTokenAuthorizer { [weak self] in
+            guard let self else {
+                throw VortexError.error("AppSync Events client deallocated")
             }
-            for try await state in states {
-                try await self?.handleConnectionState(state)
+            return try await self.authService.fetchAccessToken()
+        }
+
+        webSocketClient = events.createWebSocketClient(
+            connectAuthorizer: authorizer,
+            publishAuthorizer: authorizer,
+            subscribeAuthorizer: authorizer
+        )
+    }
+
+    public func subscribe(channel: String) async throws -> AsyncThrowingStream<AppSyncEventMessage, any Error> {
+        guard let wsClient = webSocketClient else {
+            throw VortexError.error("WebSocket client not connected. Call connect() first.")
+        }
+
+        let subscription = try await wsClient.subscribe(channelName: channel)
+
+        return AsyncThrowingStream { continuation in
+            let task = Task {
+                do {
+                    for try await event in subscription {
+                        if let message = self.parseEventMessage(channel: channel, event: event) {
+                            continuation.yield(message)
+                        }
+                    }
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+
+            continuation.onTermination = { _ in
+                task.cancel()
             }
         }
     }
-}
 
-// Layer 3: SDK Wrapper (isolates AWS AppSync Events Swift SDK dependency)
-actor AppSyncEventsClientWrapper {
-    private let logger = VortexLogger.make(type: .appSyncEventsClientWrapper)
-    private var appSyncClient: AppSyncEventBridgeClient?  // From aws-appsync-events-swift
-
-    func connect(_ region: String, _ endpoint: String, _ token: String) async throws -> AsyncStream<ConnectionState> {
-        // Use AppSyncEventBridgeClient from aws-appsync-events-swift
-        let config = AppSyncEventBridgeConfig(
-            endpoint: endpoint,
-            region: region,
-            authProvider: JWTAuthProvider(token: token)
-        )
-        appSyncClient = AppSyncEventBridgeClient(config: config)
-
-        // SDK handles WebSocket connection automatically
-        return AsyncStream { continuation in
-            // Map SDK connection events to our ConnectionState
-        }
+    public func disconnect() async throws {
+        guard let client = webSocketClient else { return }
+        try await client.disconnect(flushEvents: true)
+        webSocketClient = nil
     }
 }
 ```
 
 **Rationale**:
-- **Official SDK**: Use AWS-maintained `aws-appsync-events-swift` instead of manual WebSocket implementation
-- **Proven pattern**: `AWSMqttClient` uses same structure successfully
-- **SDK advantages**: Built-in connection management, reconnection logic, protocol handling
-- **Dependency isolation**: AWS SDK changes don't affect business logic
-- **Testability**: Mock wrapper for unit tests
+- **Official SDK**: Use AWS-maintained `aws-appsync-events-swift` with direct integration
+- **Simplified architecture**: Removed wrapper layer for simpler implementation
+- **SDK advantages**: Built-in connection management via `EventsWebSocketClient`, protocol handling
+- **Factory method**: Created via `AWSServices.makeAppSyncEventsClient(endpointURL:)` with dependency injection
+- **Single subscription per call**: `subscribe(channel:)` returns stream for one channel (caller manages multiple subscriptions)
 - **Actor safety**: Thread-safe by default with Swift actors
-- **Follows project conventions**: Matches existing `openspec/project.md` architecture guidelines
+- **Token provider**: Uses `AuthTokenAuthorizer` closure for dynamic token fetching
+- **Event parsing**: Built-in `parseEventMessage` to transform SDK's `JSONValue` to `AppSyncEventMessage`
 
 **Alternatives Considered**:
-1. **Manual WebSocket implementation**: More complex, error-prone, requires maintaining protocol implementation
-2. **Direct SDK usage**: Too coupled, makes testing difficult
-3. **Combine-based**: Project uses AsyncStream throughout
-4. **Class-based with locks**: Swift actors are safer and simpler
+1. **Wrapper layer**: Added complexity without clear benefit (SDK is already well-designed)
+2. **Multi-channel subscribe**: Single-channel approach gives caller more control
+3. **Manual WebSocket implementation**: More complex, error-prone, requires maintaining protocol implementation
+4. **Combine-based**: Project uses AsyncStream throughout
+5. **Class-based with locks**: Swift actors are safer and simpler
 
 ### Decision 2: Consistent API - Split All Events by Channel
 
