@@ -2,415 +2,419 @@
 
 ## ADDED Requirements
 
-### Requirement: AppSync Events Client Wrapper
+### Requirement: AppSync Events Client Protocol
 
-The iOS app SHALL implement an AppSync Events client following the existing AWSMqttClient wrapper pattern to isolate AWS SDK dependencies and provide a clean protocol-based interface, using the official AWS AppSync Events Swift SDK (`https://github.com/aws-amplify/aws-appsync-events-swift`).
+The iOS app SHALL implement an AppSync Events client following the existing AWSMqttClient pattern to isolate AWS SDK dependencies and provide a clean protocol-based interface, using the official AWS AppSync Events Swift SDK (`https://github.com/aws-amplify/aws-appsync-events-swift`).
 
-#### Scenario: Connect to AppSync Events using SDK
+#### Scenario: Lazy initialization of AppSync Events client
 
-**Given** the user is signed in with a valid Cognito JWT token
-**When** the app initializes AppSync Events connection
+**Given** the app starts and AppSyncEventsClient is created
+**When** the first subscription is requested
 **Then** the client SHALL:
-- Create `AppSyncEventBridgeConfig` with endpoint, region, and JWT auth provider
-- Instantiate `AppSyncEventBridgeClient` from `aws-appsync-events-swift` SDK
-- Call SDK's `connect()` method to establish connection
+- Defer WebSocket connection until first `subscribe()` call (lazy initialization)
+- Create `Events` instance with endpoint URL on first subscription
+- Instantiate `AuthTokenAuthorizer` with JWT token provider from AuthService
 - Let SDK handle WebSocket protocol details (connection_init, connection_ack)
-- Wait for SDK connection confirmation before allowing subscriptions
+- Return AsyncThrowingStream for event delivery
+- Reuse existing connection for subsequent subscriptions
+
+**Rationale**: Lazy initialization avoids unnecessary connections and reduces startup overhead
 
 **File references**:
-- `VortexFeatures/Sources/AWSServices/AWSAppSyncEvents/AppSyncEventsClient.swift:30-65`
-
-#### Scenario: Handle connection lifecycle using SDK
-
-**Given** an active AppSync Events connection via SDK
-**When** connection state changes occur
-**Then** the client SHALL:
-- Monitor SDK connection state changes (connecting, connected, disconnected, error)
-- Delegate keep-alive handling to SDK (built-in 60-second interval)
-- Handle SDK reconnection events (SDK provides automatic reconnection)
-- Verify user is still signed in before allowing SDK reconnection
-- Call SDK's `disconnect()` if user signed out
-- Cancel reconnection if user signed out
-
-**File references**:
-- `VortexFeatures/Sources/AWSServices/AWSAppSyncEvents/AppSyncEventsClient.swift:99-120`
+- `VortexFeatures/Sources/AWSServices/AWSAppSyncEvents/AppSyncEventsClient.swift:30-80`
 
 #### Scenario: Subscribe to AppSync Events channel using SDK
 
-**Given** an established AppSync Events connection via SDK
-**When** subscribing to a user-level channel (e.g., `vortex-app/user/{userId}/device/presenceChanged`)
+**Given** AppSyncEventsClient receives a subscription request
+**When** subscribing to a user-level channel (e.g., `vortex-app/user/{userId}/device/*`)
 **Then** the client SHALL:
+- Initialize client on first subscribe if not already initialized
 - Call SDK's `subscribe(to: channel)` method with user-level channel path
 - SDK handles subscription ID generation and protocol messaging
-- Receive AsyncStream or event sequence from SDK
-- Extract event payload data from SDK's event objects
-- Transform SDK events to app's AsyncStream interface
-- Yield parsed events to AsyncStream (all events are pre-authorized by backend)
+- Receive AsyncThrowingStream from SDK
+- Return raw event Data payloads to caller
+- Yield all events to AsyncThrowingStream (backend pre-authorizes all events)
 
 **File references**:
 - `VortexFeatures/Sources/AWSServices/AWSAppSyncEvents/AppSyncEventsClient.swift:82-97`
+- `VortexFeatures/Sources/AWSServices/AWSAppSyncEvents/AppSyncEventsClientProtocol.swift:19-26`
 
-#### Scenario: Map AWS SDK errors to VortexError
+#### Scenario: Disconnect and cleanup
 
-**Given** the AWS AppSync Events Swift SDK throws an error
-**When** the error is caught by the wrapper layer
-**Then** the wrapper SHALL:
-- Identify SDK error types (authentication, connection, subscription errors)
-- Map authentication failures to `VortexError.sessionExpired`
-- Map connection timeouts to `VortexError.networkError`
-- Map subscription failures to `VortexError.error` with descriptive message
-- Log error details using `VortexLogger` with appropriate level
-- Preserve SDK error context for debugging
+**Given** an active AppSync Events connection
+**When** disconnect is requested (e.g., user signs out or switches organization)
+**Then** the client SHALL:
+- Call SDK's `disconnect(flushEvents: true)` to gracefully close connection
+- SDK automatically cleans up all active subscriptions
+- SDK cancels all pending tasks
+- Reset client state for potential reconnection
 
 **File references**:
-- `VortexFeatures/Sources/AWSServices/AWSAppSyncEvents/AppSyncEventsClientWrapper.swift:45-65`
+- `VortexFeatures/Sources/AWSServices/AWSAppSyncEvents/AppSyncEventsClient.swift:99-105`
 
-### Requirement: Consistent 1:1 Channel-to-Method Mapping
+#### Scenario: Provide mock implementation for testing
 
-The iOS app SHALL expose 9 separate subscription methods in BackendNotifier, maintaining 1:1 mapping with backend's 9 user-level AppSync Events channels for API consistency.
+**Given** unit tests need to test subscription behavior
+**When** tests use MockAppSyncEventsClient
+**Then** the mock SHALL:
+- Implement AppSyncEventsClientProtocol
+- Provide test control methods: `yieldEvent()`, `throwError()`, `getActiveChannels()`
+- Track subscribed channels for verification
+- Allow tests to simulate events and errors
+- Support continuation-based event delivery
 
-#### Scenario: 9 separate methods for 9 backend channels
+**File references**:
+- `VortexFeatures/Sources/AWSServices/AWSAppSyncEvents/MockAppSyncEventsClient.swift:10-84`
 
-**Given** Backend provides 9 user-level AppSync Events channels
-**When** BackendNotifier implements subscription API
+### Requirement: Wildcard Subscriptions for Backward Compatibility
+
+The iOS app SHALL use wildcard pattern subscriptions (`device/*`, `organization/*`) internally while preserving the existing public API, achieving zero breaking changes for consumers.
+
+#### Scenario: Subscribe to device wildcard channel
+
+**Given** BackendNotifier starts subscribing
+**When** handling organization ID change
 **Then** the app SHALL:
-- Expose 9 separate public methods, one for each channel:
-  - `devicePresenceValues()` → `device/presenceChanged` channel
-  - `deviceRecordingValues()` → `device/recordingStateChanged` channel
-  - `deviceFirmwareValues()` → `device/firmwareUpdated` channel
-  - `archiveValues()` → `archive/stateChanged` channel
-  - `licenseValues()` → `organization/licensePhaseChanged` channel
-  - `planValues()` → `organization/planChanged` channel
-  - `aiSettingsValues()` → `organization/aiSettingsChanged` channel
-  - `roleValues()` → `user/roleChanged` channel
-  - `revokeValues()` → `user/tokenRevoked` channel
-- Maintain consistent API design across all event types
-- **NO merging** of channels - each method corresponds to exactly one channel
+- Subscribe to `vortex-app/user/{userId}/device/*` wildcard channel
+- Receive all device events (presenceChanged, recordingStateChanged, firmwareUpdated)
+- Parse events into existing `DeviceStateOutput` struct
+- Yield all events to existing `deviceValues()` AsyncStream
+- **NO breaking changes** - consumers continue using `deviceValues()` as before
 
-**Rationale**: API consistency more important than minimal consumer changes
+**Rationale**: Wildcard subscriptions reduce subscription overhead (1 instead of 3) while maintaining API compatibility
 
 **File references**:
-- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/BackendNotifier/BackendNotifierProtocol.swift:1-15`
+- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/BackendNotifier/BackendNotifier.swift:145-152`
+- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/BackendSubscriber/BackendAppSyncEventsSubscription.swift:110`
 
-### Requirement: 9-Channel AppSync Events Subscriptions (User-Level)
+#### Scenario: Subscribe to organization wildcard channel
 
-The iOS app SHALL subscribe to 9 user-level AppSync Events channels (all using `vortex-app/user/{userId}/*` pattern) to replace the existing 5 GraphQL subscriptions, matching the latest backend OpenAPI schema. Backend handles all authorization and filtering server-side.
+**Given** BackendNotifier starts subscribing
+**When** handling organization ID change
+**Then** the app SHALL:
+- Subscribe to `vortex-app/user/{userId}/organization/*` wildcard channel
+- Receive all organization events (licensePhaseChanged, planChanged, aiSettingsChanged)
+- Parse events into existing `OrganizationStateOutput` struct
+- Yield all events to existing `organizationValues()` AsyncStream
+- **NO breaking changes** - consumers continue using `organizationValues()` as before
 
-#### Scenario: Subscribe to device presence channel
+**Rationale**: Single subscription delivers all organization events to existing unified API
 
-**Given** the user is signed in with a valid userId
+**File references**:
+- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/BackendNotifier/BackendNotifier.swift:162-169`
+- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/BackendSubscriber/BackendAppSyncEventsSubscription.swift:111`
+
+#### Scenario: Preserve single-channel subscriptions
+
+**Given** some events are single-channel (archive, role, token)
 **When** BackendNotifier starts subscribing
 **Then** the app SHALL:
-- Subscribe to `vortex-app/user/{userId}/device/presenceChanged` channel
-- Receive events with `eventType: "device/presenceChanged"`
-- Parse payload into `DevicePresenceOutput` with `online` boolean field
-- **NO client-side filtering** - backend publishes only authorized events to user's channel
-- Yield all received events to `devicePresenceValues()` AsyncStream
+- Subscribe to `vortex-app/user/{userId}/archive/stateChanged` (single channel)
+- Subscribe to `vortex-app/user/{userId}/roleChanged` (single channel)
+- Subscribe to `vortex-app/user/{userId}/tokenRevoked` (single channel)
+- Maintain existing `archiveValues()`, `roleValues()`, `revokeValues()` methods
+- **NO breaking changes** - all existing APIs preserved
 
 **File references**:
-- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/BackendSubscriber/AppSyncEventsSubscription.swift:15-25`
-- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/BackendNotifier/BackendNotifier.swift:62-72`
+- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/BackendNotifier/BackendNotifier.swift:154-185`
 
-#### Scenario: Subscribe to device recording channel
+### Requirement: BackendAppSyncEventsSubscriber with Automatic Retry
 
-**Given** the user is signed in with a valid userId
-**When** BackendNotifier starts subscribing
+The iOS app SHALL implement a BackendAppSyncEventsSubscriber actor that handles subscriptions with automatic retry on connection failures, matching the existing GraphQL subscriber behavior.
+
+#### Scenario: Subscribe and return non-throwing stream
+
+**Given** a subscription request with channel and return type
+**When** BackendAppSyncEventsSubscriber.subscribe() is called
+**Then** the subscriber SHALL:
+- Fetch userId from VortexAuthService
+- Construct full channel name: `vortex-app/user/{userId}/{channelName}`
+- Subscribe to AppSyncEventsClient
+- Decode event Data to requested type using JSONDecoder
+- Return AsyncStream (NOT AsyncThrowingStream) - errors handled internally
+- Log decoding failures but continue stream
+
+**File references**:
+- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/BackendSubscriber/BackendAppSyncEventsSubscriber.swift:54-107`
+
+#### Scenario: Automatic retry on connection failure
+
+**Given** an active subscription encounters a connection error
+**When** the error occurs (network failure, WebSocket disconnection, etc.)
+**Then** the subscriber SHALL:
+- Check if user is still signed in via `vortexAuthService.isSignIn()`
+- If user signed out: stop subscription, finish stream
+- If user still signed in: initiate retry sequence
+- Coordinate retry delay across all subscription tasks (first task leads, others wait)
+- Call `appSyncEventsClient.disconnect()`
+- Wait 10 seconds (configurable for testing via `test_setRetryDelay()`)
+- Retry subscription automatically
+- Continue retry loop indefinitely until success or user signs out
+
+**Rationale**: Matches existing GraphQL subscriber behavior for transparent reconnection
+
+**File references**:
+- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/BackendSubscriber/BackendAppSyncEventsSubscriber.swift:74-96`
+- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/BackendSubscriber/BackendAppSyncEventsSubscriber.swift:128-173`
+
+#### Scenario: Coordinate retry across multiple subscriptions
+
+**Given** multiple subscription tasks are active (e.g., device/*, organization/*)
+**When** connection fails and multiple tasks need to retry
+**Then** the subscriber SHALL:
+- Use `isWaitingToRetry` flag to coordinate retry delay
+- First task to encounter error becomes the leader
+- Leader task disconnects client and waits retry delay
+- Other tasks wait on continuations until leader completes delay
+- All tasks resume and retry subscription after coordinated delay
+- Avoid multiple concurrent disconnect calls
+
+**Rationale**: Single coordinated retry prevents connection thrashing
+
+**File references**:
+- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/BackendSubscriber/BackendAppSyncEventsSubscriber.swift:144-173`
+
+#### Scenario: Disconnect prevents retry attempts
+
+**Given** disconnect() is called during active subscriptions
+**When** subscriptions are retrying or active
+**Then** the subscriber SHALL:
+- Set `isDisconnected = true` flag
+- Cancel ongoing retry delay task
+- Resume all waiting retry continuations
+- Call `appSyncEventsClient.disconnect()`
+- All subscription tasks check `isDisconnected` and stop
+- Prevent any further retry attempts
+
+**File references**:
+- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/BackendSubscriber/BackendAppSyncEventsSubscriber.swift:109-126`
+
+#### Scenario: Reset disconnect flag on new subscription
+
+**Given** disconnect() was called previously
+**When** subscribe() is called again (e.g., after organization change)
+**Then** the subscriber SHALL:
+- Reset `isDisconnected = false` at start of subscribe()
+- Allow new subscriptions to proceed normally
+- Enable retry mechanism for new subscriptions
+
+**File references**:
+- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/BackendSubscriber/BackendAppSyncEventsSubscriber.swift:55-56`
+
+### Requirement: Existing Output Models with Optional Metadata
+
+The iOS app SHALL reuse all existing Output model structs, adding optional `eventType` and `timestamp` fields for AppSync Events metadata while maintaining full backward compatibility.
+
+#### Scenario: Add optional metadata to DeviceStateOutput
+
+**Given** AppSync Events delivers device events with metadata
+**When** events are decoded
+**Then** DeviceStateOutput SHALL:
+- Keep all existing fields: `sub`, `deviceGroupID`, `mac`, `derivant`, `online`, `recording`, `fwUpdateState`, `thingName`
+- Add optional `eventType: String?` field (e.g., "device/presenceChanged")
+- Add optional `timestamp: String?` field (ISO 8601 format)
+- All new fields are optional for backward compatibility
+- Existing consumers work without changes
+
+**File references**:
+- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/Model/Subscribe/DeviceStateOutput.swift:1-30`
+
+#### Scenario: Add optional metadata to OrganizationStateOutput
+
+**Given** AppSync Events delivers organization events with metadata
+**When** events are decoded
+**Then** OrganizationStateOutput SHALL:
+- Keep all existing fields: `isFreePlan`, `AIControlSetting`, `licensePhase`
+- Add optional `eventType: String?` field (e.g., "organization/licensePhaseChanged")
+- Add optional `timestamp: String?` field (ISO 8601 format)
+- All new fields are optional for backward compatibility
+
+**File references**:
+- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/Model/Subscribe/OrganizationStateOutput.swift:1-20`
+
+#### Scenario: Add optional metadata to remaining Output models
+
+**Given** AppSync Events delivers archive/role/token events
+**When** events are decoded
 **Then** the app SHALL:
-- Subscribe to `vortex-app/user/{userId}/device/recordingStateChanged` channel
-- Receive events with `eventType: "device/recordingStateChanged"`
-- Parse payload into `DeviceRecordingOutput` with `recording` boolean field
-- **NO client-side filtering** - backend publishes only authorized events
-- Yield all received events to `deviceRecordingValues()` AsyncStream
+- Update `ArchiveStateOutput` with optional `eventType` and `timestamp`
+- Update `RoleChangeOutput` with optional `eventType` and `timestamp`
+- Update `UserTokenRevokeOutput` with optional `eventType` and `timestamp`
+- Maintain all existing fields unchanged
+- All metadata fields are optional
 
 **File references**:
-- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/BackendSubscriber/AppSyncEventsSubscription.swift:27-37`
-- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/BackendNotifier/BackendNotifier.swift:74-84`
+- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/Model/Subscribe/ArchiveStateOutput.swift`
+- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/Model/Subscribe/RoleChangeOutput.swift`
+- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/Model/Subscribe/UserTokenRevokeOutput.swift`
 
-#### Scenario: Subscribe to device firmware channel
+### Requirement: Factory Methods for Dependency Injection
 
-**Given** the user is signed in with a valid userId
-**When** BackendNotifier starts subscribing
-**Then** the app SHALL:
-- Subscribe to `vortex-app/user/{userId}/device/firmwareUpdated` channel
-- Receive events with `eventType: "device/firmwareUpdated"`
-- Parse payload into `DeviceFirmwareOutput` with `fwUpdateState` integer field (range: -1 to 14)
-- **NO client-side filtering** - backend publishes only authorized events
-- Yield all received events to `deviceFirmwareValues()` AsyncStream
+The iOS app SHALL provide factory methods in `AWSServices` and `VortexFeatures` modules following the existing pattern for creating AppSync Events clients and subscribers.
 
-**File references**:
-- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/BackendSubscriber/AppSyncEventsSubscription.swift:39-49`
-- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/BackendNotifier/BackendNotifier.swift:86-96`
+#### Scenario: Create AppSyncEventsClient via factory
 
-#### Scenario: Subscribe to archive state channel
-
-**Given** the user is signed in with a valid userId
-**When** BackendNotifier starts subscribing
-**Then** the app SHALL:
-- Subscribe to `vortex-app/user/{userId}/archive/stateChanged` channel
-- Receive events with `eventType: "archive/stateChanged"`
-- Parse payload into `ArchiveStateOutput` with status enum and video metadata
-- **NO client-side filtering** - backend publishes only authorized events
-- Yield all received events to `archiveValues()` AsyncStream
+**Given** the app needs an AppSyncEventsClient instance
+**When** `AWSServices.makeAppSyncEventsClient(endpointURL:)` is called
+**Then** the factory SHALL:
+- Accept endpoint URL as parameter
+- Inject `authService` dependency
+- Create and return `AppSyncEventsClient` instance
+- Use `withDependencies` for dependency injection
 
 **File references**:
-- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/BackendSubscriber/AppSyncEventsSubscription.swift:51-61`
-- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/BackendNotifier/BackendNotifier.swift:147-157`
+- `VortexFeatures/Sources/AWSServices/AWSServices.swift:35-41`
 
-#### Scenario: Subscribe to license phase channel
+#### Scenario: Create BackendAppSyncEventsSubscriber via factory
 
-**Given** the user is signed in and belongs to an organization
-**When** BackendNotifier starts subscribing
-**Then** the app SHALL:
-- Subscribe to `vortex-app/user/{userId}/organization/licensePhaseChanged` channel
-- Receive events with `eventType: "organization/licensePhaseChanged"`
-- Parse payload into `LicenseStateOutput` with `orgId` and `licensePhase` fields (both nullable)
-- **NO merging needed** - directly yield events to `licenseValues()` AsyncStream
-
-**File references**:
-- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/BackendSubscriber/AppSyncEventsSubscription.swift:63-73`
-- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/BackendNotifier/BackendNotifier.swift:150-160`
-
-#### Scenario: Subscribe to plan type channel
-
-**Given** the user is signed in and belongs to an organization
-**When** BackendNotifier starts subscribing
-**Then** the app SHALL:
-- Subscribe to `vortex-app/user/{userId}/organization/planChanged` channel
-- Receive events with `eventType: "organization/planChanged"`
-- Parse payload into `PlanStateOutput` with `orgId` and `isFreePlan` fields (both nullable)
-- **NO merging needed** - directly yield events to `planValues()` AsyncStream
+**Given** the app needs a subscriber instance
+**When** `VortexFeatures.appSyncEventsSubscriber()` is called
+**Then** the factory SHALL:
+- Read endpoint URL from `VortexEnvironment.appSyncEventsURL`
+- Create `AppSyncEventsClient` via `AWSServices.makeAppSyncEventsClient()`
+- Inject `appSyncEventsClient` and `vortexAuthService` dependencies
+- Create and return `BackendAppSyncEventsSubscriber` instance
 
 **File references**:
-- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/BackendSubscriber/AppSyncEventsSubscription.swift:75-85`
-- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/BackendNotifier/BackendNotifier.swift:162-172`
+- `VortexFeatures/Sources/VortexFeatures/VortexFeatures.swift:41-52`
 
-#### Scenario: Subscribe to AI settings channel
+#### Scenario: BackendNotifier uses factory-created subscriber
 
-**Given** the user is signed in and belongs to an organization
-**When** BackendNotifier starts subscribing
-**Then** the app SHALL:
-- Subscribe to `vortex-app/user/{userId}/organization/aiSettingsChanged` channel
-- Receive events with `eventType: "organization/aiSettingsChanged"`
-- Parse payload into `AISettingsOutput` with `orgId` and `aiControlSetting` fields (both nullable) - **Note: camelCase field name**
-- **NO merging needed** - directly yield events to `aiSettingsValues()` AsyncStream
+**Given** BackendNotifier needs to subscribe to AppSync Events
+**When** BackendNotifier is initialized
+**Then** it SHALL:
+- Call `VortexFeatures.appSyncEventsSubscriber()` to get subscriber instance
+- Store reference in private property
+- Use subscriber for all subscription operations
 
 **File references**:
-- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/BackendSubscriber/AppSyncEventsSubscription.swift:87-97`
-- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/BackendNotifier/BackendNotifier.swift:174-184`
-
-#### Scenario: Subscribe to role change channel
-
-**Given** the user is signed in
-**When** BackendNotifier starts subscribing
-**Then** the app SHALL:
-- Subscribe to `vortex-app/user/{userId}/roleChanged` channel
-- Receive events with `eventType: "user/roleChanged"`
-- Parse payload into `RoleChangeOutput` with `reason` field (nullable)
-- Yield events to `roleValues()` AsyncStream
-
-**File references**:
-- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/BackendSubscriber/AppSyncEventsSubscription.swift:99-109`
-- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/BackendNotifier/BackendNotifier.swift:163-173`
-
-#### Scenario: Subscribe to token revoke channel
-
-**Given** the user is signed in
-**When** BackendNotifier starts subscribing
-**Then** the app SHALL:
-- Subscribe to `vortex-app/user/{userId}/tokenRevoked` channel
-- Receive events with `eventType: "user/tokenRevoked"`
-- Parse payload into `UserTokenRevokeOutput` with required `userId` and `revokedAt` fields, optional `reason` and `requestId`
-- Yield events to `revokeValues()` AsyncStream
-
-**File references**:
-- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/BackendSubscriber/AppSyncEventsSubscription.swift:111-121`
-- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/BackendNotifier/BackendNotifier.swift:171-181`
-
-### Requirement: Event Schema Validation
-
-The iOS app SHALL validate all event type definitions against the latest backend OpenAPI schema to ensure protocol compliance.
-
-#### Scenario: Validate event structure
-
-**Given** the latest OpenAPI schema from backend (`/Users/ryanchen/Downloads/Default module.openapi.yaml`)
-**When** implementing Swift event type structs
-**Then** the app SHALL:
-- Include required `eventType` field (String constant matching schema)
-- Include required `timestamp` field (String, ISO 8601 format)
-- Match all field names exactly to schema (e.g., `orgId`, `siteId`, `thingName`)
-- Use nullable types for optional fields matching schema
-- Conform to `Decodable` and `Sendable` protocols
-
-**File references**:
-- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/Model/Subscribe/DeviceStateOutput.swift:10-30`
-- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/Model/Subscribe/LicenseStateOutput.swift:10-20`
-
-#### Scenario: Handle schema evolution
-
-**Given** the backend updates the OpenAPI schema
-**When** new event fields are added
-**Then** the app SHALL:
-- Use optional properties for backward compatibility
-- Log unrecognized fields at debug level (do not crash)
-- Continue processing events with missing optional fields
-
-**File references**:
-- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/BackendSubscriber/AppSyncEventsSubscriber.swift:50-58`
-
-### Requirement: Organization State 3-Stream API (**BREAKING CHANGE**)
-
-The iOS app SHALL subscribe to 3 separate AppSync Events channels (license, plan, AI settings) and expose them as 3 separate public methods, replacing the single `organizationValues()` method.
-
-#### Scenario: Expose 3 separate organization streams
-
-**Given** AppSync Events provides 3 separate user-level channels for organization state
-**When** BackendNotifier subscribes to organization channels
-**Then** the app SHALL:
-- Subscribe to `vortex-app/user/{userId}/organization/licensePhaseChanged` channel
-- Subscribe to `vortex-app/user/{userId}/organization/planChanged` channel
-- Subscribe to `vortex-app/user/{userId}/organization/aiSettingsChanged` channel
-- Expose `licenseValues() -> AsyncStream<LicenseStateOutput>` method
-- Expose `planValues() -> AsyncStream<PlanStateOutput>` method
-- Expose `aiSettingsValues() -> AsyncStream<AISettingsOutput>` method
-- **REMOVE** `organizationValues()` method (breaking change)
-
-**File references**:
-- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/BackendNotifier/BackendNotifier.swift:150-200`
-
-#### Scenario: Consumer code must update to use 3 streams
-
-**Given** existing code used `BackendNotifier.shared.organizationValues()`
-**When** migrating to AppSync Events
-**Then** consumers SHALL:
-- Replace single `organizationValues()` call with 3 separate subscriptions
-- Subscribe to `licenseValues()` for license phase changes
-- Subscribe to `planValues()` for plan type changes
-- Subscribe to `aiSettingsValues()` for AI settings changes
-- Handle all 3 streams concurrently using separate Tasks
-
-**File references**:
-- Consumer example: `iOSCharmander/Common/AppManager/AppManager.swift:150-170` (MUST UPDATE)
+- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/BackendNotifier/BackendNotifier.swift:20`
 
 ## MODIFIED Requirements
 
-### Requirement: BackendNotifier Migration (**BREAKING CHANGE**, GraphQL Preserved)
+### Requirement: BackendNotifier Migration (**NO BREAKING CHANGES**, Wildcard Pattern)
 
-BackendNotifier subscription implementation SHALL use AppSync Events, including breaking API changes for organization state subscriptions. GraphQL code SHALL be preserved for rollback.
+BackendNotifier subscription implementation SHALL use AppSync Events with wildcard pattern subscriptions internally while preserving all existing public APIs for zero-impact migration.
 
-#### Scenario: All methods use AppSync Events (GraphQL code preserved)
+#### Scenario: Preserve all existing public methods
 
 **Given** the iOS app migrates to AppSync Events
 **When** BackendNotifier methods are called
 **Then** the app SHALL:
-- Use AppSync Events implementation for all subscriptions
-- **PRESERVE** GraphQL subscription code (unused but kept for rollback)
-- **DELETE** `organizationValues()` method from BackendNotifier API
-- **ADD** `licenseValues()`, `planValues()`, `aiSettingsValues()` methods
-- Maintain same method signatures for `deviceValues()`, `archiveValues()`, `roleValues()`, `revokeValues()`
+- **PRESERVE** `deviceValues() -> AsyncStream<DeviceStateOutput>` (uses device/* wildcard internally)
+- **PRESERVE** `organizationValues() -> AsyncStream<OrganizationStateOutput>` (uses organization/* wildcard internally)
+- **PRESERVE** `archiveValues() -> AsyncStream<ArchiveStateOutput>`
+- **PRESERVE** `roleValues() -> AsyncStream<RoleChangeOutput>`
+- **PRESERVE** `revokeValues() -> AsyncStream<UserTokenRevokeOutput>`
+- **ZERO breaking changes** - all existing consumers work without modification
+
+**Rationale**: Wildcard subscriptions enable API preservation, avoiding consumer code updates
 
 **File references**:
-- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/BackendNotifier/BackendNotifier.swift:62-200`
+- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/BackendNotifier/BackendNotifier.swift:67-135`
 
 #### Scenario: Subscribe on organization ID change
 
 **Given** the user's organization ID or userId changes
 **When** BackendNotifier detects the change
 **Then** the app SHALL:
-- Unsubscribe from all 9 user-level AppSync channels
-- Disconnect WebSocket
-- Reconnect with new userId
-- Subscribe to 9 channels with new organization ID
+- Unsubscribe from all active AppSync subscriptions (cancel 5 subscription tasks)
+- Disconnect WebSocket via `appSyncSubscriber.disconnect()`
+- Reconnect automatically on next subscription (lazy initialization)
+- Subscribe to 5 channels with new userId:
+  - `device/*` wildcard (yields to deviceObservers)
+  - `organization/*` wildcard (yields to organizationObservers)
+  - `archive/stateChanged` (yields to archiveObservers)
+  - `roleChanged` (yields to roleObservers)
+  - `tokenRevoked` (yields to revokeObservers)
 
 **File references**:
-- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/BackendNotifier/BackendNotifier.swift:135-178`
+- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/BackendNotifier/BackendNotifier.swift:141-186`
 
-## ADDED Requirements (Code Migration)
+#### Scenario: Graceful stop on app termination
 
-### Requirement: Consumer Code Migration
+**Given** the app is stopping or user signs out
+**When** `stopSubscribing()` is called
+**Then** BackendNotifier SHALL:
+- Cancel initTask that monitors organization ID changes
+- Cancel all 5 subscription tasks
+- Call `appSyncSubscriber.disconnect()` to close WebSocket
+- Clean up all continuations
 
-All code that uses BackendNotifier's `organizationValues()` method SHALL be updated to use the 3 separate organization streams.
+**File references**:
+- `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/BackendNotifier/BackendNotifier.swift:57-65`
 
-#### Scenario: Migrate from single stream to 3 streams
+## PRESERVED Code (For Rollback)
 
-**Given** existing code subscribes to `organizationValues()`
-**When** migrating to AppSync Events
-**Then** the consumer code SHALL:
-- Remove `organizationValues()` subscription
-- Add `licenseValues()` subscription for license phase changes
-- Add `planValues()` subscription for plan type changes
-- Add `aiSettingsValues()` subscription for AI settings changes
-- Handle all 3 streams concurrently
+### GraphQL Subscription Implementation (Unused)
 
-**Example migration**:
+All GraphQL subscription code is **PRESERVED** but unused:
+- `GraphQLSubscriber.swift` - Preserved for rollback capability
+- `GraphQLSubscription.swift` - Preserved for reference
+- GraphQL factory methods - Preserved in codebase
+
+**Rationale**: Enable quick rollback by switching BackendNotifier implementation if issues found in production.
+
+## NO Consumer Code Changes Required
+
+### Zero-Impact Migration
+
+**NO consumer code updates needed** because:
+- All existing BackendNotifier methods preserved (deviceValues, organizationValues, archiveValues, roleValues, revokeValues)
+- All existing Output model structures unchanged (optional fields only)
+- All existing method signatures identical
+- Wildcard subscriptions are internal implementation detail
+
+**Consumer code continues to work as-is:**
 ```swift
-// Before
-for await orgState in await BackendNotifier.shared.organizationValues() {
-    if let license = orgState.licensePhase { handleLicense(license) }
-    if let plan = orgState.isFreePlan { handlePlan(plan) }
-    if let ai = orgState.AIControlSetting { handleAI(ai) }
+// This code works unchanged with AppSync Events migration
+for await device in await BackendNotifier.shared.deviceValues() {
+    // Handle device state change (presence, recording, firmware)
 }
 
-// After
-Task {
-    for await license in await BackendNotifier.shared.licenseValues() {
-        handleLicense(license.licensePhase)
-    }
-}
-Task {
-    for await plan in await BackendNotifier.shared.planValues() {
-        handlePlan(plan.isFreePlan)
-    }
-}
-Task {
-    for await ai in await BackendNotifier.shared.aiSettingsValues() {
-        handleAI(ai.aiControlSetting)
-    }
+for await org in await BackendNotifier.shared.organizationValues() {
+    // Handle organization state change (license, plan, AI settings)
 }
 ```
-
-#### Scenario: Compiler enforces migration
-
-**Given** `organizationValues()` method is removed
-**When** project is compiled
-**Then** the compiler SHALL:
-- Generate errors for all remaining `organizationValues()` calls
-- Force developers to update all consumer code
-- Ensure complete migration before deployment
-
-## MODIFIED Requirements (Preserved Code)
-
-### Preserved: GraphQL Subscription Implementation
-
-All GraphQL subscription code is **PRESERVED** (but unused):
-- `GraphQLSubscriber.swift` - **Preserved** (unused)
-- `GraphQLSubscription.swift` - **Preserved** (unused)
-- GraphQL factory methods - **Preserved** (unused)
-
-**Rationale**: Keep GraphQL code for easier rollback and reference.
-
-### Removed: organizationValues() Method
-
-The single `organizationValues()` method is REMOVED from BackendNotifier and replaced with 3 separate methods:
-- `licenseValues() -> AsyncStream<LicenseStateOutput>`
-- `planValues() -> AsyncStream<PlanStateOutput>`
-- `aiSettingsValues() -> AsyncStream<AISettingsOutput>`
-
-**Impact**: All consumers must update their code to use 3 separate subscriptions.
 
 ## Dependencies
 
 This spec depends on:
-- Backend AppSync Events infrastructure deployment (see `/Users/ryanchen/code/AI/agentic-development-alignment-taskforce/docs/openspec/changes/switch-to-appsync-events`)
-- **Backend OpenAPI schema** (see `/Users/ryanchen/code/AI/agentic-development-alignment-taskforce/docs/openspec/changes/switch-to-appsync-events/openapi-schemas.yaml`)
-  - **ALL channels are user-level**: `vortex-app/user/{userId}/*` pattern
-  - Backend handles all authorization server-side
+- Backend AppSync Events infrastructure deployment
+- **Backend OpenAPI schema** - All channels use user-level pattern: `vortex-app/user/{userId}/*`
+- Backend handles all authorization server-side (client receives only authorized events)
 - AWS AppSync Events Swift SDK (`https://github.com/aws-amplify/aws-appsync-events-swift`) via Swift Package Manager
-- SDK provides `AppSyncEventBridgeClient` for connection and subscription management
+- SDK provides `Events` and `EventsWebSocketClient` for connection and subscription management
 
 ## Testing Requirements
 
 All scenarios SHALL be covered by:
-- Unit tests using mock AppSyncEventsClientWrapper
-- Integration tests connecting to staging AppSync Events endpoint
-- Manual testing for network interruption and reconnection scenarios
+
+### Unit Tests
+- ✅ `BackendAppSyncEventsSubscriberTest.swift` - Comprehensive subscriber tests
+  - Subscribe successfully and receive events
+  - Handle user ID fetch failure
+  - Handle decoding failures
+  - Verify channel name format
+  - Automatic retry on connection errors
+  - Stop on user sign-out
+  - Disconnect prevents further retries
+  - Multiple tasks coordinate retry delay
+  - User sign-out during retry delay
+  - Multiple retry cycles
+  - Resubscribe after disconnect
+- `MockAppSyncEventsClient` provides test control for event simulation
+- All tests use configurable retry delay (100ms in tests vs 10s in production)
+
+### Integration Tests (Pending)
+- `BackendNotifierAppSyncTests.swift` - Test wildcard subscriptions
 - Schema validation tests comparing Swift types to OpenAPI schema
+- Staging environment testing with real AppSync Events endpoint
+
+### Manual Testing (Staging)
+- ✅ Connection establishment verified in TestFlight
+- ✅ Device events (presence, recording, firmware) working
+- Authorization testing (user receives only authorized events)
+- Reconnection testing (airplane mode, app backgrounding)
+- Organization change testing (switch org triggers resubscribe)
+- Error scenarios (expired token, malformed events)
