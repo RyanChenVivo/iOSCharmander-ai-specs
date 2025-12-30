@@ -301,20 +301,20 @@
 - [x] Verify `device/firmwareUpdated` event received via device/* wildcard
 - [x] Wildcard subscriptions confirmed working for all device events
 - [x] All events properly delivered through existing `deviceValues()` API
-- [ ] Create archive (pending backend testing)
-- [ ] Change license phase (pending backend testing)
-- [ ] Change plan type (pending backend testing)
-- [ ] Update AI settings (pending backend testing)
-- [ ] Change user role (pending backend testing)
-- [ ] Revoke token (pending backend testing)
+- [x] Create archive - verified working
+- [x] Change license phase - verified working
+- [x] Change plan type - verified working
+- [x] Update AI settings - verified working
+- [x] Change user role - verified working
+- [x] Revoke token - verified working
 
-### 6.3 Authorization Testing (Server-Side)
-- [ ] Test with user having access to specific devices/sites
-- [ ] Verify device events received only for authorized devices (backend filtering)
-- [ ] Verify archive events received only for authorized archives (backend filtering)
-- [ ] Verify organization events received only for user's organization (backend filtering)
-- [ ] Verify user-level events received only for user's own channel (backend filtering)
-- [ ] Test with user having no device access (should receive no device/archive events from backend)
+### 6.3 Authorization Testing (Server-Side) ✅ COMPLETED
+- [x] Test with user having access to specific devices/sites
+- [x] Verify device events received only for authorized devices (backend filtering)
+- [x] Verify archive events received only for authorized archives (backend filtering)
+- [x] Verify organization events received only for user's organization (backend filtering)
+- [x] Verify user-level events received only for user's own channel (backend filtering)
+- [x] Test with user having no device access (should receive no device/archive events from backend)
 
 ### 6.4 Reconnection Testing
 - [ ] Enable airplane mode to disconnect
