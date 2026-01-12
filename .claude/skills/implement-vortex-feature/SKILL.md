@@ -31,6 +31,38 @@ This skill provides essential conventions and patterns for implementing features
 
 ---
 
+## Repository Structure & Git Operations
+
+### CRITICAL: Two-Repo Architecture
+
+**Main Repo** (`iOSCharmander`): iOS app source code
+**AI Specs Repo** (`iOSCharmander-ai-specs`): OpenSpec docs + AI configurations
+
+**Key Point**: `.claude/` and `openspec/` in main repo are **symlinks** to ai-specs repo.
+
+### Git Workflow for OpenSpec/AI Files
+
+**When modifying these files**:
+- `openspec/` (proposals, specs, archives)
+- `.claude/` (skills, slash commands, hooks)
+
+**MUST use ai-specs repo**:
+```bash
+cd ../iOSCharmander-ai-specs
+git status
+git add openspec/ .claude/
+git commit -m "feat(Vortex): description"
+git push origin main  # Direct to main, no PR needed
+```
+
+**Rules**:
+- ❌ DO NOT commit `openspec/` or `.claude/` in main `iOSCharmander` repo
+- ✅ ALWAYS navigate to `iOSCharmander-ai-specs` first
+- ✅ Specs/AI configs push directly to `main` branch
+- ✅ App code uses feature branches + PRs
+
+---
+
 ## Code Style & Formatting
 
 ### Naming Conventions
@@ -54,280 +86,69 @@ This skill provides essential conventions and patterns for implementing features
 
 ### MVVM with Dependency Injection
 
-**View Layer (SwiftUI)**:
-```swift
-struct MyView: View {
-    @StateObject var viewModel = MyViewModel.make()
+**Pattern**: View → ViewModel (ObservableObject) → Model/Manager
 
-    var body: some View {
-        // Pure SwiftUI, observe ViewModel via @Published
-    }
-}
-```
+**ViewModel Structure**:
+- Conform to `ObservableObject`, use `@Published` for reactive state
+- Inject dependencies via `@Dependency(\.serviceName)`
+- Factory method `.make()` sets up `AppManager.shared` and other dependencies
+- Handle errors via `appManager.handleError(error, defaultAlert: .failToLoad())`
 
-**ViewModel Layer**:
-```swift
-class MyViewModel: ObservableObject {
-    @Published var items: [Item] = []
-    @Published var isLoading = false
-
-    @Dependency(\.appManager) var appManager
-    @Dependency(\.apiClient) var apiClient
-
-    static func make() -> MyViewModel {
-        withDependencies {
-            $0.appManager = AppManager.shared
-        } operation: {
-            MyViewModel()
-        }
-    }
-
-    @MainActor
-    func loadData() async {
-        isLoading = true
-        defer { isLoading = false }
-
-        do {
-            items = try await apiClient.fetchItems()
-        } catch {
-            appManager.handleError(error, defaultAlert: .failToLoad())
-        }
-    }
-}
-```
-
-**Key Points**:
-- ViewModels conform to `ObservableObject`
-- Use `@Published` for reactive state
-- Inject dependencies via `@Dependency` macro
-- Factory method `.make()` sets up dependencies
-- Handle errors via `appManager.handleError()`
-
-### ViewModel Error Handling Pattern
-
-**MUST inject AppManager**:
-```swift
-@Dependency(\.appManager) var appManager
-```
-
-**Factory method includes AppManager**:
-```swift
-static func make() -> MyViewModel {
-    withDependencies {
-        $0.appManager = AppManager.shared
-    } operation: {
-        MyViewModel()
-    }
-}
-```
-
-**When to call handleError**:
-- ✅ Data fetching that impacts UI (API calls, Manager loading)
-- ✅ Any error requiring user notification/action
-- ❌ Cache misses or expected "not found" scenarios
-- ❌ Non-critical background operations
-
-**Error Handling Methods**:
-```swift
-// Let AppManager decide the alert
-appManager.handleError(error)
-
-// Provide fallback alert for generic errors
-appManager.handleError(error, defaultAlert: .failToLoad())
-```
-
-**Always**:
-- Call on `@MainActor` (AppManager.handleError is @MainActor)
-- Set loading states to `false` after error handling
+**ViewModel Error Handling**:
+- ✅ Call `handleError` for: Data fetching, user-facing errors
+- ❌ Don't call for: Cache misses, non-critical background ops
+- Always on `@MainActor`, set `isLoading = false` after errors
 
 ### Manager & Dependency Layer
 
-**When to Create a Manager**:
-- Feature has multiple sub-features sharing data
-- Data/logic accessed from multiple app parts
-- Examples: `DeviceManager`, `ArchiveFileManager`, `ResellerManager`
-
-**Manager Pattern**:
-```swift
-// Location: VortexFeatures/Sources/VortexFeatures/Core/
-public final class FeatureManager: ObservableObject {
-    public static let shared = FeatureManager()
-    @Published private var data: [Item] = []
-
-    @Dependency(\.apiClient) var apiClient
-    private let logger = VortexLogger.make(type: .featureManager)
-
-    public func fetchData() async throws -> [Item] {
-        logger.trace("Fetching data")
-        do {
-            let items = try await apiClient.fetchItems()
-            await MainActor.run { self.data = items }
-            return items
-        } catch {
-            logger.error("Failed: \(error)")
-            throw error  // Throw to ViewModel, DON'T call handleError
-        }
-    }
-
-    public func dataValues() async -> AsyncStream<[Item]> {
-        await Utility.createAsyncStream(from: $data)
-    }
-}
-```
+**When to Create a Manager**: Multi-feature data sharing, cross-module access
+**Location**: `VortexFeatures/Sources/VortexFeatures/Core/`
+**Pattern**: Singleton (`.shared`), `@Published` + `AsyncStream`, `@Dependency` injection
 
 **Manager Error Handling**:
-- ❌ Managers MUST NOT call `AppManager.handleError`
-- ✅ Throw errors to caller (ViewModel layer)
-- ✅ Log errors for debugging
-- Managers are data layer, not UI layer
+- ❌ MUST NOT call `AppManager.handleError` (data layer, not UI)
+- ✅ Throw errors to ViewModel, log for debugging
 
-**Dependency Protocol Pattern**:
-```swift
-// Define protocol
-public protocol FeatureDependency {
-    func valuesStream() async -> AsyncStream<[Item]>
-    func getValue() async -> Item
-}
-
-// Implementation uses @Published + AsyncStream
-final class FeatureDependencyImpl: FeatureDependency {
-    @Published private var items: [Item] = []
-
-    func valuesStream() async -> AsyncStream<[Item]> {
-        await Utility.createAsyncStream(from: $items)
-    }
-}
-
-// Register in DependencyValues extension
-extension DependencyValues {
-    var featureDependency: FeatureDependency {
-        get { self[FeatureDependencyKey.self] }
-        set { self[FeatureDependencyKey.self] = newValue }
-    }
-}
-```
+**Dependency Protocol Pattern**: Define protocol → Implement with `@Published` → Register in `DependencyValues`
 
 ---
 
 ## API Integration
 
-### Location & Naming
+**Location**: `VortexFeatures` package (`VortexRestfulApi` or `VortexApi` folder)
 
-**Location**: All new APIs in `VortexFeatures` package
-- RESTful APIs: Follow `VortexRestfulApi` folder patterns
-- GraphQL APIs: Follow `VortexApi` folder patterns
+**Naming Conventions**:
+- RESTful: HTTP method prefix (`getDeviceList()`, `postCreateUser()`)
+- GraphQL: Operation name (`listMyOrganization()`, `createDevice()`)
 
-**RESTful API Naming** (HTTP method prefix):
-```swift
-func getDeviceList() async throws -> [Device]
-func postCreateUser(name: String) async throws -> User
-func putUpdateDevice(id: String) async throws -> Device
-func deleteDevice(id: String) async throws
-```
+**Response Models**:
+- Location: `VortexFeatures/.../VortexBackend/Model/`
+- Conform to `VortexBackendModel`
+- Enums use `SafeDecodableEnum`
+- GraphQL: Define reusable fragments in `VortexApiKey`
 
-**GraphQL API Naming** (operation name):
-```swift
-func listMyOrganization() async throws -> [Organization]
-func createDevice(input: DeviceInput) async throws -> Device
-func queryMessage(id: String) async throws -> Message
-```
+**Model Separation**: API Model (VortexBackendModel) ↔ Internal Model (in Manager/Dependency)
 
-### API Response Models
-
-**Must conform to `VortexBackendModel`**:
-```swift
-// Location: VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/Model/
-struct DeviceResponse: VortexBackendModel {
-    let id: String
-    let name: String
-    let status: DeviceStatus
-}
-
-// Enums should conform to SafeDecodableEnum
-enum DeviceStatus: String, SafeDecodableEnum {
-    case online = "online"
-    case offline = "offline"
-    case unknown = "unknown"
-}
-```
-
-**GraphQL Response Keys**:
-Define reusable fragments in `VortexApiKey`:
-```swift
-extension VortexApiKey {
-    static let deviceInfo = """
-        id
-        name
-        status
-        """
-}
-```
-
-### Model Layer Separation
-
-**Separate API models from internal models**:
-- API Model (VortexBackendModel) ↔ Internal Model conversion in Manager/Dependency
-- Exception: Simple display-only data can use API models directly
-- Benefits: API changes don't affect UI layer
-
-### Error Handling
-
-**Convert to VortexError**:
-- Common/shared errors: Add to `handleErrorData` method
-- API-specific errors: Handle in dedicated extension
+**Error Handling**: Convert to `VortexError` (common: `handleErrorData`, API-specific: extension)
 
 ---
 
 ## Testing Strategy
 
-### Unit Testing
-
-**Location**: `iOSCharmanderTests/Test/`
-- Framework: XCTest
-- Coverage: 80%+ for business logic
+**Unit Testing** (`iOSCharmanderTests/Test/`):
+- Framework: XCTest, 80%+ coverage for business logic
 - Mock all external dependencies (network, device SDK)
-
-**Testing ViewModel Error Handling**:
-```swift
-func testLoadDataHandlesError() async {
-    var handledError: Error?
-    let mockAppManager = MockAppManager(
-        _handleErrorWithDefaultAlert: { error, defaultAlert in
-            handledError = error
-        }
-    )
-
-    let viewModel = MyViewModel()
-    // ... trigger error
-
-    #expect(handledError != nil)
-    #expect((handledError as? VortexError) == .expectedError)
-    #expect(viewModel.isLoading == false)
-}
-```
+- Use `MockAppManager` with `_handleErrorWithDefaultAlert` closure to verify error handling
+- Verify: Error handled, correct error type, UI state reset (`isLoading = false`)
 
 ---
 
 ## Feature Management
 
-### Feature Toggles & Dark Release
-
 **Location**: `iOSCharmander/Common/FeatureProvider/FeatureToggle.swift`
 
-**Backend Control via MyOrganization.SupportFeature**:
-```swift
-// VortexFeatures/Common/VortexBackend/Model/Organization/MyOrganization.swift
-public enum SupportFeature: String, VortexBackendModel {
-    case licensePlateRecognition = "LicensePlateRecognition"
-    case spotOccupancy = "SpotOccupancy"
-    case floorPlan = "FloorPlan"  // Add new feature here
-}
-
-// FeatureToggle.swift
-case .floorPlan:
-    myOrganizationSupportFeatures.contains(.floorPlan) &&
-    !sites.allSatisfy { privilegeProvider.canDo(.group(siteID: $0.id), .read) == false }
-```
+**Dark Release**: Backend controls via `MyOrganization.SupportFeature` enum
+- Add feature case → Backend includes/excludes in API → FeatureToggle checks
 
 **Three Control Methods**:
 
