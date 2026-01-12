@@ -1,6 +1,6 @@
 ---
 name: implement-vortex-feature
-description: Guide for implementing Vortex iOS app features. Auto-triggers when developing features, adding APIs, creating ViewModels, writing tests, implementing feature toggles, adding translations, or making commits. Provides project conventions, architecture patterns, and best practices.
+description: Implements Vortex iOS features following MVVM, API integration, testing, localization, and git conventions. Auto-triggers for ViewModels, APIs, tests, feature toggles, and commits.
 ---
 
 # Vortex Feature Implementation Guide
@@ -9,7 +9,9 @@ This skill provides essential conventions and patterns for implementing features
 
 **When to use this guide**: Implementing new features, adding APIs, creating ViewModels/Managers, writing tests, feature toggles, localization, or any Vortex development task.
 
-**Full details**: See `openspec/project.md` for comprehensive documentation (580+ lines).
+**Supporting Documentation**:
+- **Detailed guides**: See supporting files in this skill directory
+- **Full project context**: `openspec/project.md` (580+ lines)
 
 ---
 
@@ -20,7 +22,7 @@ This skill provides essential conventions and patterns for implementing features
 - **Dependency Injection**: Use `@Dependency(\.serviceName)` via swift-dependencies
 - **Error Handling**: ViewModels call `appManager.handleError(error, defaultAlert:)`
 - **Reactive Data**: Use `@Published` + `AsyncStream` for observable values
-- **Testing**: Mock all external dependencies, 80%+ coverage for business logic
+- **Testing**: Use Swift Testing (`import Testing`), mock all dependencies, 80%+ coverage
 
 ### Project Basics
 - **Language**: Swift 6.0 (100% Swift, no Objective-C)
@@ -28,38 +30,6 @@ This skill provides essential conventions and patterns for implementing features
 - **Min iOS**: 18.0+
 - **Concurrency**: async/await, AsyncStream, Task-based
 - **Formatting**: SwiftFormat enforced (4 spaces, 180 char line width)
-
----
-
-## Repository Structure & Git Operations
-
-### CRITICAL: Two-Repo Architecture
-
-**Main Repo** (`iOSCharmander`): iOS app source code
-**AI Specs Repo** (`iOSCharmander-ai-specs`): OpenSpec docs + AI configurations
-
-**Key Point**: `.claude/` and `openspec/` in main repo are **symlinks** to ai-specs repo.
-
-### Git Workflow for OpenSpec/AI Files
-
-**When modifying these files**:
-- `openspec/` (proposals, specs, archives)
-- `.claude/` (skills, slash commands, hooks)
-
-**MUST use ai-specs repo**:
-```bash
-cd ../iOSCharmander-ai-specs
-git status
-git add openspec/ .claude/
-git commit -m "feat(Vortex): description"
-git push origin main  # Direct to main, no PR needed
-```
-
-**Rules**:
-- ❌ DO NOT commit `openspec/` or `.claude/` in main `iOSCharmander` repo
-- ✅ ALWAYS navigate to `iOSCharmander-ai-specs` first
-- ✅ Specs/AI configs push directly to `main` branch
-- ✅ App code uses feature branches + PRs
 
 ---
 
@@ -111,35 +81,37 @@ git push origin main  # Direct to main, no PR needed
 
 **Dependency Protocol Pattern**: Define protocol → Implement with `@Published` → Register in `DependencyValues`
 
+**Full details**: See `openspec/project.md` lines 155-225
+
 ---
 
 ## API Integration
 
-**Location**: `VortexFeatures` package (`VortexRestfulApi` or `VortexApi` folder)
+**Quick Guide**:
+- **Location**: `VortexFeatures` package (`VortexRestfulApi` or `VortexApi` folder)
+- **RESTful APIs**: HTTP method prefix (`getDeviceList()`, `postCreateUser()`)
+- **GraphQL APIs**: Operation name (`listMyOrganization()`, `createDevice()`)
+- **Response Models**: Conform to `VortexBackendModel`, place in `VortexBackend/Model/`
+- **Model Separation**: API Model ↔ Internal Model (in Manager/Dependency)
+- **Error Handling**: Convert to `VortexError`
 
-**Naming Conventions**:
-- RESTful: HTTP method prefix (`getDeviceList()`, `postCreateUser()`)
-- GraphQL: Operation name (`listMyOrganization()`, `createDevice()`)
-
-**Response Models**:
-- Location: `VortexFeatures/.../VortexBackend/Model/`
-- Conform to `VortexBackendModel`
-- Enums use `SafeDecodableEnum`
-- GraphQL: Define reusable fragments in `VortexApiKey`
-
-**Model Separation**: API Model (VortexBackendModel) ↔ Internal Model (in Manager/Dependency)
-
-**Error Handling**: Convert to `VortexError` (common: `handleErrorData`, API-specific: extension)
+**Full details**: See `api-patterns.md` in this skill directory
 
 ---
 
 ## Testing Strategy
 
 **Unit Testing** (`iOSCharmanderTests/Test/`):
-- Framework: XCTest, 80%+ coverage for business logic
-- Mock all external dependencies (network, device SDK)
-- Use `MockAppManager` with `_handleErrorWithDefaultAlert` closure to verify error handling
-- Verify: Error handled, correct error type, UI state reset (`isLoading = false`)
+- **Framework**: Swift Testing (`import Testing`) - Use for all new tests
+- **Coverage**: 80%+ for business logic
+- **Mocking**: Mock all external dependencies (network, device SDK)
+- **Error Testing**: Use `MockAppManager` with `_handleErrorWithDefaultAlert` closure
+- **Full details**: See `testing-guide.md` in this skill directory
+
+**UI Testing** (`iOSCharmanderUITests/`):
+- **Framework**: XCUITest
+- **Writing new tests**: Use `/write-uitest` command for guided workflow
+- **Patterns & conventions**: See `uitest-patterns.md` in this skill directory
 
 ---
 
@@ -203,64 +175,54 @@ localized: "Welcome_to_\(VortexEnvironment.productNameLocalized)_with_\(deviceCo
 
 ---
 
-## Git Workflow
+## Git Workflow & Repository Structure
 
-### Commit Conventions
+### ⚠️ CRITICAL: Two-Repo Architecture
 
-**Format**: `<type>(<project>): <description>`
+**Main Repo** (`iOSCharmander`): iOS app source code
+**AI Specs Repo** (`iOSCharmander-ai-specs`): OpenSpec docs + AI configurations
+
+**When modifying `openspec/` or `.claude/`**:
+- ❌ **NEVER** commit in main `iOSCharmander` repo
+- ✅ **ALWAYS** use `iOSCharmander-ai-specs` repo
+
+### Commit Format
+
+`<type>(<project>): <description>`
 
 **Projects**: `Vortex` or `CloudSight`
 **Types**: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`
 
-**Examples**:
-```
-feat(Vortex): add floor plan device selection
-fix(CloudSight): resolve thread issue in video streaming
-refactor(Vortex): update icon and layout
-test(Vortex): add UI tests for camera selection
-```
+**Example**: `feat(Vortex): add floor plan device selection`
 
-**Guidelines**:
-- Reference ticket IDs when applicable (e.g., `[VOR-24280]`)
-- Keep descriptions concise, focus on what changed
-- Use filename only (not full path) when mentioning files
-- **IMPORTANT**: Confirm project name (Vortex/CloudSight) with user if uncertain
-
-### Branch Strategy
-
-- **main**: Production-ready code (main branch for PRs)
-- **Feature branches**: Descriptive names (e.g., `floorMap`, `feature-name`)
-- Branch from `main` for new features
-- Merge via pull requests with code review
+**Full details**: See `git-workflow.md` in this skill directory
 
 ---
 
 ## File Management
 
-### Adding Files Outside VortexFeatures
-
-**When adding to main project**:
+**Adding files outside VortexFeatures**:
 1. Update Xcode project file to include new files
 2. Build project to verify no errors
 3. Files in VortexFeatures SPM package auto-included (no project file update needed)
 
-### Modifying project.pbxproj
-
-- Use **relative paths** (not absolute)
-- Follow existing path format in project file
-- Example: relative to project root or group
+**Modifying project.pbxproj**: Use **relative paths** (not absolute)
 
 ---
 
 ## References
+
+**Supporting Files** (in this skill directory):
+- `api-patterns.md` - API integration patterns and conventions
+- `git-workflow.md` - Git operations and two-repo architecture
+- `testing-guide.md` - Unit testing with Swift Testing framework
 
 **Full Documentation**: See `openspec/project.md` for:
 - Detailed tech stack and dependencies
 - Complete SwiftFormat rules
 - Domain context (surveillance, devices, protocols)
 - Performance and security constraints
-- External dependencies and services
 
-**OpenSpec Changes**: Run `openspec list` to see active proposals
-
-**Existing Specs**: Run `openspec list --specs` to see capabilities
+**OpenSpec Commands**:
+- `openspec list` - See active proposals
+- `openspec list --specs` - See existing capabilities
