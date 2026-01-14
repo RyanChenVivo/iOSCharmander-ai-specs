@@ -164,12 +164,12 @@ For understanding test requirements:
 
 **Why Separate?**
 
-**`openspec/project.md`** provides **principles and patterns** (how to write tests, naming conventions, architecture)
+**`WRITING_GUIDE.md`** provides **principles and patterns** (how to write tests, naming conventions, architecture)
 
 **`reference/`** provides **concrete data** (what IDs exist, what data is available)
 
 This separation allows:
-- Project conventions to remain stable
+- Conventions to remain stable
 - Environment-specific data to be updated independently
 - Easy discovery of available test resources
 - Knowledge accumulation from simulator exploration
@@ -183,7 +183,7 @@ This separation allows:
 1. **Always check reference/ first** - Avoid duplicating discovery work
 2. **Use simulator-mcp** - Verify IDs exist before writing tests
 3. **Document discoveries** - Update reference/ when you find new IDs
-4. **Follow project.md** - Maintain consistency with established patterns
+4. **Follow this guide** - Maintain consistency with established patterns
 
 ### For Maintaining Knowledge Base
 
@@ -269,7 +269,7 @@ openspec/changes/{feature}/
 2. UITest Implementation
    - Use ios-simulator-mcp to explore feature
    - Check reference/ for available resources
-   - Implement test following openspec/project.md patterns
+   - Implement test following this guide's patterns
    - Update reference/ with discoveries
 
 3. CI Testing
@@ -287,7 +287,6 @@ openspec/changes/{feature}/
 
 ## Related Documentation
 
-- **`openspec/project.md`** (lines 263-340) - UITest conventions and patterns
 - **`UITEST_AGENT.md`** - UITest failure analysis workflows
 - **`README.md`** - Quick start and usage guide
 - **`SETUP.md`** - Environment setup instructions

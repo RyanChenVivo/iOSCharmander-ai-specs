@@ -15,7 +15,7 @@
 ### Core Technologies
 - **Language:** Swift 6.0 (100% Swift codebase)
 - **UI Framework:** SwiftUI (fully declarative, reactive UI)
-- **Minimum Deployment:** iOS 17.0+
+- **Minimum Deployment:** iOS 18.0+
 - **Data Persistence:** SwiftData (modern replacement for Core Data)
 - **Concurrency:** Swift async/await, AsyncStream, Task-based concurrency
 - **Package Manager:** Swift Package Manager (SPM)
@@ -227,8 +227,8 @@ For features requiring abstraction and testability, define a Dependency protocol
 ### Testing Strategy
 
 **Unit Testing:**
-- Location: `iOSCharmanderTests/Test/` (18,093+ lines of test code)
-- Framework: XCTest
+- Location: `iOSCharmanderTests/Test/`
+- Framework: Swift Testing (`import Testing`) for all new tests
 - Coverage areas:
   - OdysseyClient (backend communication)
   - SnoozeRule logic
@@ -245,98 +245,11 @@ For features requiring abstraction and testability, define a Dependency protocol
 - Service layer integration tests
 
 **UI Testing:**
-- Location: `iOSCharmanderUITests/` (17 test suites)
+- Location: `iOSCharmanderUITests/`
 - Framework: XCUITest
-- Coverage:
-  - Device management flows
-  - Sign-in/authentication
-  - Video capture and playback
-  - User operations
-  - NVR functionality
-  - Organization management
-  - License management
-  - MFA settings
-  - Floor Plan viewing and camera selection
 - Separate `iOSCloudSightUITests` for cloud sight features
 - Test plan: `TestPlan.xctestplan`
-
-**UI Test Implementation Rules:**
-
-**Basic Principles:**
-- Always check if `UATHelper` provides relevant APIs before implementing test actions
-- Use `UATHelper` APIs when available to ensure consistent test behavior across the test suite
-- Tests typically require user authentication - consult with the user to determine which test account to use or whether to create a new test account
-
-**File Management:**
-- When adding new UI test files to `iOSCharmanderUITests/`, the Xcode project file must be updated
-- After adding test files, always build the project to verify there are no errors
-- Follow the same file management rules as adding files outside VortexFeatures package
-
-**Accessibility Pattern for UI Testing:**
-- Use `accessibilityIdentifier` for element location
-- Use `accessibilityValue` for element state tracking (similar to UATButtonView pattern)
-- Example pattern:
-  ```swift
-  .accessibilityIdentifier("cameraMarker_{id}")
-  .accessibilityValue(isSelected ? "selected" : "unselected")
-  ```
-- This allows tests to verify both element existence and state
-
-**Test Operation Abstraction:**
-- Create protocol-based operation interfaces (e.g., `FloorPlanOperation: CommonOperation`)
-- Define reusable test actions as protocol methods
-- Implement operations in protocol extensions for code reuse
-- Keep operation methods focused and single-purpose
-- Example: `func selectCamera(deviceName:)`, `func verifyCameraSelected(deviceName:)`
-
-**Wait and Verification Strategy:**
-- Use `UATHelper.waitElementToAppear()` for element existence checks (use default timeout)
-- Use `UATHelper.waitElementToDisappear()` for element removal verification
-- Use `UATHelper.waitElementToTap()` for interactive elements
-- Avoid explicit `sleep()` - prefer UATHelper wait methods with default timeout values
-- Use `waitForPredicate()` with timeout for state changes (default: 10 seconds)
-- Use `XCTContext.runActivity` to provide clear step names in test reports
-- Always verify state using `accessibilityValue` when available, not just element presence
-
-**Test Method Naming Conventions:**
-- Test methods: `testFeatureName()` (e.g., `testSelectCameraByTappingMarker`)
-- Action methods: `tapXxx()`, `selectXxx()`, `deselectXxx()`, `openXxx()`, `closeXxx()`
-- Verification methods: `verifyXxx()` (e.g., `verifyCameraSelected()`)
-- Helper methods: private with clear intent (e.g., `verifyElementValue()`)
-
-**Element Location Best Practices:**
-- Avoid: `app.buttons.firstMatch` (too risky, might find wrong element)
-- Prefer: `app.buttons["identifier"]` (explicit identifier)
-- Acceptable: `app.buttons.containing(NSPredicate(format: "label CONTAINS 'icon'"))` (specific predicate)
-- Always use the most specific locator available
-- Verify element type matches (e.g., use `scrollViews` for ScrollView, not `otherElements`)
-
-**Test Data Management:**
-- Document test data requirements in test file comments or spec
-- Use consistent test account and test data across test suite
-- Define test data as constants at top of test class:
-  ```swift
-  private let testFloorPlanSite = "Ungrouped Cameras"
-  private let testFloorPlanName = "main floor"
-  private let testCamera1 = "device-serial-123"
-  ```
-- Coordinate with team on test account usage to avoid conflicts
-
-**Test Infrastructure Maintenance:**
-- Regularly review and remove unused test helper methods
-- Keep operation protocols lean (only include actively used methods)
-- Inline simple operations instead of creating single-use helper methods
-- Document complex test helpers with clear comments
-- Aim for <200 lines per operation protocol extension
-
-**Assertions and Error Handling:**
-- Never use `XCTExpectFailure` for actual test verification (it marks failures as expected)
-- Use `XCTAssertTrue`, `XCTAssertFalse`, `XCTAssertEqual` for real assertions
-- Provide clear failure messages with context:
-  ```swift
-  XCTAssertTrue(condition, "Expected X but got Y")
-  ```
-- Use `verifyElementValue()` pattern for timeout-based state verification
+- **Implementation Guide:** See `uitest-automation/WRITING_GUIDE.md`
 
 **Testing Requirements:**
 - All new ViewModels must have unit tests
@@ -344,55 +257,6 @@ For features requiring abstraction and testability, define a Dependency protocol
 - UI tests for major user flows
 - Mock all external dependencies (network, device SDK)
 - Use dependency injection for testability
-
-**Testing Error Handling in ViewModels:**
-- Use `MockAppManager` with appropriate closure to capture error handling calls
-- For `handleError(error, defaultAlert:)` use `_handleErrorWithDefaultAlert` closure
-- For `handleError(error)` use `_handleError` closure
-- Test pattern:
-  ```swift
-  var handledError: Error?
-  let mockAppManager = MockAppManager(
-      _handleErrorWithDefaultAlert: { error, defaultAlert in
-          handledError = error
-      }
-  )
-  // ... run test
-  #expect(handledError != nil)  // Verify error was handled
-  #expect((handledError as? VortexError) == .expectedError)
-  ```
-- Always verify error handling is called for data fetch errors
-- Verify error handling is NOT called for expected scenarios (e.g., cache misses)
-- Verify UI state is correct after error (e.g., `isLoading == false`)
-
-### Git Workflow
-
-**Branch Strategy:**
-- **main** - Production-ready code (main branch for PRs)
-- **Feature branches** - Named descriptively (e.g., `floorMap`, feature-specific names)
-- Branch from `main` for new features
-- Merge back to `main` via pull requests
-
-**Commit Conventions:**
-The project follows **Conventional Commits** format with project name prefix:
-- Format: `<type>(<project>): <description>`
-- Project names: `Vortex` or `CloudSight`
-- Types: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, etc.
-- Examples:
-  - `feat(Vortex): add floor plan device selection`
-  - `fix(CloudSight): resolve thread issue in video streaming`
-  - `refactor(Vortex): update icon and layout`
-- Reference ticket IDs when applicable (e.g., `[VOR-24280]`)
-- Multi-line commits for complex changes
-- Keep descriptions concise and focus on what changed
-- When mentioning files, use filename only (not full path)
-- **IMPORTANT:** Always confirm the project name (Vortex or CloudSight) with the user if uncertain
-
-**Workflow:**
-- Pull requests required for merging to main
-- CI/CD via Fastlane and GitHub Actions
-- Automated testing runs on CI
-- Code review before merge
 
 ### Development Rules
 
@@ -408,34 +272,9 @@ The project follows **Conventional Commits** format with project name prefix:
 
 **API Integration:**
 - **Location:** All new APIs must be added to the `VortexFeatures` package
-  - RESTful APIs: Follow patterns in `VortexRestfulApi` folder
-  - GraphQL APIs: Follow patterns in `VortexApi` folder
-- **RESTful API Naming:**
-  - Method names must start with HTTP method prefix: `getXxx()`, `postXxx()`, `putXxx()`, `deleteXxx()`
-  - Example: `getDeviceList()`, `postCreateUser()`, `putUpdateDevice()`
-- **GraphQL API Naming:**
-  - Method names should match the GraphQL operation name
-  - Example: `listMyOrganization()`, `createDevice()`, `queryMessage()`
-  - No HTTP method prefix needed for GraphQL
-- **API Response Models:**
-  - All API response models must conform to `VortexBackendModel` protocol
-  - Place models in `VortexFeatures/Sources/VortexFeatures/Common/VortexBackend/Model/` directory
-  - Organize by domain (e.g., `Organization/`, `Device/`, `Message/`)
-  - API enums should conform to `SafeDecodableEnum` for safe decoding of unknown values
-- **GraphQL Response Keys:**
-  - Define reusable GraphQL response field fragments in `VortexApiKey` struct
-  - Example: `myOrganizationColumns`, `deviceInfo`, `message`
-  - Reuse fragments across queries for consistency
-- **Model Layer Separation:**
-  - Separate API models from internal domain models for flexibility
-  - API Model (VortexBackendModel) ↔ Internal Model conversion in Manager/Dependency layer
-  - Exception: Simple display-only data can use API models directly in UI
-  - This separation allows API changes without affecting UI layer
-- **Error Handling:**
-  - All backend errors must be converted to the project's unified `VortexError` type
-  - Common/shared errors should be added to the `handleErrorData` method
-  - API-specific errors should be handled in a dedicated extension for that API module
-- **Structure:** Follow existing API service patterns for consistency
+  - RESTful APIs: `VortexFeatures/Sources/VortexFeatures/VortexRestfulApi/`
+  - GraphQL APIs: `VortexFeatures/Sources/VortexFeatures/VortexApi/`
+  - Response Models: `VortexFeatures/Sources/VortexFeatures/VortexBackend/Model/`
 
 **Feature Toggles & Dark Release:**
 
@@ -549,7 +388,7 @@ Dark Release Check → Permission Check → License Check → Feature-specific L
 ## Important Constraints
 
 **Technical Constraints:**
-- iOS 17.0+ minimum deployment target
+- iOS 18.0+ minimum deployment target
 - Must support iPhone and iPad (universal app)
 - Real-time video streaming requires stable network connection
 - Background task limitations (iOS background execution constraints)

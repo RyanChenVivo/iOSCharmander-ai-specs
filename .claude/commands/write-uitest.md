@@ -8,7 +8,6 @@ You are helping implement a new UITest for an iOS application. Follow this struc
 **Specs Repo:** `/Users/ryanchen/code/VIVOTEK/iOSCharmander-ai-specs` (current directory)
 
 **Key Resources:**
-- UITest conventions: `openspec/project.md` (lines 263-340)
 - Writing guide: `uitest-automation/WRITING_GUIDE.md`
 - UI element IDs: `uitest-automation/reference/ui-identifiers.md`
 - Test data: `uitest-automation/reference/test-data.md`
@@ -133,7 +132,7 @@ Implement a UITest following this workflow. **Track your progress using TodoWrit
    }
    ```
 
-3. **Follow patterns from project.md:**
+3. **Follow patterns from WRITING_GUIDE.md:**
    - Use `UATHelper` methods for waits (waitElementToAppear, etc.)
    - Use discovered accessibility identifiers
    - Add clear comments for GIVEN/WHEN/THEN

@@ -5,12 +5,6 @@ description: Integrates RESTful and GraphQL APIs in VortexFeatures. Use when add
 
 # API Integration
 
-## Location
-
-- **RESTful**: `VortexFeatures/Sources/VortexFeatures/VortexRestfulApi/`
-- **GraphQL**: `VortexFeatures/Sources/VortexFeatures/VortexApi/`
-- **Models**: `VortexFeatures/Sources/VortexFeatures/VortexBackend/Model/`
-
 ## Naming Conventions
 
 | Type | Pattern | Example |
@@ -25,8 +19,8 @@ description: Integrates RESTful and GraphQL APIs in VortexFeatures. Use when add
 
 ## Model Separation (Critical)
 
-- **API Model** → `VortexBackend/Model/` (matches API response)
-- **Internal Model** → Manager/Dependency layer (app-specific transformation)
+- **API Model** → matches API response structure
+- **Internal Model** → app-specific transformation in Manager/Dependency layer
 
 ## Error Handling
 
@@ -37,13 +31,5 @@ description: Integrates RESTful and GraphQL APIs in VortexFeatures. Use when add
 ## GraphQL Fragments
 
 Define reusable fragments in `VortexApiKey`.
-
-## Quick Reference
-
-| Aspect | RESTful | GraphQL |
-|--------|---------|---------|
-| Naming | `getXxx()`, `postXxx()` | `listXxx()`, `createXxx()` |
-| Location | `VortexRestfulApi/` | `VortexApi/` |
-| Fragments | N/A | `VortexApiKey` |
 
 **Examples**: See [example.md](example.md)
