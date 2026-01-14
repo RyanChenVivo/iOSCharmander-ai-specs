@@ -92,50 +92,127 @@ The project uses **SwiftFormat** for automated code formatting with the followin
 
 ### Architecture Patterns
 
-**Primary Pattern: MVVM with Dependency Injection**
+**Primary Pattern: MVVM with Dependency Injection (iOS 17+ Observation)**
 
-The project follows a strict MVVM (Model-View-ViewModel) architecture with protocol-oriented design:
+The project uses iOS 17+ Observation framework. For architecture decisions (when to use ViewModel vs Manager, where logic belongs), see the `architecting-viewmodel-manager` skill.
 
-**View Layer (SwiftUI):**
-- Pure SwiftUI views (no UIKit)
-- Views observe ViewModels using `@StateObject` or `@ObservedObject`
-- 39+ reusable component library in `View/Component/`
-- View extensions for common UI patterns
+**ViewModel Implementation:**
 
-**ViewModel Layer:**
-- Conforms to `ObservableObject`
-- Uses `@Published` properties for reactive state
-- Handles business logic and coordinates services
-- Uses `@Dependency` macro for service injection
-- Examples: `HomeViewModel`, `ArchiveTabViewModel`, `SignInViewModel`
+- **Location:** Feature-specific directories (e.g., `iOSCharmander/View/Home/Tab/FloorPlanTab/`)
+- **Naming:** `XxxViewModel` (e.g., `FloorPlanTabViewModel`)
 
-**ViewModel Error Handling Pattern:**
-- ViewModels must inject `@Dependency(\.appManager) var appManager` for error handling
-- Factory methods (`.make()`) must include `$0.appManager = AppManager.shared` in `withDependencies` block
-- Use `appManager.handleError(error, defaultAlert:)` for user-facing data fetch errors
-- `AppManager.handleError` has two overloads:
-  - `handleError(_ error: Error)` - Let AppManager decide the alert
-  - `handleError(_ error: Error, defaultAlert: AlertItem?)` - Provide fallback alert
-- Common default alerts:
-  - `AlertItem.failToLoad()` - For data loading failures
-  - Pass `nil` to let AppManager handle specific errors (session expiry, access denied, etc.) without fallback
-- **When to call handleError:**
-  - Data fetching operations that impact UI (e.g., API calls, Manager data loading)
-  - Any error that requires user notification or action
-- **When to only log:**
-  - Cache misses or expected "not found" scenarios
-  - Non-critical background operations
-  - Internal state validations
-- Error handling must be done on `@MainActor` (AppManager.handleError is @MainActor)
-- Always set loading states to `false` after error handling
+```swift
+import SwiftUI
+import Observation
+import Dependencies
 
-**Model & Services Layer:**
-- Domain models (plain Swift structs/classes)
-- Manager classes for core functionality (e.g., `DeviceManager`, `AppManager`)
-- Protocol-based abstraction for testability
-- Service dependencies injected via `swift-dependencies` framework
+@MainActor
+@Observable
+final class MyFeatureViewModel {
+    // MARK: - Dependencies (must use @ObservationIgnored)
+    @ObservationIgnored
+    @Dependency(\.myManager) private var myManager
+    @ObservationIgnored
+    @Dependency(\.appManager) private var appManager
+
+    // MARK: - Observable State
+    var items: [Item] = []
+    var isLoading = false
+    var searchText = ""
+
+    // MARK: - Non-observed State
+    @ObservationIgnored
+    private var cache: [String: Any] = [:]
+
+    // MARK: - Factory Method
+    static func make() -> MyFeatureViewModel {
+        withDependencies {
+            $0.appManager = AppManager.shared
+            $0.myManager = MyManager.shared
+        } operation: {
+            MyFeatureViewModel()
+        }
+    }
+
+    // MARK: - Data Loading
+    func loadData() async {
+        isLoading = true
+        defer { isLoading = false }
+
+        do {
+            items = try await myManager.fetchItems()
+        } catch {
+            appManager.handleError(error, defaultAlert: .failToLoad())
+        }
+    }
+}
+```
+
+**View with ViewModel:**
+
+```swift
+struct MyFeatureView: View {
+    @State private var viewModel = MyFeatureViewModel.make()
+
+    var body: some View {
+        @Bindable var viewModel = viewModel  // Create bindable for $ bindings
+
+        List(viewModel.items) { item in
+            Text(item.name)
+        }
+        .searchable(text: $viewModel.searchText)
+        .task { await viewModel.loadData() }
+    }
+}
+
+// Child view needing bindings
+struct ChildEditView: View {
+    @Bindable var viewModel: MyFeatureViewModel
+
+    var body: some View {
+        TextField("Search", text: $viewModel.searchText)
+    }
+}
+
+// With @Environment
+struct SettingsView: View {
+    @Environment(AppSettings.self) private var settings
+
+    var body: some View {
+        @Bindable var settings = settings
+        Toggle("Dark Mode", isOn: $settings.isDarkMode)
+    }
+}
+```
+
+**ViewModel Error Handling:**
+- Use `appManager.handleError(error, defaultAlert:)` for user-facing errors
+- Common alerts: `AlertItem.failToLoad()`, or `nil` to let AppManager decide
+- Always set `isLoading = false` after error handling (use `defer`)
+
+**Manager Implementation:**
+
+- **Location:** `VortexFeatures/Sources/VortexFeatures/Core/XxxManager/`
+- **Naming:** `XxxManager` with `.shared` singleton accessor
+
+**Dependency Registration:**
+
+```swift
+extension DependencyValues {
+    var myManager: MyManagerProtocol {
+        get { self[MyManagerKey.self] }
+        set { self[MyManagerKey.self] = newValue }
+    }
+}
+
+private enum MyManagerKey: DependencyKey {
+    static let liveValue: MyManagerProtocol = MyManager.shared
+    static let testValue: MyManagerProtocol = MockMyManager()
+}
+```
 
 **Modular Package Structure:**
+
 The `VortexFeatures` SPM package separates concerns into modules:
 - `AWSServices` - AWS/Amplify integration
 - `HttpServices` - HTTP communication layer
@@ -144,85 +221,6 @@ The `VortexFeatures` SPM package separates concerns into modules:
 - `VortexEnvironment` - Configuration management
 - `VortexLogger` - Centralized logging
 - `VortexError` - Error handling framework
-
-**Key Architectural Principles:**
-- Protocol-oriented design for testability
-- Dependency injection for loose coupling
-- Async/await for asynchronous operations
-- Single responsibility per module/class
-- Feature toggles for gradual rollouts (`FeatureProvider`)
-
-**Manager & Dependency Layer Architecture:**
-
-For major features that require centralized data management and cross-module usage, follow the Manager pattern:
-
-**When to Create a Manager:**
-- Feature has multiple sub-features sharing the same data structure
-- Feature data/logic needs to be accessed from multiple parts of the app
-- Examples: `DeviceManager`, `ArchiveFileManager`, `ResellerManager`
-
-**Manager Implementation Guidelines:**
-- **Location:** Place in `VortexFeatures/Sources/VortexFeatures/Core/` package
-- **Pattern:** Singleton with `.shared` accessor
-- **Dependencies:** Use `@Dependency` macro for service injection (via swift-dependencies framework)
-- **Data Flow:** Provide `AsyncStream` via `xxxValues()` methods for reactive subscriptions
-- **State:** Use `@Published` properties internally, convert to `AsyncStream` for external consumers
-- **Error Handling:** Managers should throw errors to caller (ViewModel layer), NOT call `AppManager.handleError`
-  - Managers are data layer, not UI layer
-  - Let ViewModels decide how to present errors to users
-  - Managers should log errors for debugging purposes
-- **Example Structure:**
-  ```swift
-  public final class FeatureManager: ObservableObject {
-      public static let shared = FeatureManager()
-      @Published private var data: [Item] = []
-
-      @Dependency(\.apiClient) var apiClient
-      private let logger = VortexLogger.make(type: .featureManager)
-
-      public func fetchData() async throws -> [Item] {
-          logger.trace("Fetching data")
-          do {
-              let items = try await apiClient.fetchItems()
-              await MainActor.run { self.data = items }
-              return items
-          } catch {
-              logger.error("Failed to fetch data: \(error)")
-              throw error  // Throw to ViewModel, don't call handleError
-          }
-      }
-
-      public func dataValues() async -> AsyncStream<[Item]> {
-          await Utility.createAsyncStream(from: $data)
-      }
-  }
-  ```
-
-**Dependency Protocol Pattern:**
-
-For features requiring abstraction and testability, define a Dependency protocol:
-
-- **Protocol:** Define interface in `OrganizationDependency.swift` style
-- **Implementation:** Concrete class (e.g., `MyOrganizationInfo`) implements protocol
-- **Registration:** Register via `DependencyValues` extension
-- **Usage:** Inject via `@Dependency(\.dependencyName)` in ViewModels/Managers
-- **Reactive Data:** Provide `AsyncStream<T>` methods for observable values
-- **Example:**
-  ```swift
-  public protocol FeatureDependency {
-      func valuesStream() async -> AsyncStream<[Item]>
-      func getValue() async -> Item
-  }
-
-  // Implementation uses @Published + AsyncStream pattern
-  final class FeatureDependencyImpl: FeatureDependency {
-      @Published private var items: [Item] = []
-
-      func valuesStream() async -> AsyncStream<[Item]> {
-          await Utility.createAsyncStream(from: $items)
-      }
-  }
-  ```
 
 ### Testing Strategy
 
