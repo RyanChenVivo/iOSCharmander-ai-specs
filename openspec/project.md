@@ -109,18 +109,24 @@ import Dependencies
 @MainActor
 @Observable
 final class MyFeatureViewModel {
-    // MARK: - Dependencies (must use @ObservationIgnored)
+    // MARK: - Dependencies
+    // Dependencies typically use @ObservationIgnored because:
+    // - The dependency reference itself doesn't change
+    // - UI doesn't need to respond to the dependency property
+    // - Use regular properties below to hold data from dependencies for UI binding
     @ObservationIgnored
     @Dependency(\.myManager) private var myManager
     @ObservationIgnored
     @Dependency(\.appManager) private var appManager
 
-    // MARK: - Observable State
+    // MARK: - Observable State (UI-responsive properties)
+    // These properties are automatically observable - UI will update when they change
     var items: [Item] = []
     var isLoading = false
     var searchText = ""
 
-    // MARK: - Non-observed State
+    // MARK: - Non-observed State (Internal implementation details)
+    // Use @ObservationIgnored for properties that UI doesn't need to respond to
     @ObservationIgnored
     private var cache: [String: Any] = [:]
 
@@ -140,6 +146,7 @@ final class MyFeatureViewModel {
         defer { isLoading = false }
 
         do {
+            // Fetch data from dependency and assign to observable property
             items = try await myManager.fetchItems()
         } catch {
             appManager.handleError(error, defaultAlert: .failToLoad())
