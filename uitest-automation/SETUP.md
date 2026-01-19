@@ -49,10 +49,10 @@ cd iOSCharmander-ai-specs
 
 ```bash
 # 測試是否可連線到 CI 機器
-ssh vivotekinc@10.15.254.191 "echo 'Connection successful'"
+ssh vivotekinc@172.18.2.83 "echo 'Connection successful'"
 
 # 測試能否存取提取的資料
-ssh vivotekinc@10.15.254.191 "ls /Users/vivotekinc/Documents/CICD/UITestAnalysisData/latest"
+ssh vivotekinc@172.18.2.83 "ls /Users/vivotekinc/Documents/CICD/UITestAnalysisData/latest"
 ```
 
 如果 CI 機器的 IP 或路徑不同，需要編輯 `download_test_data.sh` 中的配置：
@@ -62,7 +62,7 @@ ssh vivotekinc@10.15.254.191 "ls /Users/vivotekinc/Documents/CICD/UITestAnalysis
 nano uitest-automation/download_test_data.sh
 
 # 修改以下變數（如需要）
-CI_MACHINE="vivotekinc@10.15.254.191"
+CI_MACHINE="vivotekinc@172.18.2.83"
 CI_DATA_BASE="/Users/vivotekinc/Documents/CICD/UITestAnalysisData"
 ```
 
@@ -70,16 +70,16 @@ CI_DATA_BASE="/Users/vivotekinc/Documents/CICD/UITestAnalysisData"
 
 ```bash
 # 測試能否連到 CI 機器
-ping -c 1 10.15.254.191
+ping -c 1 172.18.2.83
 
 # 如果可以連線，設定 SSH key
-ssh-copy-id vivotekinc@10.15.254.191
+ssh-copy-id vivotekinc@172.18.2.83
 
 # 測試 SSH 連線
-ssh vivotekinc@10.15.254.191 "echo 'Connection successful'"
+ssh vivotekinc@172.18.2.83 "echo 'Connection successful'"
 
 # 測試能否存取測試報告目錄
-ssh vivotekinc@10.15.254.191 "ls /Users/vivotekinc/Documents/CICD/UITestReport/"
+ssh vivotekinc@172.18.2.83 "ls /Users/vivotekinc/Documents/CICD/UITestReport/"
 ```
 
 **注意**: 如果公司網路有防火牆限制，可能需要 IT 協助開通連線權限。
@@ -117,10 +117,10 @@ cd iOSCharmander-ai-specs
 ```bash
 # 將提取腳本複製到 CI 機器
 scp uitest-automation/ci-scripts/extract_uitest_data.sh \
-    vivotekinc@10.15.254.191:/Users/vivotekinc/Documents/CICD/scripts/
+    vivotekinc@172.18.2.83:/Users/vivotekinc/Documents/CICD/scripts/
 
 # 設定執行權限
-ssh vivotekinc@10.15.254.191 \
+ssh vivotekinc@172.18.2.83 \
     "chmod +x /Users/vivotekinc/Documents/CICD/scripts/extract_uitest_data.sh"
 
 # 在 Jenkins UITest job 中加入執行腳本的步驟
@@ -139,7 +139,7 @@ chmod +x setup-ai-dev.sh
 ./setup-ai-dev.sh
 ```
 
-### Q2: `ssh: connect to host 10.15.254.191 port 22: Connection refused`
+### Q2: `ssh: connect to host 172.18.2.83 port 22: Connection refused`
 
 **原因**: 無法連線到 CI 機器 (防火牆、VPN、IP 錯誤等)
 
@@ -167,7 +167,7 @@ brew install jq
 2. 確認 Jenkins 是否已整合該腳本
 3. 檢查 CI 機器上的資料路徑：
 ```bash
-ssh vivotekinc@10.15.254.191 "ls -la /Users/vivotekinc/Documents/CICD/UITestAnalysisData/"
+ssh vivotekinc@172.18.2.83 "ls -la /Users/vivotekinc/Documents/CICD/UITestAnalysisData/"
 ```
 
 如果沒有看到資料，請聯繫 CI 管理員部署腳本（詳見 `ci-scripts/README.md`）。
@@ -188,7 +188,7 @@ cp -r /path/to/copied/data ~/Downloads/UITestAnalysis/
 如果 CI 機器有共享資料夾：
 ```bash
 # 在 Finder 中: Go > Connect to Server
-# 輸入: smb://10.15.254.191
+# 輸入: smb://172.18.2.83
 # 掛載後資料夾會出現在 /Volumes/
 
 # 腳本會自動偵測掛載的路徑
@@ -201,8 +201,8 @@ cp -r /path/to/copied/data ~/Downloads/UITestAnalysis/
 - [ ] Clone 完成，目錄結構正確
 - [ ] Symlinks 建立成功 (`ls -l iOScharmander/openspec`, `ls -l iOScharmander/.claude`, `ls -l iOScharmander/uitest-automation`)
 - [ ] jq 已安裝 (`jq --version`)
-- [ ] 可以連線到 CI 機器 (`ssh vivotekinc@10.15.254.191`)
-- [ ] 可以存取 CI 端提取的資料 (`ssh vivotekinc@10.15.254.191 "ls /Users/vivotekinc/Documents/CICD/UITestAnalysisData/latest"`)
+- [ ] 可以連線到 CI 機器 (`ssh vivotekinc@172.18.2.83`)
+- [ ] 可以存取 CI 端提取的資料 (`ssh vivotekinc@172.18.2.83 "ls /Users/vivotekinc/Documents/CICD/UITestAnalysisData/latest"`)
 - [ ] 下載腳本可以執行 (`./uitest-automation/download_test_data.sh`)
 - [ ] AI slash command 可用 (在 Claude Code 中執行 `/analyze-uitest`)
 

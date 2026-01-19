@@ -214,7 +214,7 @@ grep -r "UI_ELEMENT_NOT_FOUND" openspec/archive/*/proposal.md
 
 ```bash
 # 如需查看歷史資料，可手動下載特定日期
-scp -r "vivotekinc@10.15.254.191:/Users/vivotekinc/Documents/CICD/UITestAnalysisData/2025-12-03" \
+scp -r "vivotekinc@172.18.2.83:/Users/vivotekinc/Documents/CICD/UITestAnalysisData/2025-12-03" \
     "$HOME/Downloads/UITestAnalysis/2025-12-03/"
 
 # 然後在 Claude Code 中執行
@@ -230,7 +230,7 @@ AI 會自動偵測並分析該日期的資料。
 **本地端（download_test_data.sh）：**
 ```bash
 # CI 機器連線
-CI_MACHINE="vivotekinc@10.15.254.191"
+CI_MACHINE="vivotekinc@172.18.2.83"
 
 # CI 提取資料的基礎路徑
 CI_DATA_BASE="/Users/vivotekinc/Documents/CICD/UITestAnalysisData"
@@ -351,7 +351,7 @@ AI Agent 在執行時會自動調用以下腳本：
 
 **配置：**
 ```bash
-CI_MACHINE="vivotekinc@10.15.254.191"
+CI_MACHINE="vivotekinc@172.18.2.83"
 CI_DATA_BASE="/Users/vivotekinc/Documents/CICD/UITestAnalysisData"
 OUTPUT_DIR="$HOME/Downloads/UITestAnalysis"
 ```

@@ -33,10 +33,10 @@
 ```bash
 # 從本地機器執行
 scp uitest-automation/ci-scripts/extract_uitest_data.sh \
-    vivotekinc@10.15.254.191:/Users/vivotekinc/Documents/CICD/scripts/
+    vivotekinc@172.18.2.83:/Users/vivotekinc/Documents/CICD/scripts/
 
 # 設定執行權限
-ssh vivotekinc@10.15.254.191 \
+ssh vivotekinc@172.18.2.83 \
     "chmod +x /Users/vivotekinc/Documents/CICD/scripts/extract_uitest_data.sh"
 ```
 
@@ -63,7 +63,7 @@ fi
 
 ```bash
 # 測試腳本是否正常運作
-ssh vivotekinc@10.15.254.191 \
+ssh vivotekinc@172.18.2.83 \
     "/Users/vivotekinc/Documents/CICD/scripts/extract_uitest_data.sh --help"
 ```
 

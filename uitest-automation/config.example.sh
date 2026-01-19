@@ -4,7 +4,7 @@
 
 # CI Machine connection
 # Update with your CI machine's user@hostname or IP
-CI_MACHINE="vivotekinc@10.15.254.191"
+CI_MACHINE="vivotekinc@172.18.2.83"
 
 # CI Report base directory on the CI machine
 # This is where Jenkins stores the .xcresult files

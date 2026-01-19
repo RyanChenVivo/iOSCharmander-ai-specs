@@ -7,7 +7,7 @@
 set -e
 
 # Configuration
-CI_MACHINE="vivotekinc@10.15.254.191"
+CI_MACHINE="vivotekinc@172.18.2.83"
 CI_DATA_BASE="/Users/vivotekinc/Documents/CICD/UITestAnalysisData"
 OUTPUT_DIR="$HOME/Downloads/UITestAnalysis"
 LOCAL_OUTPUT="${OUTPUT_DIR}/latest"

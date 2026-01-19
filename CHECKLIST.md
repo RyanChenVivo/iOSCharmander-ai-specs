@@ -65,26 +65,26 @@ nano config.sh
 ```
 
 **需要確認/修改的設定**：
-- [ ] `CI_MACHINE="vivotekinc@10.15.254.191"` - CI 機器 IP（通常不用改）
+- [ ] `CI_MACHINE="vivotekinc@172.18.2.83"` - CI 機器 IP（通常不用改）
 - [ ] `CI_REPORT_BASE="/Users/vivotekinc/Documents/CICD/UITestReport"` - CI 報告路徑（通常不用改）
 - [ ] 其他設定使用預設值即可
 
 ### 步驟 4: 設定 SSH 連線到 CI 機器
 
-**重要**：你的電腦需要能連到 CI 機器的 IP `10.15.254.191`（在公司網路內）
+**重要**：你的電腦需要能連到 CI 機器的 IP `172.18.2.83`（在公司網路內）
 
 ```bash
 # 測試能否連線
-ping -c 1 10.15.254.191
+ping -c 1 172.18.2.83
 
 # 如果 ping 通，設定 SSH key（需要輸入 CI 機器密碼）
-ssh-copy-id vivotekinc@10.15.254.191
+ssh-copy-id vivotekinc@172.18.2.83
 ```
 
 輸入密碼後，再測試：
 ```bash
 # 測試免密碼登入
-ssh vivotekinc@10.15.254.191 "echo 'Success'"
+ssh vivotekinc@172.18.2.83 "echo 'Success'"
 ```
 
 **檢查點**：
@@ -153,7 +153,7 @@ ifconfig | grep "inet " | grep -v 127.0.0.1
 **解決**：
 ```bash
 # 重新設定 SSH key
-ssh-copy-id vivotekinc@10.15.254.191
+ssh-copy-id vivotekinc@172.18.2.83
 ```
 
 ### 問題 4: 找不到 iOSCharmander 路徑

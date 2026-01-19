@@ -26,7 +26,7 @@ Use investigation when:
 If screenshots aren't already downloaded, use:
 
 ```bash
-scp -r "vivotekinc@10.15.254.191:/Users/vivotekinc/Documents/CICD/UITestAnalysisData/latest/attachments" "$HOME/Downloads/UITestAnalysis/latest/"
+scp -r "vivotekinc@172.18.2.83:/Users/vivotekinc/Documents/CICD/UITestAnalysisData/latest/attachments" "$HOME/Downloads/UITestAnalysis/latest/"
 ```
 
 **What you'll get:**
