@@ -26,9 +26,19 @@ mkdir -p "$LOCAL_OUTPUT"
 
 # Download JSON and txt files only (fast - about 100KB)
 echo "正在下載..."
-scp -q "${CI_MACHINE}:${CI_DATA_BASE}/latest/*.json" "$LOCAL_OUTPUT/" || {
-    echo "錯誤：無法下載檔案"
-    exit 1
+# Use scp with wildcard - need to escape the quotes properly
+scp -q "${CI_MACHINE}:${CI_DATA_BASE}/latest/*.json" "$LOCAL_OUTPUT/" 2>&1 || {
+    # If wildcard doesn't work, try downloading files individually
+    echo "嘗試逐個下載檔案..."
+    for file in metadata.json test_details.json test_failures.json test_summary.json; do
+        scp -q "${CI_MACHINE}:${CI_DATA_BASE}/latest/${file}" "$LOCAL_OUTPUT/" 2>/dev/null || true
+    done
+
+    # Check if at least metadata.json was downloaded
+    if [ ! -f "$LOCAL_OUTPUT/metadata.json" ]; then
+        echo "錯誤：無法下載檔案"
+        exit 1
+    fi
 }
 scp -q "${CI_MACHINE}:${CI_DATA_BASE}/latest/*.txt" "$LOCAL_OUTPUT/" 2>/dev/null || true
 
