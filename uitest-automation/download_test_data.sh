@@ -58,7 +58,7 @@ if [ -f "$LOCAL_OUTPUT/metadata.json" ]; then
     echo "失敗數: $FAILED"
     echo ""
 
-    if [ "$FAILED" -eq 0 ]; then
+    if [ "$FAILED" = "0" ]; then
         echo -e "${GREEN}沒有失敗的測試！${NC}"
     else
         echo -e "發現 ${FAILED} 個失敗測試"
