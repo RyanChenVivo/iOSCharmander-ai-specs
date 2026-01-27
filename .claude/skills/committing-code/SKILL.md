@@ -1,9 +1,33 @@
 ---
 name: committing-code
-description: Guides commit format (<type>(<project>): <description>) and two-repo workflow. App code to iOSCharmander, openspec/.claude to iOSCharmander-ai-specs.
+description: Use when committing changes, creating commits, or running git commit. Enforces commit format (<type>(<project>): <description>) and guides two-repo workflow.
 ---
 
 # Git Workflow
+
+## When to Use This Guide
+
+**Before committing, determine the target repository:**
+
+### iOSCharmander (Main Repo)
+Use when changes involve:
+- App source code (Swift files, ViewModels, Managers, Views)
+- Xcode project files
+- Tests (iOSCharmanderTests, UI tests)
+- Assets, localization files
+- Build configurations
+
+**Workflow:** Feature branch → PR to main
+
+### iOSCharmander-ai-specs (AI Specs Repo)
+Use when changes involve:
+- `openspec/` directory (specs, proposals)
+- `.claude/` directory (skills, settings)
+- AI configuration files
+
+**Workflow:** Direct commit to main (no PR needed)
+
+**CRITICAL:** Never commit `openspec/` or `.claude/` in iOSCharmander repo - they are symlinks!
 
 ## CRITICAL: Two-Repo Architecture
 
