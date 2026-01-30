@@ -76,12 +76,18 @@ Required cameras in UAT environment:
 - Keep device list stable for consistent test results
 - Document any special device configurations (PTZ, fisheye, etc.)
 
-### Device Groups
+### Device Groups / Sites
 
 | Group Name | Purpose | Contains |
 |-----------|---------|----------|
 | Ungrouped Cameras | Default group | New devices |
 | [Add groups as needed] | | |
+
+**View Tab Expand/Collapse Testing:**
+- UAT account (`.iOS` credential) must have **2 or more sites** configured
+- Each site should contain at least one device for visibility
+- Sites should be visible in View Tab upon login
+- Required for testing control panel display and expand/collapse functionality
 
 ## Floor Plans
 

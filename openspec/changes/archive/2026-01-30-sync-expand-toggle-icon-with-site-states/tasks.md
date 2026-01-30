@@ -55,7 +55,7 @@
 - [x] 6.3 Unit test: `checkAllSiteStatus()` auto-sync logic
 - [x] 6.4 Use `MockDeviceManager` for dependency injection in tests
 
-**Verification:** ✅ 12 tests all passed
+**Verification:** ✅ 11 tests all passed
 
 ## Completed Files
 

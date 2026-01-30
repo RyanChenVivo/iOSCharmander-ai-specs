@@ -97,6 +97,18 @@ app.otherElements["cameraMarker_IB9365-001"].tap()
 - Camera list items may not have unique IDs - use index-based selection when necessary
 - After adding camera, verify appearance using model-specific ID
 
+### View Tab
+
+| Element | Identifier | Type | Usage |
+|---------|-----------|------|-------|
+| Expand/Collapse All button | `expandCollapseAllButton` | Button | Toggle expand/collapse state of all site groups |
+| Site group row | `groupRow{siteName}` | Button | Individual site disclosure group (e.g., `groupRowUngrouped Cameras`) |
+
+**Notes:**
+- Expand/collapse button only visible when there are 2+ sites
+- Button icon changes based on expand/collapse state (cannot be directly tested via accessibility)
+- Control panel height is 44pt as specified in design
+
 ### Home Screen
 
 | Element | Identifier | Type | Usage |
