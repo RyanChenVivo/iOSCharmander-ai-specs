@@ -3,7 +3,7 @@
 ## Purpose
 Define the architectural separation of concerns for the floor plan feature, establishing clear boundaries between UI layer (ViewModels), data layer (FloorPlanManager), and API layer (VortexRestfulApi) with proper model separation.
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: Floor Plan Manager Layer Separation
 The floor plan feature SHALL have a dedicated Manager layer between ViewModels and API to provide proper separation of concerns where ViewModels handle UI logic only and Manager handles data logic.
