@@ -1,0 +1,183 @@
+# OpenSpec Configuration
+# This file contains project-level configuration for OpenSpec
+# The context section is included in every OpenSpec request
+
+context: |
+  # Project Context
+
+  ## Purpose
+  **VIVOTEK Vortex** is a comprehensive iOS surveillance and device management application for VIVOTEK IP cameras and network video recorders (NVR). The app provides:
+  - Real-time video streaming and monitoring from multiple VIVOTEK devices
+  - Remote device configuration and management
+  - Alarm and notification management with smart sensor capabilities
+  - Archive browsing and video export functionality
+  - Cloud storage integration via AWS
+  - VoIP/calling features for audio communication
+  - AI-powered search and analytics
+  - Multi-user/multi-organization support with reseller capabilities
+
+  ## Tech Stack
+
+  ### Core Technologies
+  - **Language:** Swift 6.0 (100% Swift codebase)
+  - **UI Framework:** SwiftUI (fully declarative, reactive UI)
+  - **Minimum Deployment:** iOS 18.0+
+  - **Data Persistence:** SwiftData (modern replacement for Core Data)
+  - **Concurrency:** Swift async/await, AsyncStream, Task-based concurrency
+  - **Package Manager:** Swift Package Manager (SPM)
+
+  ### Key iOS Frameworks
+  SwiftUI, SwiftData, AVFoundation, CoreLocation, MetricKit, UserNotifications, Vision, Photos, CoreTelephony
+
+  ### Major Dependencies
+
+  **Cloud & Backend:**
+  - AWS Amplify SDK (v2.51.0+) - Cloud services, storage, authentication
+  - Firebase (v12.3.0+) - Analytics, Crashlytics, Remote Config
+
+  **Real-time Communication:**
+  - WebRTC (v140.0.0+) - Video streaming
+  - Linphone SDK (5.4.14-novideo branch) - VoIP/calling
+
+  **Media & UI:**
+  - Kingfisher (v8.5.0+) - Image caching/downloading
+  - Lottie (v4.5.2+) - Animations
+  - Google Maps/Places (v10.3.0+/v10.1.0+) - Location services
+
+  **Utilities:**
+  - swift-dependencies (v1.10.0+) - Dependency injection framework
+  - swift-collections, swift-algorithms - Standard library extensions
+  - Mixpanel (v5.1.0+) - Analytics
+  - SwiftOTP (v3.0.2+) - Two-factor authentication
+
+  **Internal Packages:**
+  - VIVOTEKiOSSDK - Proprietary VIVOTEK device communication SDK
+  - VortexFeatures - Modular feature library (SPM package)
+
+  ## Architecture Pattern: MVVM with Observation
+
+  The project uses iOS 17+ Observation framework with dependency injection.
+
+  **Key Concepts:**
+  - ViewModels are `@Observable` classes marked `@MainActor`
+  - Dependencies injected via `swift-dependencies` framework
+  - Managers handle business logic and data access
+  - Views use `@State` for ViewModels and `@Bindable` for two-way bindings
+
+  **ViewModel Structure Example:**
+  ```swift
+  @MainActor
+  @Observable
+  final class MyFeatureViewModel {
+      @ObservationIgnored
+      @Dependency(\.myManager) private var myManager
+
+      var items: [Item] = []  // Observable for UI
+      var isLoading = false
+
+      static func make() -> MyFeatureViewModel {
+          withDependencies {
+              $0.myManager = MyManager.shared
+          } operation: {
+              MyFeatureViewModel()
+          }
+      }
+  }
+  ```
+
+  **View Structure Example:**
+  ```swift
+  struct MyView: View {
+      @State private var viewModel = MyFeatureViewModel.make()
+
+      var body: some View {
+          @Bindable var viewModel = viewModel
+          List(viewModel.items) { item in
+              Text(item.name)
+          }
+      }
+  }
+  ```
+
+  **For architecture decisions**, use the `architecting-viewmodel-manager` skill.
+
+  ### Modular Package Structure
+
+  **VortexFeatures** SPM package modules:
+  - `AWSServices` - AWS/Amplify integration
+  - `HttpServices` - HTTP communication
+  - `OdysseyServices` - Backend API (WebRTC-based)
+  - `CallServices` - VoIP/calling
+  - `VortexEnvironment` - Configuration
+  - `VortexLogger` - Logging
+  - `VortexError` - Error handling
+
+  ## Domain Context
+
+  **VIVOTEK Surveillance System:**
+
+  **Devices:**
+  - IP cameras (PTZ, fisheye with dewarping)
+  - NVR (Network Video Recorders)
+  - Smart sensors with AI capabilities
+
+  **Core Concepts:**
+  - **Channels:** Video streams from devices (cameras can have multiple)
+  - **Archives:** Recorded video segments (device or cloud storage)
+  - **Events/Alarms:** Motion detection, sensor triggers, AI-detected events
+  - **Customized Views:** User-defined multi-camera layouts
+  - **Snooze Rules:** Flexible alarm silencing rules
+  - **Licenses:** Device activation and feature licensing
+  - **Organizations/Resellers:** Multi-tenant support
+
+  **Communication:**
+  - WebRTC for real-time streaming
+  - RTSP/HTTP for device communication
+  - AWS for cloud storage
+  - Push notifications for alerts
+
+  **User Roles:**
+  - End users (monitoring)
+  - Administrators (management)
+  - Resellers (multi-organization)
+
+  ## Important Constraints
+
+  **Technical:**
+  - iOS 18.0+ minimum
+  - iPhone + iPad support
+  - SwiftUI-only (no UIKit except necessary bridging)
+  - Handle offline scenarios gracefully
+  - Background task limitations (iOS constraints)
+
+  **Performance:**
+  - 30fps target for video
+  - Low latency streaming
+  - Efficient memory for multiple streams
+  - Battery-efficient background operation
+
+  **Security & Privacy:**
+  - Privacy manifest required (`PrivacyInfo.xcprivacy`)
+  - Secure credential storage
+  - Two-factor authentication
+  - Encrypted streaming
+  - App Store privacy compliance
+
+  **Business:**
+  - VIVOTEK device compatibility required
+  - License validation for premium features
+  - Legacy firmware support
+  - Extensive localization (multi-language)
+
+  ## Available Skills for Implementation
+
+  When implementing features, use these specialized skills:
+
+  - **`swift-coding-standards`** - Code style, formatting, Swift best practices
+  - **`architecting-viewmodel-manager`** - Where logic belongs, when to create Manager
+  - **`integrating-api`** - Adding RESTful/GraphQL APIs in VortexFeatures
+  - **`feature-toggle-integration`** - Dark Release and Feature Toggle controls
+  - **`localization-guide`** - Adding localized strings with placeholders
+  - **`file-management-rules`** - Adding files to Xcode project correctly
+  - **`writing-unit-tests`** - Swift Testing framework, test structure
+  - **`committing-code`** - Git commit format and two-repo workflow
