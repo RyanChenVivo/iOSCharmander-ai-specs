@@ -8,7 +8,7 @@
 
 **用途：** 在 CI 機器上提取 UITest 執行結果的精簡資料
 
-**部署位置：** `/Users/vivotekinc/Documents/CICD/scripts/extract_uitest_data.sh`
+**部署位置：** `/Users/vivotekinc/Documents/iOSTool/iOSCharmander-ai-specs/uitest-automation/ci-scripts/extract_uitest_data.sh`
 
 **執行時機：** Jenkins UITest job 完成後自動執行
 
@@ -16,7 +16,7 @@
 
 **輸出：** 精簡的分析資料夾 (5-20 MB)
 ```
-/Users/vivotekinc/Documents/CICD/UITestData/YYYY-MM-DD/
+/Users/vivotekinc/Documents/CICD/UITestAnalysisData/YYYY-MM-DD/
 ├── metadata.json              # 測試統計摘要
 ├── test_summary.json          # 測試結果摘要
 ├── test_details.json          # 詳細測試資訊（含錯誤行號）
@@ -33,11 +33,11 @@
 ```bash
 # 從本地機器執行
 scp uitest-automation/ci-scripts/extract_uitest_data.sh \
-    vivotekinc@172.18.2.83:/Users/vivotekinc/Documents/CICD/scripts/
+    vivotekinc@172.18.2.83:/Users/vivotekinc/Documents/iOSTool/iOSCharmander-ai-specs/uitest-automation/ci-scripts/
 
 # 設定執行權限
 ssh vivotekinc@172.18.2.83 \
-    "chmod +x /Users/vivotekinc/Documents/CICD/scripts/extract_uitest_data.sh"
+    "chmod +x /Users/vivotekinc/Documents/iOSTool/iOSCharmander-ai-specs/uitest-automation/ci-scripts/extract_uitest_data.sh"
 ```
 
 ### 2. 在 Jenkins 中整合
@@ -46,17 +46,7 @@ ssh vivotekinc@172.18.2.83 \
 
 ```bash
 # 測試完成後執行資料提取
-if [ -f "$XCRESULT_PATH" ]; then
-    /Users/vivotekinc/Documents/CICD/scripts/extract_uitest_data.sh "$XCRESULT_PATH"
-fi
-```
-
-或者手動執行：
-
-```bash
-# 在 CI 機器上
-/Users/vivotekinc/Documents/CICD/scripts/extract_uitest_data.sh \
-    /Users/vivotekinc/Documents/CICD/UITestReport/2025-12-05.xcresult
+/bin/bash ~/Documents/iOSTool/iOSCharmander-ai-specs/uitest-automation/ci-scripts/extract_uitest_data.sh
 ```
 
 ### 3. 驗證部署
@@ -64,19 +54,27 @@ fi
 ```bash
 # 測試腳本是否正常運作
 ssh vivotekinc@172.18.2.83 \
-    "/Users/vivotekinc/Documents/CICD/scripts/extract_uitest_data.sh --help"
+    "bash ~/Documents/iOSTool/iOSCharmander-ai-specs/uitest-automation/ci-scripts/extract_uitest_data.sh"
 ```
 
-## 資料保留策略
+## 自動清理機制
 
-建議在 CI 機器上設定定期清理：
+腳本會在每次執行時**自動清理超過 7 天的舊資料**：
 
+| 清理目標 | 路徑 | 保留天數 |
+|----------|------|----------|
+| 提取資料 | `/Users/vivotekinc/Documents/CICD/UITestAnalysisData/` | 7 天 |
+| xcresult 來源 | `/Users/vivotekinc/Documents/CICD/UITestReport/` | 7 天 |
+
+**清理邏輯：**
+- 根據資料夾/檔案名稱的日期（YYYY-MM-DD）判斷
+- 自動跳過 symlink（如 `latest`）
+- 每次執行都會顯示清理結果
+
+**修改保留天數：**
 ```bash
-# 保留最近 7 天的完整 xcresult
-find /Users/vivotekinc/Documents/CICD/UITestReport -name "*.xcresult" -mtime +7 -delete
-
-# 保留最近 30 天的提取資料
-find /Users/vivotekinc/Documents/CICD/UITestData -maxdepth 1 -type d -mtime +30 -delete
+# 在腳本開頭修改 RETENTION_DAYS 變數
+RETENTION_DAYS=7  # 改成你想要的天數
 ```
 
 ## 優勢
@@ -90,6 +88,7 @@ find /Users/vivotekinc/Documents/CICD/UITestData -maxdepth 1 -type d -mtime +30 
 | 超時風險 | 高 | 極低 |
 | 本地需求 | xcresulttool | 只需 jq |
 | 資料完整性 | 完整但龐大 | 精簡但足夠診斷 |
+| 磁碟管理 | 手動清理 | 自動清理 |
 
 **保留的診斷資訊：**
 - ✅ 測試結果 JSON（含精確錯誤行號）
@@ -116,3 +115,10 @@ find /Users/vivotekinc/Documents/CICD/UITestData -maxdepth 1 -type d -mtime +30 
 1. xcresult bundle 是否完整（測試是否正常完成）
 2. 查看腳本輸出的錯誤訊息
 3. 手動執行 `xcrun xcresulttool` 確認 xcresult 可讀取
+
+### 清理功能問題
+
+檢查：
+1. 確認日期格式正確（YYYY-MM-DD）
+2. 查看腳本輸出的 "Cutoff date" 是否正確
+3. 手動執行 `date -v-7d +%Y-%m-%d` 確認日期計算正常

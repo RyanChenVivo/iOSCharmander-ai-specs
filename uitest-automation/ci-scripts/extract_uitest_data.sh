@@ -8,8 +8,10 @@ set -e
 # 設定路徑
 TEST_DATE=$(date +%Y-%m-%d)
 XCRESULT_PATH="/Users/vivotekinc/Documents/CICD/UITestReport/${TEST_DATE}.xcresult"
+XCRESULT_DIR="/Users/vivotekinc/Documents/CICD/UITestReport"
 OUTPUT_BASE="/Users/vivotekinc/Documents/CICD/UITestAnalysisData"
 OUTPUT_DIR="${OUTPUT_BASE}/${TEST_DATE}"
+RETENTION_DAYS=7
 
 echo "========================================"
 echo "UITest Data Extraction"
@@ -109,6 +111,49 @@ else
     echo "SUCCESS: All tests passed"
 fi
 
+echo "========================================"
+
+# ========================================
+# 清理超過 7 天的舊資料
+# ========================================
+echo ""
+echo "========================================"
+echo "Cleaning old data (older than ${RETENTION_DAYS} days)"
+echo "========================================"
+
+CUTOFF_DATE=$(date -v-${RETENTION_DAYS}d +%Y-%m-%d)
+echo "Cutoff date: $CUTOFF_DATE"
+echo ""
+
+# 清理 UITestAnalysisData
+DELETED_ANALYSIS=0
+for dir in "$OUTPUT_BASE"/202*-*-*; do
+    [ -d "$dir" ] || continue
+    [ -L "$dir" ] && continue  # 跳過 symlink
+
+    dir_date=$(basename "$dir")
+    if [[ "$dir_date" < "$CUTOFF_DATE" ]]; then
+        echo "DELETE analysis: $dir_date"
+        rm -rf "$dir"
+        ((DELETED_ANALYSIS++)) || true
+    fi
+done
+
+# 清理 xcresult
+DELETED_XCRESULT=0
+for xcresult in "$XCRESULT_DIR"/202*-*-*.xcresult; do
+    [ -d "$xcresult" ] || continue
+
+    file_date=$(basename "$xcresult" .xcresult)
+    if [[ "$file_date" < "$CUTOFF_DATE" ]]; then
+        echo "DELETE xcresult: $file_date"
+        rm -rf "$xcresult"
+        ((DELETED_XCRESULT++)) || true
+    fi
+done
+
+echo ""
+echo "Cleanup done: $DELETED_ANALYSIS analysis folders, $DELETED_XCRESULT xcresults deleted"
 echo "========================================"
 
 exit 0
