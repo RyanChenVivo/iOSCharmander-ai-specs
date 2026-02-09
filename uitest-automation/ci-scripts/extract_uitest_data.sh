@@ -11,7 +11,7 @@ XCRESULT_PATH="/Users/vivotekinc/Documents/CICD/UITestReport/${TEST_DATE}.xcresu
 XCRESULT_DIR="/Users/vivotekinc/Documents/CICD/UITestReport"
 OUTPUT_BASE="/Users/vivotekinc/Documents/CICD/UITestAnalysisData"
 OUTPUT_DIR="${OUTPUT_BASE}/${TEST_DATE}"
-RETENTION_DAYS=7
+RETENTION_DAYS=30
 
 echo "========================================"
 echo "UITest Data Extraction"
@@ -114,7 +114,7 @@ fi
 echo "========================================"
 
 # ========================================
-# 清理超過 7 天的舊資料
+# 清理超過 RETENTION_DAYS 天的舊資料
 # ========================================
 echo ""
 echo "========================================"
