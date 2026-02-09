@@ -64,11 +64,13 @@ Classify based on error message characteristics:
 | Error Characteristic | Category | Default Recommendation |
 |---------------------|----------|------------------------|
 | timeout, network error | Network issue | Observe |
-| element not found | Needs visual confirmation | Investigate |
+| element not found + no recent code changes + short test duration | Timing issue | Observe |
+| element not found + recent UI changes or first occurrence | Needs visual confirmation | Investigate |
 | crash, fatal error, SIGABRT | Possible bug | Investigate |
 | credential, auth, 401, unauthorized | Environment issue | Investigate |
 | UAT cleanup failed | Test infrastructure | Restore Environment |
 | assertion failure | Possible code change | Investigate |
+| Monday morning failures, retry passes | CI/Backend slowness | Observe |
 
 ### Step 4: Provide Recommendation
 

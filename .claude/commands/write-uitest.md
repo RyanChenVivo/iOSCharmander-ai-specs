@@ -9,10 +9,9 @@ You are helping implement a new UITest for an iOS application. Follow this struc
 
 **Key Resources:**
 - Writing guide: `uitest-automation/WRITING_GUIDE.md`
-- UI element IDs: `uitest-automation/reference/ui-identifiers.md`
-- Test data: `uitest-automation/reference/test-data.md`
-- Timing patterns: `uitest-automation/knowledge/timing-guidelines.md`
-- External services: `uitest-automation/knowledge/external-dependencies.md`
+- UI element IDs: `uitest-automation/writing-resources/ui-identifiers.md`
+- Test data: `uitest-automation/writing-resources/test-data.md`
+- Timing patterns: `uitest-automation/writing-resources/timing-guidelines.md`
 
 ## Your Task
 
@@ -68,9 +67,9 @@ Implement a UITest following this workflow. **Track your progress using TodoWrit
    - Screenshot success/error states
    - Use `ui_view()` for compressed visual reference
 
-### Step 3: Check Knowledge Base (3 min)
+### Step 3: Check Writing Resources (3 min)
 
-**Review existing resources:**
+**Review existing resources in `uitest-automation/writing-resources/`:**
 
 1. **Check ui-identifiers.md:**
    - See if feature already has documented IDs
@@ -84,11 +83,7 @@ Implement a UITest following this workflow. **Track your progress using TodoWrit
 3. **Check timing-guidelines.md:**
    - Find recommended timeouts for similar operations
    - Check network operation timings
-   - Review external service wait times
-
-4. **Check external-dependencies.md:**
-   - If feature uses external services (SSO, APIs)
-   - Note known behaviors and workarounds
+   - Review wait time recommendations
 
 ### Step 4: Implement Test (20 min)
 
@@ -147,9 +142,9 @@ Implement a UITest following this workflow. **Track your progress using TodoWrit
    - Only override timeout if empirically necessary
    - Always wait before assertions
 
-### Step 5: Update Knowledge Base (5 min)
+### Step 5: Update Writing Resources (5 min)
 
-**Document your discoveries:**
+**Document your discoveries in `uitest-automation/writing-resources/`:**
 
 1. **Update ui-identifiers.md:**
    - Add table entries for newly discovered IDs:
@@ -168,11 +163,6 @@ Implement a UITest following this workflow. **Track your progress using TodoWrit
    - Record observed wait times
    - Note if default timeout was insufficient
    - Document slow operations (>10 seconds)
-
-4. **Update external-dependencies.md (if applicable):**
-   - Document external service behaviors
-   - Note any quirks or workarounds
-   - Record service response times
 
 ### Step 6: Verify and Document (5 min)
 
@@ -243,22 +233,6 @@ searchField.typeText("Office")
 // Wait for results
 let result = app.cells["floor_plan_office_1f"]
 UATHelper.waitElementToAppear(result)
-```
-
-### External Service Pattern (SSO)
-```swift
-// Trigger SSO
-app.buttons["sign_in_sso_button"].tap()
-
-// Handle optional passkey dialog
-Thread.sleep(forTimeInterval: 1.0)
-if app.alerts["Sign In"].exists {
-    app.buttons["Other Options"].tap()
-}
-
-// Wait for SSO page
-let webView = app.webViews.firstMatch
-UATHelper.waitElementToAppear(webView)
 ```
 
 ### State Verification Pattern

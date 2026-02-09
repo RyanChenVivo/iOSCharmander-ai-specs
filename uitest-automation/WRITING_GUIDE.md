@@ -51,13 +51,10 @@ Use `ios-simulator-mcp` tools to discover UI elements:
 
 Before writing tests, review existing resources:
 
-**Check reference/ (test implementation resources):**
-- `reference/ui-identifiers.md` - See if feature already has documented IDs
-- `reference/test-data.md` - Identify required test accounts, devices, floor plans
-
-**Check knowledge/ (diagnostic resources):**
-- `knowledge/timing-guidelines.md` - Find recommended timeouts for similar operations
-- `knowledge/external-dependencies.md` - If feature uses external services (SSO, APIs)
+**Check writing-resources/:**
+- `writing-resources/ui-identifiers.md` - See if feature already has documented IDs
+- `writing-resources/test-data.md` - Identify required test accounts, devices, floor plans
+- `writing-resources/timing-guidelines.md` - Find recommended timeouts for similar operations
 
 ### Step 4: Implement Test (20 min)
 
@@ -118,33 +115,28 @@ final class {Feature}UITest: XCTestCase {
 
 Document your discoveries for future tests:
 
-**Update reference/ui-identifiers.md:**
+**Update writing-resources/ui-identifiers.md:**
 ```markdown
 | Element | Identifier | Type | Usage |
 |---------|-----------|------|-------|
 | Feature button | `feature_button` | Button | Opens feature screen |
 ```
 
-**Update reference/test-data.md:**
+**Update writing-resources/test-data.md:**
 - Document test account requirements
 - Add required test devices/data
 - Note any UAT environment setup needed
 
-**Update knowledge/timing-guidelines.md (if needed):**
+**Update writing-resources/timing-guidelines.md (if needed):**
 - Record observed wait times
 - Note if default timeout was insufficient
 - Document slow operations (>10 seconds)
 
-**Update knowledge/external-dependencies.md (if applicable):**
-- Document external service behaviors
-- Note any quirks or workarounds
-- Record service response times
-
 ---
 
-## Knowledge Base and Reference
+## Writing Resources
 
-### reference/ - Test Implementation Use
+### writing-resources/ - Test Implementation Resources
 
 For writing new tests:
 
@@ -152,21 +144,13 @@ For writing new tests:
 |------|----------|----------|
 | `ui-identifiers.md` | Accessibility IDs of UI elements | Writing tests, locating elements |
 | `test-data.md` | Test accounts, devices, floor plans | Setting up test prerequisites |
-
-### knowledge/ - Diagnostic Reference
-
-For understanding test requirements:
-
-| File | Contains | Used For |
-|------|----------|----------|
-| `external-dependencies.md` | External service behaviors | Understanding service dependencies |
 | `timing-guidelines.md` | Wait times and timeouts | Setting appropriate timeouts |
 
 **Why Separate?**
 
 **`WRITING_GUIDE.md`** provides **principles and patterns** (how to write tests, naming conventions, architecture)
 
-**`reference/`** provides **concrete data** (what IDs exist, what data is available)
+**`writing-resources/`** provides **concrete data** (what IDs exist, what data is available, timing recommendations)
 
 This separation allows:
 - Conventions to remain stable
@@ -180,14 +164,14 @@ This separation allows:
 
 ### For Writing Tests
 
-1. **Always check reference/ first** - Avoid duplicating discovery work
+1. **Always check writing-resources/ first** - Avoid duplicating discovery work
 2. **Use simulator-mcp** - Verify IDs exist before writing tests
-3. **Document discoveries** - Update reference/ when you find new IDs
+3. **Document discoveries** - Update writing-resources/ when you find new IDs
 4. **Follow this guide** - Maintain consistency with established patterns
 
-### For Maintaining Knowledge Base
+### For Maintaining Writing Resources
 
-1. **Keep reference/ current** - Update when UAT environment changes
+1. **Keep writing-resources/ current** - Update when UAT environment changes
 2. **Remove outdated info** - Clean up obsolete IDs or test data
 3. **Add context** - Explain why certain timeouts or patterns exist
 4. **Cross-reference** - Link to related OpenSpec changes when relevant
@@ -217,22 +201,6 @@ searchField.typeText("Office")
 // Wait for results
 let result = app.cells["floor_plan_office_1f"]
 UATHelper.waitElementToAppear(result)
-```
-
-### External Service Pattern (SSO)
-```swift
-// Trigger SSO
-app.buttons["sign_in_sso_button"].tap()
-
-// Handle optional passkey dialog
-Thread.sleep(forTimeInterval: 1.0)
-if app.alerts["Sign In"].exists {
-    app.buttons["Other Options"].tap()
-}
-
-// Wait for SSO page
-let webView = app.webViews.firstMatch
-UATHelper.waitElementToAppear(webView)
 ```
 
 ### State Verification Pattern

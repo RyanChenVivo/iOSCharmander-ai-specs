@@ -123,6 +123,34 @@ Record known failure patterns to improve triage decision consistency.
 
 ---
 
+## timing-element-not-ready
+
+**Trigger Conditions:**
+- Error: "element not found" but no UI changes in recent commits
+- Test duration shorter than expected (failed quickly)
+- Same test passes on retry without code changes
+- Failures cluster on Monday mornings or CI heavy load periods
+- Error occurs right after screen navigation or data loading
+
+**Recommended Action:** Observe
+
+**Reason:** Element may not be ready when test tries to interact. Often caused by:
+- CI machine slower than local environment
+- Backend response slower than usual (Monday mornings)
+- Network latency variations
+- Resource contention during parallel test runs
+
+**Historical Cases:**
+- Typically self-resolves within 24 hours
+- If recurring 3+ times, may need timeout adjustment in test code
+
+**Notes:**
+- Check if error occurs at navigation/loading boundaries
+- Compare test duration with normal runs
+- If persists, escalate to Fix (add proper wait or increase timeout)
+
+---
+
 ## message-user-feedback
 
 **Trigger Conditions:**
