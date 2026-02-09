@@ -25,7 +25,6 @@
 ```
 uitest-automation/
 ├── README.md                       # 本檔案 - 快速開始與使用指南
-├── UITEST_AGENT.md                 # 故障分析工作流程主入口
 ├── WRITING_GUIDE.md                # UITest 編寫指南
 ├── SETUP.md                        # 環境設定指南
 ├── download_test_data.sh          # 輕量下載腳本（僅下載 JSON）
@@ -42,7 +41,6 @@ uitest-automation/
 │
 ├── knowledge/                      # 知識庫（AI 分析用）
 │   ├── patterns.md                 # 已知故障模式
-│   ├── decision-tree.md            # 決策邏輯
 │   ├── external-dependencies.md    # 外部依賴行為記錄
 │   └── timing-guidelines.md        # 等待時間指南
 │
@@ -157,7 +155,6 @@ nano config.sh
 
 ## 📖 詳細文件
 
-- **[UITEST_AGENT.md](./UITEST_AGENT.md)** - 故障分析工作流程（Phase 1-4）
 - **[WRITING_GUIDE.md](./WRITING_GUIDE.md)** - UITest 編寫指南
 - **[SETUP.md](./SETUP.md)** - 環境設定指南
 - **[ci-scripts/README.md](./ci-scripts/README.md)** - CI 端腳本部署說明（CI 管理員）
@@ -167,7 +164,6 @@ nano config.sh
 
 **Knowledge Base（AI 分析用）:**
 - **[knowledge/patterns.md](./knowledge/patterns.md)** - 已知故障模式庫
-- **[knowledge/decision-tree.md](./knowledge/decision-tree.md)** - 決策邏輯樹
 - **[knowledge/external-dependencies.md](./knowledge/external-dependencies.md)** - 外部服務行為記錄（如 Microsoft SSO）
 - **[knowledge/timing-guidelines.md](./knowledge/timing-guidelines.md)** - 等待時間與 timeout 指南
 

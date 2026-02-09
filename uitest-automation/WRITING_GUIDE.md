@@ -287,10 +287,9 @@ openspec/changes/{feature}/
 
 ## Related Documentation
 
-- **`UITEST_AGENT.md`** - UITest failure analysis workflows
 - **`README.md`** - Quick start and usage guide
 - **`SETUP.md`** - Environment setup instructions
 
 ---
 
-**For test failure analysis, see:** `UITEST_AGENT.md` and use `/analyze-uitest` command.
+**For test failure analysis, use:** `/analyze-uitest` command.
