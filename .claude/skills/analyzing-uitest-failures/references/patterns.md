@@ -2,6 +2,19 @@
 
 Record known failure patterns to improve triage decision consistency.
 
+## Quick Reference
+
+| Pattern ID | Primary Trigger | Action | Auto-Resolve? |
+|------------|-----------------|--------|---------------|
+| network-timeout | "timeout", "network error" | Observe | Usually yes |
+| sso-new-dialog | SSO test + element not found | Investigate | No |
+| credential-expired | "401", "unauthorized" | Restore | No |
+| sso-microsoft-blocking | 100% SSO failure rate | Investigate | No |
+| uat-cleanup-failure | UATButton execute failed | Restore | No |
+| environment-state-residual | Setup stage unexpected state | Restore | No |
+| timing-element-not-ready | Quick failure + no UI changes | Observe | Usually yes |
+| message-user-feedback | UserFeedback button disabled | Observe | Usually yes |
+
 ---
 
 ## network-timeout

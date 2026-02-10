@@ -1,10 +1,9 @@
 ---
 name: analyzing-uitest-failures
 description: >
-  Analyze UITest failures and provide handling recommendations. Use when user
-  mentions CI failures, UITest errors, or test failures. Determines whether
-  further investigation is needed based on error messages and history,
-  and recommends appropriate actions (observe/fix/investigate/restore).
+  Use when user mentions CI failures, UITest errors, test failures,
+  flaky tests, or xcresult analysis. Also triggers on error keywords:
+  "element not found", "timeout", "401", "unauthorized", "SIGABRT".
 ---
 
 # UITest Failure Analysis
@@ -37,11 +36,15 @@ For each failure in the CI data, determine a recommendation:
 
 **1a. Check Known Patterns**
 
-Query [patterns.md](references/patterns.md) for matching patterns.
+Query [patterns.md](references/patterns.md). Use **first match** by this priority:
 
-- Test name matches pattern regex
-- Error message contains pattern trigger text
-- If matched → Use pattern's recommended action
+1. **Exact test name** — Pattern specifies exact test name
+2. **Error message keyword** — Error contains trigger text
+3. **Test name regex + error combo** — Both conditions match
+
+**Multiple matches?** Use the pattern with more specific conditions.
+
+If matched → Use pattern's recommended action and skip to Step 2 (history check).
 
 **1b. Check History**
 
@@ -131,6 +134,57 @@ D) 產生報告 - 整合所有分析結果
 - **Investigate (unrelated)** → `investigating-uitest` skill (one by one)
 - **Restore** → `uitest-actions` skill (restore action)
 - **Report** → `reporting-uitest` skill
+
+### Step 5: Loop or Complete
+
+After processing user's selection:
+
+```
+┌─────────────────────────────────────┐
+│ More unprocessed groups remaining?  │
+└─────────────────────────────────────┘
+          │
+    ┌─────┴─────┐
+    ▼           ▼
+   Yes          No
+    │           │
+    ▼           ▼
+ Return to    Ask: "分析完成，
+ Step 3       需要產生報告嗎？"
+ (show summary
+  with ✓ marks)
+```
+
+**Updated summary format:**
+```
+✓ Observe 組 - 已記錄 3 筆觀察
+B) Investigate: SSO 群組 - 待分析
+C) Restore 組 - 待處理
+```
+
+---
+
+## Learning Loop
+
+Analysis results should feed back into the system:
+
+### Escalation Thresholds
+
+| Status | Trigger | Action |
+|--------|---------|--------|
+| Under Observation | 3+ consecutive failures | Escalate to Investigate |
+| Under Observation | Same error in 3+ different tests | Escalate to Investigate |
+| Investigated | Root cause confirmed | Create Fix via OpenSpec |
+
+### After Fix Deployed
+
+When fix is verified working:
+
+1. **Update patterns.md** — Add or update pattern with:
+   - New trigger conditions (if discovered)
+   - Historical case with date and archive link
+2. **Close observation** — Remove from `active.json` via `uitest-actions`
+3. **Consider automation** — Should this become auto-handled?
 
 ---
 
