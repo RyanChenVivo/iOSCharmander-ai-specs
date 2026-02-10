@@ -1,14 +1,28 @@
 ---
 name: uitest-actions
 description: >
-  Execute UITest analysis follow-up actions. Includes: observation recording
-  (observe), prepare fix (fix), restore environment (restore), and record
-  learnings (learn). Executes corresponding flow based on analysis conclusion.
+  Use after analysis conclusion is determined. Triggers on: ready to
+  record observation, ready to create fix proposal, need environment
+  restoration, or want to record new pattern to knowledge base.
 ---
 
 # UITest Actions
 
 Execute follow-up actions after UITest failure analysis.
+
+## Entry Context
+
+**When invoked from `analyzing-uitest-failures` or `investigating-uitest`:**
+
+| Field | Description | Required |
+|-------|-------------|----------|
+| test_names | Tests to process | Yes |
+| error_messages | Error for each test | Yes |
+| action_type | observe / fix / restore | Yes |
+| batch | Whether to process as batch | No |
+| root_cause | From investigation (if available) | No |
+
+**If context missing:** Ask user which action and which test(s).
 
 ## Available Actions
 
@@ -119,13 +133,37 @@ Prepare to fix the issue via OpenSpec proposal.
 
 ### Steps
 
-1. **Create OpenSpec proposal**
-   - Use `/openspec:proposal` or `/opsx:new`
-   - Include analysis findings
-   - Reference screenshots if available
+1. **Gather context for proposal**
+   - Test name and error message
+   - Root cause from investigation (if available)
+   - Affected code location (from test code reading in Step 0)
+   - Screenshot evidence path (if downloaded)
 
-2. **After fix complete**
-   - Check if should record learning (see Learn section)
+2. **Prepare proposal content**
+
+   **Problem description:**
+   - Which test(s) failed
+   - What the error was
+   - When it started occurring (if known)
+
+   **Root cause analysis:**
+   - What investigation revealed
+   - Screenshot evidence summary
+   - Why this is happening
+
+   **Proposed fix approach:**
+   - What code changes are needed
+   - Which files will be modified
+   - Any new handlers or logic required
+
+3. **Create OpenSpec proposal**
+   - Use `/opsx:new` with gathered context
+   - Reference observation ID if was under observation
+   - Link to investigation summary if available
+
+4. **Update tracking**
+   - If was under observation → close observation in `active.json`
+   - Record proposal creation in return summary
 
 ### After Completion
 
@@ -241,3 +279,18 @@ Is this a recurring issue (seen in observations)?
 | External service change (programmable) | Fix |
 | External service blocking (non-programmable) | Report (via reporting-uitest) |
 | New failure type discovered | Learn (after other action) |
+
+---
+
+## Return Protocol
+
+**Report back to `analyzing-uitest-failures`:**
+
+| Action | Return Fields |
+|--------|---------------|
+| Observe | processed_tests, conclusion: "Observe", summary: "已記錄 N 筆觀察" |
+| Fix | processed_tests, conclusion: "Fix", summary: "已建立 OpenSpec proposal" |
+| Restore | processed_tests, conclusion: "Restore", summary: "環境已修復" / "需手動處理" |
+| Learn | processed_tests, conclusion: "Learn", summary: "已新增 pattern: <id>" |
+
+**Example:** `✓ Observe 組 - 已記錄 3 筆觀察 (obs-20250210-batch-001)`

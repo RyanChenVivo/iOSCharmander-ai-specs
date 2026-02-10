@@ -1,9 +1,9 @@
 ---
 name: analyzing-uitest-failures
 description: >
-  Use when user mentions CI failures, UITest errors, test failures,
-  flaky tests, or xcresult analysis. Also triggers on error keywords:
-  "element not found", "timeout", "401", "unauthorized", "SIGABRT".
+  Use when CI reports UITest failures, or user mentions flaky tests,
+  xcresult, test errors. Triggers: "element not found", "timeout",
+  "401", "unauthorized", "SIGABRT".
 ---
 
 # UITest Failure Analysis
@@ -24,7 +24,13 @@ If no data or user wants refresh, guide them to use `/analyze-uitest` command wh
 
 3. Check failure count:
    - **No failures** → Congratulate: "🎉 所有測試通過！沒有需要分析的失敗。"
-   - **Has failures** → Proceed to Analysis Flow
+   - **Has failures** → Proceed to step 4
+
+4. Check existing report:
+   - If `triage_report_YYYY-MM-DD.md` exists for today's data date
+   - Ask: "今天已有分析報告，要繼續處理未完成項目嗎？"
+   - **Yes** → Read report, identify items with ⏳ status, continue from Step 4
+   - **No** → Start fresh analysis from Step 1
 
 ---
 
@@ -127,33 +133,37 @@ D) 產生報告 - 整合所有分析結果
 | Investigate | Individual | Need screenshots to confirm each cause |
 | Fix | Individual | Each may need different fix |
 
-**Route to handler:**
+**Route to handler with context:**
 
-- **Observe** → `uitest-actions` skill (batch observe mode)
-- **Investigate (same-source)** → `investigating-uitest` skill (analyze together)
-- **Investigate (unrelated)** → `investigating-uitest` skill (one by one)
-- **Restore** → `uitest-actions` skill (restore action)
+| Target Skill | Context to Pass |
+|--------------|-----------------|
+| `investigating-uitest` | test_names, error_messages, same_source flag, pattern_id |
+| `uitest-actions` | test_names, error_messages, action_type, batch flag |
+| `reporting-uitest` | all_analysis_results, conclusions_so_far, test_date |
+
+**Routing:**
+
+- **Observe** → `uitest-actions` skill (action_type: observe, batch: true)
+- **Investigate (same-source)** → `investigating-uitest` skill (same_source: true)
+- **Investigate (unrelated)** → `investigating-uitest` skill (same_source: false)
+- **Restore** → `uitest-actions` skill (action_type: restore)
 - **Report** → `reporting-uitest` skill
 
 ### Step 5: Loop or Complete
 
 After processing user's selection:
 
-```
-┌─────────────────────────────────────┐
-│ More unprocessed groups remaining?  │
-└─────────────────────────────────────┘
-          │
-    ┌─────┴─────┐
-    ▼           ▼
-   Yes          No
-    │           │
-    ▼           ▼
- Return to    Ask: "分析完成，
- Step 3       需要產生報告嗎？"
- (show summary
-  with ✓ marks)
-```
+**Receiving results from sub-skills:**
+
+Sub-skills return structured results:
+
+| Field | Description |
+|-------|-------------|
+| processed_tests | Test names that were handled |
+| conclusion | Final determination (Fix/Restore/Observe/Report) |
+| summary | One-line result description |
+
+Update group status: `✓ <group> - <conclusion> (<summary>)`
 
 **Updated summary format:**
 ```
@@ -161,6 +171,13 @@ After processing user's selection:
 B) Investigate: SSO 群組 - 待分析
 C) Restore 組 - 待處理
 ```
+
+**Loop decision:**
+- **More unprocessed groups?** → Return to Step 3 (show summary with ✓ marks)
+- **All groups processed?** → Proceed to report generation
+- **User wants to stop early?** → Generate report with current progress (✓ = done, ⏳ = pending)
+
+**Report as checkpoint:** When session ends or user stops, always generate report via `reporting-uitest`. The report serves as checkpoint - next session can resume by reading the report and continuing unfinished items.
 
 ---
 

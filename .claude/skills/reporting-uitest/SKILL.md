@@ -1,9 +1,9 @@
 ---
 name: reporting-uitest
 description: >
-  Generate UITest failure analysis report. Use when formal report is needed
-  for management or team. Report is in Traditional Chinese, includes summary,
-  detailed analysis, risk assessment, and recommended actions.
+  Use when analysis complete and formal report needed for management,
+  stakeholders, or team decision. Also use when external escalation
+  required (IT, vendor) or non-programmable issues need documentation.
 ---
 
 # UITest Analysis Report Generation
@@ -16,6 +16,47 @@ Generate comprehensive Traditional Chinese reports for management review.
 - Need team/stakeholder decision
 - Want formal documentation of analysis
 - Analysis is complete and ready to report
+
+## Entry Context
+
+**When invoked from `analyzing-uitest-failures`:**
+
+| Field | Description | Required |
+|-------|-------------|----------|
+| test_date | Date of test run | Yes |
+| all_failures | All failure test names and errors | Yes |
+| analysis_results | Conclusions from analysis/investigation | Yes |
+| investigation_summaries | Root cause findings (if investigated) | No |
+
+**Expected format example:**
+
+```json
+{
+  "test_date": "2025-02-10",
+  "all_failures": [
+    {"test_name": "SSO_Login", "error": "element not found: Stay signed in"},
+    {"test_name": "SSO_Logout", "error": "timeout waiting for element"}
+  ],
+  "analysis_results": [
+    {
+      "group": "SSO 群組",
+      "tests": ["SSO_Login", "SSO_Logout"],
+      "conclusion": "Fix",
+      "status": "✓",
+      "summary": "外部服務變更：Microsoft passkey 頁面"
+    },
+    {
+      "group": "Network 組",
+      "tests": ["API_Timeout_Test"],
+      "conclusion": "Observe",
+      "status": "⏳",
+      "summary": "待處理"
+    }
+  ]
+}
+```
+
+**If context missing:** Gather from `$HOME/Downloads/UITestAnalysis/latest/` and ask user for any investigation conclusions.
 
 ## Report Format
 
@@ -109,3 +150,16 @@ Guide user to:
 1. Share with stakeholders
 2. Get decision on handling approach
 3. Execute based on decision using `uitest-actions` skill
+
+## Return Protocol
+
+**Report back to `analyzing-uitest-failures`:**
+
+| Field | Value |
+|-------|-------|
+| processed_tests | All tests included in report |
+| conclusion | Report |
+| summary | Report generated: <filename> |
+| report_path | Full path to generated report |
+
+**Example:** `✓ Report - 已產生報告 (triage_report_2025-02-10.md)`

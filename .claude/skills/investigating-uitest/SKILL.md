@@ -1,9 +1,9 @@
 ---
 name: investigating-uitest
 description: >
-  Visual analysis of UITest failure screenshots. Use when screenshots need
-  to be downloaded for detailed analysis. Determines failure cause based on
-  screenshots: external service changes, code changes, or environment issues.
+  Use when analyzing-uitest-failures recommends "Investigate", or when
+  root cause unclear from error messages. Triggers on: need screenshot
+  analysis, "element not found" with unclear cause, visual confirmation needed.
 ---
 
 # UITest Visual Analysis
@@ -16,6 +16,21 @@ Perform visual analysis of UITest failure screenshots to determine root cause.
 - Need visual confirmation of UI state
 - "Element not found" errors that could have multiple causes
 - Recommended by `analyzing-uitest-failures` skill
+
+## Entry Context
+
+**When invoked from `analyzing-uitest-failures`:**
+
+| Field | Description | Required |
+|-------|-------------|----------|
+| test_names | Tests to investigate | Yes |
+| error_messages | Error for each test | Yes |
+| same_source | Whether tests likely share root cause | No |
+| pattern_id | Matched pattern from analysis (if any) | No |
+
+**If context missing:** Ask user which test(s) to investigate.
+
+**Same-source group:** Analyze together, look for common root cause first.
 
 ## Download Screenshots
 
@@ -69,11 +84,23 @@ Key attachment types in manifest:
 
 Read screenshots with Read tool, look for UI matching test context.
 
-## Phase 2 Decision Flow
+## Red Flags - STOP
 
-### Step 0: Understand the Test (Do This First!)
+❌ Analyzing screenshots without reading test code first
+❌ Guessing what the test does instead of confirming from source
+❌ Skipping Step 0 because "the error message is clear enough"
 
-Before looking at screenshots, read the test source code:
+**If you catch yourself doing any of these → STOP → Go back to Step 0**
+
+---
+
+## Decision Flow
+
+### Step 0: Understand the Test (MANDATORY)
+
+**You MUST complete this step before looking at any screenshots.**
+
+Read the test source code:
 
 1. **Find the test file:**
    ```bash
@@ -149,6 +176,19 @@ If screen is correct but element missing:
 
 → **Recommendation: Investigate further** (may need timing fix or state setup)
 
+**Case A4: Element exists but not ready yet (Timing)**
+- Screenshot shows loading indicator nearby
+- Element appears but test ran too fast
+- UI hierarchy shows element with incomplete state
+
+**Check:**
+- Is there a loading spinner visible?
+- Is screenshot captured very early in test flow?
+- Does nearby content appear partially loaded?
+
+→ **Recommendation: Observe** (likely timing, may self-resolve)
+→ If recurring 3+ times → **Fix** (add proper wait condition)
+
 ### Step 3: Confirm Root Cause
 
 Summarize findings with:
@@ -165,15 +205,46 @@ Summarize findings with:
    - Specific action to take
    - Which skill/action to use next
 
-## After Analysis
+## Output Format
 
-Based on findings, suggest next steps:
+After analysis, provide structured summary:
 
-- **External service change** → `uitest-actions` skill (fix) → Create OpenSpec proposal
-- **Code change needed** → `uitest-actions` skill (fix) → Create OpenSpec proposal
-- **Environment issue** → `uitest-actions` skill (restore)
-- **Need management decision** → `reporting-uitest` skill
-- **Transient issue confirmed** → `uitest-actions` skill (observe)
+```
+🔍 Investigation Result: <test_name>
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📸 Screenshot Analysis:
+   • Screen: <actual screen observed>
+   • Expected: <what test expected>
+   • Unexpected element: <if any>
+
+🎯 Root Cause:
+   <One sentence determination>
+
+📌 Evidence:
+   • Screenshot: <filename>
+   • Key observation: <what confirmed the cause>
+
+✅ Recommendation: <Fix / Restore / Observe>
+   → Next: <specific action>
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+## Return Protocol
+
+**IMPORTANT:** Always return to `analyzing-uitest-failures` after investigation. Do NOT route directly to other skills.
+
+The orchestrator (`analyzing-uitest-failures`) will decide the next action based on your conclusion.
+
+**Report back to `analyzing-uitest-failures`:**
+
+| Field | Value |
+|-------|-------|
+| processed_tests | Test names analyzed |
+| conclusion | Fix / Restore / Observe / Report |
+| summary | One-line root cause description |
+
+**Example:** `✓ SSO 群組 - Fix (外部服務變更：Microsoft passkey 頁面)`
 
 ## Common Screenshot Patterns
 
