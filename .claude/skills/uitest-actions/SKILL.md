@@ -50,6 +50,62 @@ Record issue to observations and wait to see if it recurs.
 
 Check if should ask about recording learning (see Learn section).
 
+### Batch Mode
+
+When multiple tests need to be observed together (from Phase 0 multi-failure handling):
+
+**Entry:** User selects "批次記錄觀察" from summary options
+
+**Steps:**
+
+1. **Generate batch ID**
+   - Format: `obs-YYYYMMDD-batch-NNN`
+   - Example: `obs-20250210-batch-001`
+   - NNN increments based on existing batches for that date
+
+2. **Record all tests in one operation**
+   - Each test gets unique id: `obs-YYYYMMDD-NNN`
+   - All tests share the same `batch_id`
+   - All tests share the same `expires_at` (observation period)
+
+3. **Write to active.json**
+   ```json
+   {
+     "observations": [
+       {
+         "id": "obs-20250210-001",
+         "batch_id": "obs-20250210-batch-001",
+         "test_name": "SSO_Login",
+         "error_message": "timeout on Stay signed in",
+         "observed_at": "2025-02-10",
+         "expires_at": "2025-02-12"
+       },
+       {
+         "id": "obs-20250210-002",
+         "batch_id": "obs-20250210-batch-001",
+         "test_name": "SSO_Logout",
+         "error_message": "element not found",
+         "observed_at": "2025-02-10",
+         "expires_at": "2025-02-12"
+       }
+     ]
+   }
+   ```
+
+4. **Confirm to user**
+   ```
+   已批次記錄 N 個測試的觀察
+   批次 ID: obs-YYYYMMDD-batch-NNN
+   觀察期限: YYYY-MM-DD
+
+   記錄的測試:
+   • test_name_1
+   • test_name_2
+   • ...
+   ```
+
+**Note:** Batch mode skips the "record learning" prompt since batch observations are typically for similar/related issues.
+
 ---
 
 ## Fix Action

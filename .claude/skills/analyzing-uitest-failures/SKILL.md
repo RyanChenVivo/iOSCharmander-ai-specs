@@ -23,80 +23,116 @@ Before analysis, verify data availability:
 
 If no data or user wants refresh, guide them to use `/analyze-uitest` command which handles CI data download.
 
-## Phase 1 Decision Flow
+3. Check failure count:
+   - **No failures** → Congratulate: "🎉 所有測試通過！沒有需要分析的失敗。"
+   - **Has failures** → Proceed to Analysis Flow
 
-### Step 1: Check Known Patterns
+---
 
-Query [patterns.md](references/patterns.md) for matching known patterns.
+## Analysis Flow
 
-**Pattern matching criteria:**
+### Step 1: Analyze Each Failure
+
+For each failure in the CI data, determine a recommendation:
+
+**1a. Check Known Patterns**
+
+Query [patterns.md](references/patterns.md) for matching patterns.
+
 - Test name matches pattern regex
 - Error message contains pattern trigger text
-- Additional context matches (URL, test category)
+- If matched → Use pattern's recommended action
 
-**If matched:**
-- Use the pattern's recommended action
-- Explain why it matched and cite historical cases
-- Skip to Step 4 with pattern's recommendation
-
-**If not matched:**
-- Proceed to Step 2
-
-### Step 2: Check History
+**1b. Check History**
 
 Query `uitest-automation/observations/active.json`:
-- Is the same test currently under observation?
-- What were previous observation results?
-- When did observation period start?
 
-**If recurring issue (seen before in observations):**
-- Escalate handling: observe → investigate or fix
-- Note: "This issue was previously observed on [date]. Previous judgment may need revision."
-- Flag for potential learning opportunity
+- If test is under observation and failed again → Escalate (observe → investigate/fix)
+- If first occurrence → Continue to classification
 
-**If first occurrence:**
-- Continue to Step 3
+**1c. Classify by Error Characteristics**
 
-### Step 3: Initial Classification
+| Error Characteristic | Recommendation |
+|---------------------|----------------|
+| timeout, network error | Observe |
+| element not found + short duration | Observe |
+| element not found + first occurrence | Investigate |
+| crash, fatal error, SIGABRT | Investigate |
+| credential, auth, 401 | Investigate |
+| UAT cleanup failed | Restore |
+| assertion failure | Investigate |
 
-Classify based on error message characteristics:
+### Step 2: Group Results
 
-| Error Characteristic | Category | Default Recommendation |
-|---------------------|----------|------------------------|
-| timeout, network error | Network issue | Observe |
-| element not found + no recent code changes + short test duration | Timing issue | Observe |
-| element not found + recent UI changes or first occurrence | Needs visual confirmation | Investigate |
-| crash, fatal error, SIGABRT | Possible bug | Investigate |
-| credential, auth, 401, unauthorized | Environment issue | Investigate |
-| UAT cleanup failed | Test infrastructure | Restore Environment |
-| assertion failure | Possible code change | Investigate |
-| Monday morning failures, retry passes | CI/Backend slowness | Observe |
+Group failures by recommended action, then identify same-source failures within each group.
 
-### Step 4: Provide Recommendation
+**Same-Source Detection (priority order):**
+1. **Same Pattern ID** — Both match same pattern in patterns.md
+2. **Same Test Name Prefix** — e.g., `SSO_Login` and `SSO_Logout` → "SSO 群組"
 
-Present options based on analysis:
+### Step 3: Output Summary
+
+Display grouped summary:
 
 ```
-Based on the analysis, here are the recommended options:
+📊 UITest 失敗分析結果
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+日期：YYYY-MM-DD
+總失敗數：N 個
+資料來源：CI Build #XXX
 
-A) Fix via OpenSpec — For severe or recurring issues that need code changes
-B) Investigate — Download screenshots for visual analysis
-C) Observe — Record and wait (for transient/first occurrence issues)
-D) Restore Environment — For environment/account issues
-E) Generate Report — For management decision or formal documentation
+🟡 建議 Observe (N 個)
+   <same-source reasoning>
+   ┌────────────────────────────────
+   │ • <test_name>
+   │   錯誤：<brief error message>
+   └────────────────────────────────
+   → 可批次記錄觀察
+
+🔴 建議 Investigate (N 個)
+
+   【<group_name> 群組】N 個 — <same-source reasoning>
+   ┌────────────────────────────────
+   │ • <test_name>
+   │   錯誤：<brief error message>
+   └────────────────────────────────
+   → 建議一起下載截圖分析
+
+🟠 建議 Restore (N 個)
+   ┌────────────────────────────────
+   │ • <test_name>
+   │   錯誤：<brief error message>
+   └────────────────────────────────
+   → 環境問題，需手動處理
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+請選擇要處理的項目：
+A) Observe 組 - 批次記錄觀察
+B) Investigate: <group_name> - 分析
+C) Restore 組 - 環境修復
+D) 產生報告 - 整合所有分析結果
 ```
 
-Highlight the recommended option based on analysis results.
+### Step 4: Process User Selection
 
-## After User Selection
+**Processing Strategy:**
 
-Based on user's choice, the corresponding skill will be invoked:
+| Action | Strategy | Reason |
+|--------|----------|--------|
+| Observe | Batch | Low cost, just recording |
+| Restore | Batch | Usually same environment issue |
+| Investigate | Individual | Need screenshots to confirm each cause |
+| Fix | Individual | Each may need different fix |
 
-- **A or Fix** → `uitest-actions` skill (fix action)
-- **B or Investigate** → `investigating-uitest` skill
-- **C or Observe** → `uitest-actions` skill (observe action)
-- **D or Restore** → `uitest-actions` skill (restore action)
-- **E or Report** → `reporting-uitest` skill
+**Route to handler:**
+
+- **Observe** → `uitest-actions` skill (batch observe mode)
+- **Investigate (same-source)** → `investigating-uitest` skill (analyze together)
+- **Investigate (unrelated)** → `investigating-uitest` skill (one by one)
+- **Restore** → `uitest-actions` skill (restore action)
+- **Report** → `reporting-uitest` skill
+
+---
 
 ## Related References
 

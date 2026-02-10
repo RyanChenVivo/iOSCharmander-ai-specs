@@ -32,9 +32,18 @@ After downloading data, use the `analyzing-uitest-failures` skill to analyze the
 
 The skill will:
 - Check data freshness (today's data used directly, older data prompts user)
+- **Handle multiple failures** with grouped summary view (Phase 0)
 - Match against known patterns in the pattern library
 - Check observation history for recurring issues
 - Provide recommendations (Observe/Investigate/Fix/Restore/Report)
+
+### Multi-Failure Handling
+
+When multiple tests fail, the skill provides:
+- **Grouped summary** — Failures organized by recommended action
+- **Same-source detection** — Identifies potentially related failures
+- **Batch processing** — Low-risk actions (Observe) can be processed together
+- **Flexible options** — Choose to process groups or individual tests
 
 Based on the recommendation, additional skills are available:
 - `investigating-uitest` - Visual analysis with screenshots
