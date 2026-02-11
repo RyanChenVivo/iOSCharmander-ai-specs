@@ -8,31 +8,21 @@ Analyze UITest failures from CI using a skill-based approach with dynamic contex
 
 ## What This Command Does
 
-1. Downloads test data from CI (lightweight JSON files)
-2. Invokes the `analyzing-uitest-failures` skill for analysis
-3. Follow-up actions are handled by additional skills as needed
+Invokes the `analyzing-uitest-failures` skill, which automatically:
+
+1. **Downloads test data from CI** (lightweight JSON files to `$HOME/Downloads/UITestAnalysis/latest/`)
+2. **Analyzes failures** against known patterns and history
+3. **Provides recommendations** (Observe/Investigate/Fix/Restore/Report)
+4. **Routes to appropriate follow-up skills** as needed
 
 ---
 
-## Download CI Data
+## How It Works
 
-Run the download script:
-
-```bash
-uitest-automation/scripts/download_uitest_data.sh
-```
-
-This downloads JSON test data (~100KB) to `$HOME/Downloads/UITestAnalysis/latest/`.
-
----
-
-## Start Analysis
-
-After downloading data, use the `analyzing-uitest-failures` skill to analyze the failures.
-
-The skill will:
+The `analyzing-uitest-failures` skill will:
+- **Auto-download test data** if missing or outdated
 - Check data freshness (today's data used directly, older data prompts user)
-- **Handle multiple failures** with grouped summary view (Phase 0)
+- **Handle multiple failures** with grouped summary view
 - Match against known patterns in the pattern library
 - Check observation history for recurring issues
 - Provide recommendations (Observe/Investigate/Fix/Restore/Report)

@@ -18,9 +18,22 @@ Before analysis, verify data availability:
 2. Check data date:
    - **Today** → Use directly
    - **Past date** → Ask: "Data is from YYYY-MM-DD. Download latest data? Or use this?"
-   - **Not exist** → Ask: "No data found. Download now?"
+   - **Not exist** → Proceed to auto-download
 
-If no data or user wants refresh, guide them to use `/analyze-uitest` command which handles CI data download.
+**Auto-download when needed:**
+
+If no data exists or user requests refresh:
+
+1. Inform user: "⬇️ 下載最新測試資料..."
+2. Verify script exists: `uitest-automation/scripts/download_uitest_data.sh`
+3. Execute download:
+   ```bash
+   bash uitest-automation/scripts/download_uitest_data.sh
+   ```
+4. Check download result:
+   - **Success** → Inform: "✅ 已下載最新測試資料 (位於 $HOME/Downloads/UITestAnalysis/latest/)"
+   - **Failed** → Error: "❌ 自動下載失敗。請手動執行：`bash uitest-automation/scripts/download_uitest_data.sh`" and stop analysis
+5. Verify data files present before proceeding
 
 3. Check failure count:
    - **No failures** → Congratulate: "🎉 所有測試通過！沒有需要分析的失敗。"
