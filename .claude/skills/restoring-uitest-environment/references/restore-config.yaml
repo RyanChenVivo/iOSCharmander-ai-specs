@@ -1,0 +1,33 @@
+# UITest Environment Restore Configuration
+# Start small: Only verified restore actions and test cases
+
+# Available restore actions
+restore_actions:
+  deleteOrganization:
+    description: Delete all organizations from test account
+    test_method: RestoreUITest/test_restore_deleteOrganization
+    execution_type: uitest
+    uat_helper: UATHelper.deleteTestOrganization
+
+# Test-specific overrides
+test_overrides:
+  # NewToVortex test series - all use newToVORTEX credential
+  "SigninUITest.test_newToVortex":
+    actions: [deleteOrganization]
+    credential: newToVORTEX
+
+  "SigninUITest.test_newToVortex_tryDifferentEmail":
+    actions: [deleteOrganization]
+    credential: newToVORTEX
+
+  "SigninUITest.test_createOrganizationWithRestrictFormat":
+    actions: [deleteOrganization]
+    credential: newToVORTEX
+
+# File defaults (for tests not in test_overrides)
+file_defaults: {}
+
+# Notes:
+# - Add more restore_actions as needed through interactive flow
+# - Add more test_overrides as we encounter failures requiring restore
+# - Keep this file minimal and grow it organically

@@ -1,0 +1,69 @@
+//
+//  RestoreUITest.swift
+//  iOSCharmanderUITests
+//
+//  Purpose: Centralized environment restoration for UITests
+//  Usage: RESTORE_ENABLED=true RESTORE_CREDENTIAL=<credential> xcodebuild test -only-testing:RestoreUITest/test_restore_<action>
+//
+
+import XCTest
+
+final class RestoreUITest: XCTestCase, CommonOperation {
+    var app: XCUIApplication!
+    var currentFailureCount: Int = 0
+
+    override func setUpWithError() throws {
+        // Only run when explicitly enabled (skip in CI)
+        let shouldRestore = ProcessInfo.processInfo.environment["RESTORE_ENABLED"] == "true"
+        try XCTSkipIf(!shouldRestore, "Restore tests are manual only")
+
+        continueAfterFailure = false
+
+        // Setup app
+        app = XCUIApplication()
+        app.launchArguments.append("-forUAT")
+        app.launchEnvironment = ProcessInfo.processInfo.environment
+        app.launch()
+
+        // Sign in with specified credential
+        let credentialName = ProcessInfo.processInfo.environment["RESTORE_CREDENTIAL"] ?? "iOS"
+        let credential = parseCredential(credentialName)
+        signIn(credential)
+    }
+
+    override func tearDownWithError() throws {
+        checkTestResult(testRun)
+        app.terminate()
+    }
+
+    // MARK: - Restore Actions
+
+    /// Delete all organizations from test account
+    /// Usage: RESTORE_ENABLED=true RESTORE_CREDENTIAL=newToVORTEX xcodebuild test -only-testing:RestoreUITest/test_restore_deleteOrganization
+    func test_restore_deleteOrganization() {
+        UATHelper.deleteTestOrganization(app)
+    }
+
+    // MARK: - Add more restore actions here as needed
+    // Template:
+    // func test_restore_<actionName>() {
+    //     UATHelper.<method>(app)
+    // }
+
+    // MARK: - Helper
+
+    private func parseCredential(_ name: String) -> SigninCredential {
+        // Convert string to SigninCredential enum
+        switch name.lowercased() {
+        case "ios": return .iOS
+        case "newtovortex": return .newToVORTEX
+        case "viewer": return .viewer
+        case "testmfaset": return .testMFASet
+        case "testforcemfa": return .testForceMFA
+        case "mobileuat": return .mobileUAT
+        default:
+            print("⚠️ Unknown credential: \(name), falling back to .iOS")
+            return .iOS
+        }
+    }
+}
