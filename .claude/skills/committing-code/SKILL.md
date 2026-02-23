@@ -1,65 +1,76 @@
 ---
 name: committing-code
-description: Use when committing changes, creating commits, or running git commit. Enforces commit format (<type>(<project>): <description>) and guides two-repo workflow.
+description: Use when committing changes, creating commits, or running git commit. Enforces commit format (<type>(<project>): <description>) and auto-routes commits to correct repo in two-repo symlink architecture.
 ---
 
 # Git Workflow
 
-## When to Use This Guide
-
-**Before committing, determine the target repository:**
-
-### iOSCharmander (Main Repo)
-Use when changes involve:
-- App source code (Swift files, ViewModels, Managers, Views)
-- Xcode project files
-- Tests (iOSCharmanderTests, UI tests)
-- Assets, localization files
-- Build configurations
-
-**Workflow:** Feature branch → PR to main
-
-### iOSCharmander-ai-specs (AI Specs Repo)
-Use when changes involve:
-- `openspec/` directory (specs, proposals)
-- `.claude/` directory (skills, settings)
-- AI configuration files
-
-**Workflow:** Direct commit to main (no PR needed)
-
-**CRITICAL:** Never commit `openspec/` or `.claude/` in iOSCharmander repo - they are symlinks!
-
-## CRITICAL: Two-Repo Architecture
+## Two-Repo Architecture
 
 **Main Repo** (`iOSCharmander`): iOS app source code
 **AI Specs Repo** (`iOSCharmander-ai-specs`): OpenSpec docs + AI configurations
 
-`.claude/` and `openspec/` in main repo are **symlinks** to ai-specs repo.
+`openspec/`, `.claude/`, `uitest-automation/` in main repo are **symlinks** to AI specs repo. They are in `.gitignore` — never commit them in main repo.
 
-### Repository Rules
+## Auto-Routing Commit Flow
 
-| Files | Repository | Branch |
-|-------|------------|--------|
-| App code | `iOSCharmander` | Feature branch → PR |
-| `openspec/`, `.claude/` | `iOSCharmander-ai-specs` | Direct to `main` |
+When the user requests a commit, follow this flow **automatically** — do not ask which repo.
 
-### Committing OpenSpec/AI Files
+### Step 1: Classify changed files
+
+Check for changes in **both** repos:
 
 ```bash
-cd ../iOSCharmander-ai-specs
+# Main repo
 git status
-git add openspec/ .claude/
-git commit -m "feat(Vortex): description"
-git push origin main
+
+# AI specs repo (resolve symlink path)
+git -C "$(readlink openspec)/.." status
 ```
 
-**Never** commit `openspec/` or `.claude/` in `iOSCharmander` repo.
+| Path Pattern | Target Repo |
+|-------------|------------|
+| `openspec/**` | AI specs repo |
+| `.claude/**` | AI specs repo |
+| `uitest-automation/**` | AI specs repo |
+| Everything else | Main repo |
+
+### Step 2: Route and commit
+
+```dot
+digraph commit_flow {
+    "Classify files" -> "Only main repo?";
+    "Only main repo?" -> "Commit in main repo" [label="yes"];
+    "Only main repo?" -> "Only AI specs?" [label="no"];
+    "Only AI specs?" -> "Commit+push AI specs" [label="yes"];
+    "Only AI specs?" -> "Commit+push AI specs first" [label="no, both"];
+    "Commit+push AI specs first" -> "Then commit main repo";
+}
+```
+
+**Only main repo changes:** Stage and commit in `iOSCharmander` (follow branch/PR workflow).
+
+**Only AI specs changes:**
+1. `cd` to AI specs repo via symlink: `cd "$(readlink openspec)/.."`
+2. `git add` the changed files
+3. Commit and push to `main`
+
+**Both repos have changes:**
+1. AI specs first: `cd` to AI specs repo, stage, commit, push main
+2. Then main repo: `cd` back, stage, commit (follow branch/PR workflow)
+
+### Step 3: Report
+
+After committing, report:
+- Which repo(s) were committed to
+- What files were included in each commit
+- Whether AI specs were pushed to remote
 
 ## Commit Format
 
 **Pattern**: `<type>(<project>): <description>`
 
-**Projects**: `Vortex` or `CloudSight`
+**Projects**: `Vortex` or `CloudSight` or `iOSCharmander`
 
 **Types**:
 | Type | Use For |
@@ -75,19 +86,21 @@ git push origin main
 ```
 feat(Vortex): add floor plan device selection
 fix(CloudSight): resolve thread issue in video streaming
-test(Vortex): add UI tests for camera selection
+docs(iOSCharmander): update openspec for auth flow
 ```
 
 ## Guidelines
 
-- Reference ticket IDs: `[VOR-24280]`
+- Reference ticket IDs when available: `[VOR-24280]`
 - Keep descriptions concise
 - Use filename only (not full path)
 - Confirm project name if uncertain
+- AI specs repo: always direct push to `main` (no PR)
+- Main repo: follow branch/PR workflow
 
 ## Branch Strategy
 
-- `main`: Production-ready (PR target)
+- `main`: Production-ready (PR target for main repo, direct push for AI specs)
 - Feature branches: Descriptive names (`floorMap`, `feature-name`)
 
 ## File Management
@@ -98,3 +111,10 @@ test(Vortex): add UI tests for camera selection
 3. VortexFeatures SPM files are auto-included
 
 **Modifying project.pbxproj**: Use relative paths only.
+
+## Red Flags — STOP
+
+- About to `git add openspec/` or `.claude/` or `uitest-automation/` in main repo → **STOP**, these are symlinks in `.gitignore`
+- About to commit without checking both repos for changes → **STOP**, always check both
+- About to ask "which repo should I commit to?" → **STOP**, auto-detect from file paths
+- User says "just commit everything" but both repos have changes → **STOP**, still split by repo
