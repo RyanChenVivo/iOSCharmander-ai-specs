@@ -1,6 +1,12 @@
 # UITest Environment Restore Configuration
 # Start small: Only verified restore actions and test cases
 
+# Simulator preferences for environment preparation
+simulator_preferences:
+  ios_version: "26.0"  # Preferred iOS version
+  device_pattern: "iPhone 17"  # Device name pattern (supports regex)
+  fallback_device: "iPhone 16 Pro"  # Fallback if preferred not found
+
 # Available restore actions
 restore_actions:
   deleteOrganization:

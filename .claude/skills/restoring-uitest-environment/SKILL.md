@@ -42,6 +42,53 @@ Do NOT use when:
 
 ## Implementation Flow
 
+### Step 0: Environment Preparation
+
+**CRITICAL**: Always prepare simulator environment BEFORE executing tests.
+
+#### 0.1 Start Simulator
+
+Use `mcp__ios-simulator__open_simulator` to launch Simulator.app:
+- If already open, this will bring it to foreground
+- Wait 5 seconds for startup
+
+#### 0.2 Read Simulator Preferences
+
+From `restore-config.yaml`, read `simulator_preferences`:
+```yaml
+simulator_preferences:
+  ios_version: "26.0"           # Preferred iOS version
+  device_pattern: "iPhone 17"   # Device name pattern (regex)
+  fallback_device: "iPhone 16 Pro"  # Fallback if not found
+```
+
+#### 0.3 Query and Select Simulator
+
+Execute `xcrun simctl list devices available --json` to get available devices.
+
+**Selection strategy** (try in order):
+1. Device matching `iOS ${ios_version}` + name contains `${device_pattern}`
+2. Any iOS version device with name containing `${device_pattern}`
+3. Device matching `${fallback_device}`
+4. If none found → List all available devices and report error
+
+#### 0.4 Boot Selected Simulator
+
+If selected device is not booted:
+```bash
+xcrun simctl boot "<device_name>"
+```
+
+Wait 3 seconds for device to fully boot.
+
+#### 0.5 Get UDID
+
+Use `mcp__ios-simulator__get_booted_sim_id` to get the UDID of booted simulator.
+
+#### 0.6 Verify
+
+Confirm UDID obtained successfully. If not, report error with available devices.
+
 ### Step 1: Query Configuration
 
 **CRITICAL**: Always query configuration BEFORE taking action.
@@ -99,14 +146,17 @@ RESTORE_ENABLED=true \
 RESTORE_CREDENTIAL={credential} \
 xcodebuild test \
   -scheme iOSCharmander \
-  -destination 'platform=iOS Simulator,name=iPhone 16 Pro Max' \
+  -destination 'platform=iOS Simulator,id={UDID}' \
   -only-testing:iOSCharmanderUITests/RestoreUITest/test_restore_{action}
 ```
 
 **Key points**:
 - RESTORE_ENABLED=true: Required to bypass XCTSkipIf
 - RESTORE_CREDENTIAL: Specifies which test account to use
+- -destination: Use UDID from Step 0 (NOT hardcoded device name)
 - -only-testing: Targets specific restore action
+
+**IMPORTANT**: Always use `id={UDID}` obtained from Step 0, never hardcode device names like "iPhone 16 Pro Max".
 
 ### Step 4: Verify and Report
 
@@ -257,6 +307,27 @@ final class RestoreUITest: XCTestCase, CommonOperation {
 
 ## Common Mistakes
 
+### ❌ Skipping Environment Preparation
+
+**Wrong**:
+```bash
+# Directly execute xcodebuild without checking simulator
+RESTORE_ENABLED=true RESTORE_CREDENTIAL=iOS \
+xcodebuild test -destination 'platform=iOS Simulator,name=iPhone 16 Pro Max' ...
+```
+
+**Right**:
+```
+1. Open simulator (mcp__ios-simulator__open_simulator)
+2. Read simulator preferences from config
+3. Query available devices
+4. Select and boot appropriate device
+5. Get UDID
+6. Execute xcodebuild with -destination 'id={UDID}'
+```
+
+**Why it matters**: Hardcoded device names fail when device doesn't exist. Skipping environment prep causes "Unable to boot simulator" errors.
+
 ### ❌ Creating Separate Cleanup Test for Each Case
 
 **Wrong**:
@@ -344,6 +415,9 @@ Using: actions=[deleteOrganization], credential=newToVORTEX
 
 If you catch yourself doing any of these, STOP and follow this skill:
 
+- Skipping Step 0 (Environment Preparation)
+- Executing xcodebuild without checking simulator status
+- Hardcoding device names like "iPhone 16 Pro Max"
 - Creating a new cleanup test file
 - Writing a bash script for restore operations
 - Manually assembling xcodebuild commands each time
@@ -351,8 +425,9 @@ If you catch yourself doing any of these, STOP and follow this skill:
 - Skipping configuration file checks
 - Not asking for confirmation on auto-detected values
 - Assuming "this test is special, doesn't fit the pattern"
+- Assuming "simulator will auto-start, no need to prepare"
 
-**All of these mean**: Use the configuration-driven flow defined in this skill.
+**All of these mean**: Use the configuration-driven flow defined in this skill, starting with Step 0.
 
 ## Real-World Impact
 
