@@ -5,6 +5,15 @@ description: Integrates RESTful and GraphQL APIs in VortexFeatures. Use when add
 
 # API Integration
 
+## Workflow
+
+When adding or modifying APIs:
+1. Define endpoint and create response models
+2. Implement API method in VortexRestfulApi
+3. **Write API test** in `VortexFeatures/Tests/VortexFeaturesTests/Core/VortexBackend/VortexRestfulApiTest.swift`
+   - Purpose: Verify URL, HTTP method, and request/response format
+   - Follow existing test patterns in the file
+
 ## Naming Conventions
 
 | Type | Pattern | Example |
