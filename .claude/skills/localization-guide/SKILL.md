@@ -7,30 +7,12 @@ description: Use when adding user-facing text, editing Localizable.xcstrings, or
 
 ## When to Use This Skill
 
-Use this skill when you encounter any of these situations:
-
-**Adding New User-Facing Text:**
-- Creating new UI labels, buttons, alerts, or messages
-- Adding text that users will see in the app
-- Writing error messages or validation text
-
-**Working with Localizable.xcstrings:**
-- Adding new entries to the localization file
-- Updating existing translations
-- Modifying translation keys or values
-
-**Trigger Patterns - You MUST use this skill when you see:**
-- `String(localized: ...)` in Swift code
-- References to `VortexEnvironment.productNameLocalized`
-- Edits to `Localizable.xcstrings` file
-- User requests containing: "add text", "localize", "translation", "user-facing string"
-- String interpolation with parameters like `\(count)`, `\(name)`, etc.
-- **Countable nouns in English text** (e.g., "X items", "Y users", "Z sites") - these may need pluralization
-
-**Special Cases Requiring Extra Attention:**
-- Strings containing product names (Vortex/CloudSight)
-- Strings with multiple dynamic parameters
-- **Countable items that may need plural forms** - when you see this, ASK the user if pluralization support is needed
+**You MUST use this skill when:**
+- Working with `String(localized: ...)` or `VortexEnvironment.productNameLocalized`
+- Editing `Localizable.xcstrings` file
+- Adding any user-facing text (UI labels, buttons, alerts, errors)
+- String contains countable nouns ("X items", "Y sites") → ASK user if pluralization needed
+- Multiple dynamic parameters in text
 
 ---
 
@@ -145,254 +127,20 @@ String(localized: "Welcome_to_\(VortexEnvironment.productNameLocalized)_with_\(d
 
 ### 4. Pluralization
 
-**Rule:** When a string contains countable items that change based on quantity (e.g., "1 site" vs "2 sites"), use pluralization support in Localizable.xcstrings.
+**Rule:** For countable items ("1 site" vs "2 sites"), use pluralization in Localizable.xcstrings.
 
-**When to Use:**
-- English requires different forms for singular (1 item) vs plural (2+ items)
-- Other languages may have different plural rules (e.g., Chinese/Japanese don't change form)
+**When you detect countable nouns, ASK user:** "Do you want pluralization support for '1 site' vs '2 sites'?"
 
-**IMPORTANT:** When you detect countable nouns in user-facing text, ASK the user:
-> "This string contains a countable item. Do you want to add pluralization support so it displays '1 site' vs '2 sites' correctly in English?"
-
-#### Swift Code Usage
-
+#### Swift Code
 ```swift
-// ✅ CORRECT: Use integer parameter directly
-String(localized: "\(siteCount)_sites")
-
-// The key "%lld_sites" in Localizable.xcstrings handles plural variations
+String(localized: "\(siteCount)_sites")  // Key handles plural variations
 ```
 
-#### Localizable.xcstrings Format
-
-**Key pattern:** Use integer placeholder (`%lld`) in key name
+#### Localizable.xcstrings - Use `%lld` in key
 
 ```json
 {
   "%lld_sites": {
-    "localizations": {
-      "en": {
-        "variations": {
-          "plural": {
-            "one": {
-              "stringUnit": {
-                "state": "translated",
-                "value": "%lld site"
-              }
-            },
-            "other": {
-              "stringUnit": {
-                "state": "translated",
-                "value": "%lld sites"
-              }
-            }
-          }
-        }
-      },
-      "zh-Hant": {
-        "variations": {
-          "plural": {
-            "other": {
-              "stringUnit": {
-                "state": "translated",
-                "value": "%lld 個站點"
-              }
-            }
-          }
-        }
-      },
-      "ja": {
-        "variations": {
-          "plural": {
-            "other": {
-              "stringUnit": {
-                "state": "translated",
-                "value": "%lld 件のサイト"
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-}
-```
-
-**Plural Categories:**
-- **English:** Uses `one` (for 1) and `other` (for 0, 2, 3, ...)
-- **Chinese/Japanese:** Only needs `other` (no singular/plural distinction)
-- Different languages have different plural rules (some have zero, few, many categories)
-
-**Common Pluralization Patterns:**
-- Counts: "X items", "Y users", "Z devices"
-- Time units: "1 hour" vs "2 hours", "1 day" vs "3 days"
-- Quantities: "1 file" vs "5 files"
-
----
-
-### 5. Non-English Translations
-
-**Rule:** Initially use English text, mark for review.
-
-**Process:**
-1. Add English string to all language versions
-2. Mark translation status as **"Mark for review"** (需要審核)
-3. Native speakers will review and update later
-
-**Example in Localizable.xcstrings:**
-
-```json
-{
-  "Your_New_Feature": {
-    "extractionState": "manual",
-    "localizations": {
-      "en": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "Your New Feature"
-        }
-      },
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "needs_review",
-          "value": "Your New Feature"  // English placeholder
-        }
-      },
-      "ja": {
-        "stringUnit": {
-          "state": "needs_review",
-          "value": "Your New Feature"  // English placeholder
-        }
-      }
-    }
-  }
-}
-```
-
----
-
-## Implementation Checklist
-
-When adding new localized strings:
-
-- [ ] **Identify countable nouns** - If the string contains items that can be singular/plural, ask user if pluralization is needed
-- [ ] **Create proper key format:**
-  - Remove punctuation (`,`, `.`, `!`, `?`, `'`)
-  - Replace spaces with underscores `_`
-  - For plurals: use integer placeholder in key (e.g., `%lld_items`)
-- [ ] **Handle product names** - Replace "Vortex"/"CloudSight" with `VortexEnvironment.productNameLocalized`
-- [ ] **Use correct placeholder types:**
-  - Strings: `%@` → Swift interpolation `\(stringVar)`
-  - Integers: `%lld` → Swift interpolation `\(intVar)`
-  - Multiple params: use positional (`%1$@`, `%2$ld`)
-- [ ] **Add to Localizable.xcstrings:**
-  - Set `extractionState: "manual"`
-  - Add English translation with `state: "translated"`
-  - For plurals: define `variations.plural` with `one` and `other` for English
-- [ ] **Add other languages:**
-  - Use English text as placeholder
-  - Set `state: "needs_review"`
-  - For plurals in Chinese/Japanese: only need `other` category
-- [ ] **Verify in app:**
-  - Test string appears correctly
-  - Test with different product configs (Vortex vs CloudSight)
-  - If plural: test with values 0, 1, 2, and large numbers
-
----
-
-## Real-World Examples
-
-### Example 1: Basic String
-
-```swift
-// "Settings"
-String(localized: "Settings")
-```
-
-**Localizable.xcstrings:**
-```json
-{
-  "Settings": {
-    "extractionState": "manual",
-    "localizations": {
-      "en": {"stringUnit": {"state": "translated", "value": "Settings"}},
-      "zh-Hant": {"stringUnit": {"state": "needs_review", "value": "Settings"}}
-    }
-  }
-}
-```
-
----
-
-### Example 2: Product Name Placeholder
-
-```swift
-// "Welcome to Vortex"
-// Key: "Welcome_to_%@"
-String(localized: "Welcome_to_\(VortexEnvironment.productNameLocalized)")
-```
-
-**Localizable.xcstrings:**
-```json
-{
-  "Welcome_to_%@": {
-    "extractionState": "manual",
-    "localizations": {
-      "en": {"stringUnit": {"state": "translated", "value": "Welcome to %1$@"}},
-      "zh-Hant": {"stringUnit": {"state": "needs_review", "value": "Welcome to %1$@"}}
-    }
-  }
-}
-```
-
----
-
-### Example 3: Multiple Parameters
-
-```swift
-// "Connected 5 devices to Vortex"
-// Key: "Connected_%ld_devices_to_%@"
-String(localized: "Connected_\(deviceCount)_devices_to_\(VortexEnvironment.productNameLocalized)")
-```
-
-**Localizable.xcstrings:**
-```json
-{
-  "Connected_%ld_devices_to_%@": {
-    "extractionState": "manual",
-    "localizations": {
-      "en": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "Connected %1$ld devices to %2$@"
-        }
-      },
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "needs_review",
-          "value": "Connected %1$ld devices to %2$@"
-        }
-      }
-    }
-  }
-}
-```
-
----
-
-### Example 4: Pluralization
-
-```swift
-// "3 sites" or "1 site"
-// Key: "%lld_sites"
-String(localized: "\(siteCount)_sites")
-```
-
-**Localizable.xcstrings:**
-```json
-{
-  "%lld_sites": {
-    "extractionState": "manual",
     "localizations": {
       "en": {
         "variations": {
@@ -414,15 +162,33 @@ String(localized: "\(siteCount)_sites")
 }
 ```
 
-**Testing:**
-- siteCount = 0 → "0 sites"
-- siteCount = 1 → "1 site" ✓
-- siteCount = 2 → "2 sites" ✓
+**Language-specific rules:**
+- **English:** `one` (1) and `other` (0, 2+)
+- **Chinese/Japanese:** Only `other` (no singular/plural distinction)
 
 ---
 
-## Reference Implementation
+### 5. Non-English Translations
 
-See these files for real examples:
+**Rule:** Use English text as placeholder, set `state: "needs_review"` for non-English languages. Native speakers will translate later.
+
+---
+
+## Implementation Checklist
+
+- [ ] Identify countable nouns → Ask user if pluralization needed
+- [ ] Create key: Remove punctuation, replace spaces with `_`, use `%lld` for plurals
+- [ ] Replace product names with `VortexEnvironment.productNameLocalized`
+- [ ] Use placeholders: `%@` (string), `%lld` (int), `%1$@/%2$ld` (multiple params)
+- [ ] Add to xcstrings: `extractionState: "manual"`, English `state: "translated"`
+- [ ] Add other languages: English placeholder, `state: "needs_review"`
+- [ ] For plurals: English needs `one` and `other`, Chinese/Japanese only `other`
+- [ ] Verify: Test display, product configs, plural values (0, 1, 2, large numbers)
+
+---
+
+## Reference
+
+**Real codebase examples:**
 - `SignInView.userAgreement` - Product name placeholders and multiple parameters
-- `Localizable.xcstrings` → Search for `%lld_sites` - Complete pluralization example
+- `Localizable.xcstrings` → Search for `%lld_sites` - Pluralization implementation
