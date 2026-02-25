@@ -7,7 +7,7 @@ description: Use when UITest failures need environment cleanup (organization dat
 
 ## Overview
 
-Automate UITest environment restoration using configuration-driven RestoreUITest execution. Core principle: All restore actions centralized in RestoreUITest, driven by restore-config.yaml.
+Automate UITest environment restoration using configuration-driven RestoreUITest execution. Core principle: All restore actions centralized in RestoreUITest, driven by restore-config.yaml, executed via the dedicated `Restore` scheme.
 
 ## When to Use
 
@@ -26,18 +26,20 @@ Do NOT use when:
 
 **WRONG approach** (what agents do without this skill):
 ```
-❌ Create CleanupNewToVortexUITest.swift for each test
-❌ Write custom bash scripts for cleanup
-❌ Manually assemble xcodebuild commands
-❌ Create documentation files for procedures
+- Create CleanupNewToVortexUITest.swift for each test
+- Write custom bash scripts for cleanup
+- Manually assemble xcodebuild commands
+- Pass environment variables on the command line (BROKEN - env vars cannot reach UITest process)
+- Create documentation files for procedures
 ```
 
 **RIGHT approach** (this skill):
 ```
-✅ Query restore-config.yaml for existing action
-✅ Use centralized RestoreUITest with test methods
-✅ Standard execution format with environment variables
-✅ Interactive flow for missing configurations
+- Query restore-config.yaml for existing action
+- Use centralized RestoreUITest with test methods
+- Dedicated Restore scheme (no env var passing needed)
+- Credential encoded in test method name suffix
+- Interactive flow for missing configurations
 ```
 
 ## Implementation Flow
@@ -70,7 +72,7 @@ Execute `xcrun simctl list devices available --json` to get available devices.
 1. Device matching `iOS ${ios_version}` + name contains `${device_pattern}`
 2. Any iOS version device with name containing `${device_pattern}`
 3. Device matching `${fallback_device}`
-4. If none found → List all available devices and report error
+4. If none found -> List all available devices and report error
 
 #### 0.4 Boot Selected Simulator
 
@@ -95,15 +97,15 @@ Confirm UDID obtained successfully. If not, report error with available devices.
 
 ```
 1. Check test_overrides[full test name]
-   ├─ Found → Use that config
-   └─ Not found → Continue
+   |-- Found -> Use that config
+   |-- Not found -> Continue
 
 2. Check file_defaults[test file name]
-   ├─ Found → Use that config
-   └─ Not found → Interactive mode
+   |-- Found -> Use that config
+   |-- Not found -> Interactive mode
 
 3. Interactive mode
-   └─ List existing actions → User selects or adds new
+   |-- List existing actions -> User selects or adds new
 ```
 
 Configuration file: `references/restore-config.yaml` (relative to this skill directory)
@@ -114,12 +116,12 @@ Configuration file: `references/restore-config.yaml` (relative to this skill dir
 
 ```
 1. Check config file (test_overrides or file_defaults credential field)
-   ├─ Found → Use that credential
-   └─ Not found → Continue
+   |-- Found -> Use that credential
+   |-- Not found -> Continue
 
 2. Parse test code for signIn(.xxx)
-   ├─ Found → Ask user to confirm
-   └─ Not found → Continue
+   |-- Found -> Ask user to confirm
+   |-- Not found -> Continue
 
 3. Ask user directly
    "Which account does this test use?
@@ -131,6 +133,8 @@ Configuration file: `references/restore-config.yaml` (relative to this skill dir
 4. After identifying, ask: "Record this to config file? (Y/n)"
 ```
 
+The credential maps to the **test method suffix** (e.g., credential `newToVORTEX` -> method suffix `_newToVORTEX`).
+
 **Code parsing pattern**:
 ```typescript
 // Read test file, find test method, extract signIn(.xxx)
@@ -139,22 +143,28 @@ const pattern = /signIn\(\.(\w+)\)/
 
 ### Step 3: Execute Restore
 
-**Standard execution format**:
+**Standard execution format** (using dedicated Restore scheme):
 
 ```bash
-RESTORE_ENABLED=true \
-RESTORE_CREDENTIAL={credential} \
 xcodebuild test \
-  -scheme iOSCharmander \
+  -scheme Restore \
   -destination 'platform=iOS Simulator,id={UDID}' \
-  -only-testing:iOSCharmanderUITests/RestoreUITest/test_restore_{action}
+  -only-testing:iOSCharmanderUITests/RestoreUITest/test_restore_{action}_{credential}
 ```
 
 **Key points**:
-- RESTORE_ENABLED=true: Required to bypass XCTSkipIf
-- RESTORE_CREDENTIAL: Specifies which test account to use
-- -destination: Use UDID from Step 0 (NOT hardcoded device name)
-- -only-testing: Targets specific restore action
+- `-scheme Restore`: Dedicated scheme with `RESTORE_ENABLED=true` hardcoded as env var in the scheme. No need to pass env vars on the command line.
+- Credential is encoded in the test method name (e.g., `test_restore_deleteOrganization_newToVORTEX`)
+- `-destination`: Use UDID from Step 0 (NOT hardcoded device name)
+- `-only-testing`: Targets specific restore action + credential combo
+
+**Example**: Restore deleteOrganization for newToVORTEX account:
+```bash
+xcodebuild test \
+  -scheme Restore \
+  -destination 'platform=iOS Simulator,id=ABCD-1234-EFGH' \
+  -only-testing:iOSCharmanderUITests/RestoreUITest/test_restore_deleteOrganization_newToVORTEX
+```
 
 **IMPORTANT**: Always use `id={UDID}` obtained from Step 0, never hardcode device names like "iPhone 16 Pro Max".
 
@@ -193,17 +203,24 @@ When existing actions don't match the need, follow interactive flow:
    "Which UATHelper method? (e.g., UATHelper.changeLicensePhase)"
    ```
 
-5. **Related tests**
+5. **Credentials needed**
+   ```
+   "Which credentials need this action? (comma-separated)
+   e.g., iOS, newToVORTEX, testMFASet"
+   ```
+
+6. **Related tests**
    ```
    "Which other tests need this restore? (optional, comma-separated)"
    ```
 
-6. **Confirmation**
+7. **Confirmation**
    ```
    "About to add restore action:
    Name: resetLicensePhase
    Description: Reset license to default state
-   Method: RestoreUITest/test_restore_resetLicensePhase
+   Method pattern: RestoreUITest/test_restore_resetLicensePhase_{credential}
+   Credentials: [iOS, newToVORTEX]
    Related: LicenseUITest.test_checkNotice, LicenseUITest.test_checkGracePeriod
 
    Confirm? (Y/n)"
@@ -218,14 +235,22 @@ After confirmation:
    restore_actions:
      resetLicensePhase:  # New action
        description: Reset license to default state
-       test_method: RestoreUITest/test_restore_resetLicensePhase
+       test_method_pattern: "RestoreUITest/test_restore_resetLicensePhase_{credential}"
        execution_type: uitest
+       uat_helper: UATHelper.changeLicensePhase
+       available_credentials: [iOS, newToVORTEX]
    ```
 
 2. **Update RestoreUITest.swift**
-   Add new test method:
+   Add one test method PER credential:
    ```swift
-   func test_restore_resetLicensePhase() {
+   func test_restore_resetLicensePhase_iOS() {
+       setupAndSignIn(.iOS)
+       UATHelper.changeLicensePhase(app)
+   }
+
+   func test_restore_resetLicensePhase_newToVORTEX() {
+       setupAndSignIn(.newToVORTEX)
        UATHelper.changeLicensePhase(app)
    }
    ```
@@ -246,17 +271,18 @@ After confirmation:
 ### restore-config.yaml Structure
 
 ```yaml
+# Execution settings
+execution:
+  scheme: Restore  # Dedicated scheme with RESTORE_ENABLED=true hardcoded
+
 # Available restore actions (building blocks)
 restore_actions:
   deleteOrganization:
     description: Delete all organizations from test account
-    test_method: RestoreUITest/test_restore_deleteOrganization
+    test_method_pattern: "RestoreUITest/test_restore_deleteOrganization_{credential}"
     execution_type: uitest
-
-  resetMFA:
-    description: Reset MFA settings
-    test_method: RestoreUITest/test_restore_resetMFA
-    execution_type: uitest
+    uat_helper: UATHelper.deleteTestOrganization
+    available_credentials: [iOS, newToVORTEX, testMFASet]
 
 # Default restore for test files
 file_defaults:
@@ -265,7 +291,7 @@ file_defaults:
     credential: iOS
 
   MFAUITest:
-    actions: [resetMFA, deleteOrganization]
+    actions: [deleteOrganization]
     credential: testMFASet
 
 # Special test overrides
@@ -283,37 +309,73 @@ Location: `iOSCharmanderUITests/Restore/RestoreUITest.swift`
 
 ```swift
 final class RestoreUITest: XCTestCase, CommonOperation {
+    var app: XCUIApplication!
+    var currentFailureCount: Int = 0
+
     override func setUpWithError() throws {
-        // Skip unless explicitly enabled
+        // Skip unless explicitly enabled via Restore scheme
+        // Protects against accidental execution in CI (iOSCharmanderUITests scheme)
         let shouldRestore = ProcessInfo.processInfo.environment["RESTORE_ENABLED"] == "true"
         try XCTSkipIf(!shouldRestore, "Restore tests are manual only")
+        continueAfterFailure = false
+    }
 
-        // Sign in with specified credential
-        let credentialName = ProcessInfo.processInfo.environment["RESTORE_CREDENTIAL"] ?? "iOS"
-        let credential = parseCredential(credentialName)
+    // Private setup — called per test method with the specific credential
+    private func setupAndSignIn(_ credential: SigninCredential) {
+        app = XCUIApplication()
+        app.launchArguments.append("-forUAT")
+        app.launchEnvironment = ProcessInfo.processInfo.environment
+        app.launch()
         signIn(credential)
     }
 
-    // Each restore action is a test method
-    func test_restore_deleteOrganization() {
+    // Each restore action is: test_restore_{action}_{credential}
+    func test_restore_deleteOrganization_iOS() {
+        setupAndSignIn(.iOS)
         UATHelper.deleteTestOrganization(app)
     }
 
-    func test_restore_resetMFA() {
-        UATHelper.disableUserMFA(app)
+    func test_restore_deleteOrganization_newToVORTEX() {
+        setupAndSignIn(.newToVORTEX)
+        UATHelper.deleteTestOrganization(app)
+    }
+
+    func test_restore_deleteOrganization_testMFASet() {
+        setupAndSignIn(.testMFASet)
+        UATHelper.deleteTestOrganization(app)
     }
 }
 ```
 
+**Pattern**: `setUpWithError()` only does the `XCTSkipIf` guard. Each test method calls `setupAndSignIn(credential)` with the specific credential, then the UATHelper action. One method per action+credential combination.
+
 ## Common Mistakes
 
-### ❌ Skipping Environment Preparation
+### Passing Environment Variables on Command Line
+
+**Wrong**:
+```bash
+RESTORE_ENABLED=true RESTORE_CREDENTIAL=newToVORTEX \
+xcodebuild test -scheme iOSCharmander -destination ... \
+  -only-testing:iOSCharmanderUITests/RestoreUITest/test_restore_deleteOrganization
+```
+
+**Right**:
+```bash
+xcodebuild test -scheme Restore \
+  -destination 'platform=iOS Simulator,id={UDID}' \
+  -only-testing:iOSCharmanderUITests/RestoreUITest/test_restore_deleteOrganization_newToVORTEX
+```
+
+**Why it matters**: Environment variables set on the command line do NOT reach the UITest process. The `Restore` scheme has `RESTORE_ENABLED=true` hardcoded. The credential is encoded in the test method name.
+
+### Skipping Environment Preparation
 
 **Wrong**:
 ```bash
 # Directly execute xcodebuild without checking simulator
-RESTORE_ENABLED=true RESTORE_CREDENTIAL=iOS \
-xcodebuild test -destination 'platform=iOS Simulator,name=iPhone 16 Pro Max' ...
+xcodebuild test -scheme Restore \
+  -destination 'platform=iOS Simulator,name=iPhone 16 Pro Max' ...
 ```
 
 **Right**:
@@ -328,7 +390,7 @@ xcodebuild test -destination 'platform=iOS Simulator,name=iPhone 16 Pro Max' ...
 
 **Why it matters**: Hardcoded device names fail when device doesn't exist. Skipping environment prep causes "Unable to boot simulator" errors.
 
-### ❌ Creating Separate Cleanup Test for Each Case
+### Creating Separate Cleanup Test for Each Case
 
 **Wrong**:
 ```swift
@@ -339,13 +401,13 @@ xcodebuild test -destination 'platform=iOS Simulator,name=iPhone 16 Pro Max' ...
 
 **Right**:
 ```swift
-// RestoreUITest.swift with multiple test methods
-func test_restore_deleteOrganization() { ... }
-func test_restore_resetMFA() { ... }
-func test_restore_deleteDevices() { ... }
+// RestoreUITest.swift with methods per action+credential
+func test_restore_deleteOrganization_iOS() { ... }
+func test_restore_deleteOrganization_newToVORTEX() { ... }
+func test_restore_resetMFA_testMFASet() { ... }
 ```
 
-### ❌ Not Checking Configuration First
+### Not Checking Configuration First
 
 **Wrong**:
 ```
@@ -358,9 +420,10 @@ Agent: [Creates new cleanup solution]
 Agent: [Reads restore-config.yaml]
 Found: test_overrides["SigninUITest.test_newToVortex"]
 Using: actions=[deleteOrganization], credential=newToVORTEX
+Executes: -only-testing:.../test_restore_deleteOrganization_newToVORTEX
 ```
 
-### ❌ Proposing Without Executing
+### Proposing Without Executing
 
 **Wrong**:
 ```
@@ -372,12 +435,12 @@ Using: actions=[deleteOrganization], credential=newToVORTEX
 **Right**:
 ```
 [Actually updates restore-config.yaml]
-[Actually adds test method to RestoreUITest.swift]
+[Actually adds test methods to RestoreUITest.swift — one per credential]
 [Actually runs xcodebuild test to verify]
-"✅ Added new restore action and verified it works"
+"Added new restore action and verified it works"
 ```
 
-### ❌ Assuming Credential Without Confirmation
+### Assuming Credential Without Confirmation
 
 **Wrong**:
 ```
@@ -394,7 +457,7 @@ Using: actions=[deleteOrganization], credential=newToVORTEX
 [Waits for confirmation]
 ```
 
-### ❌ Not Recording Identified Information
+### Not Recording Identified Information
 
 **Wrong**:
 ```
@@ -411,10 +474,29 @@ Using: actions=[deleteOrganization], credential=newToVORTEX
 [Updates restore-config.yaml if confirmed]
 ```
 
+### Using Wrong Scheme
+
+**Wrong**:
+```bash
+xcodebuild test -scheme iOSCharmander \
+  -only-testing:iOSCharmanderUITests/RestoreUITest/test_restore_deleteOrganization_iOS
+```
+
+**Right**:
+```bash
+xcodebuild test -scheme Restore \
+  -only-testing:iOSCharmanderUITests/RestoreUITest/test_restore_deleteOrganization_iOS
+```
+
+**Why it matters**: The `iOSCharmander` scheme does not have `RESTORE_ENABLED=true`, so `XCTSkipIf` will skip all restore tests.
+
 ## Red Flags - STOP
 
 If you catch yourself doing any of these, STOP and follow this skill:
 
+- Passing `RESTORE_ENABLED` or `RESTORE_CREDENTIAL` as command-line env vars
+- Using `-scheme iOSCharmander` instead of `-scheme Restore`
+- Building a test method name without the credential suffix
 - Skipping Step 0 (Environment Preparation)
 - Executing xcodebuild without checking simulator status
 - Hardcoding device names like "iPhone 16 Pro Max"
@@ -438,8 +520,9 @@ If you catch yourself doing any of these, STOP and follow this skill:
 - Inconsistent execution patterns
 
 **After this skill**:
-- One RestoreUITest.swift with multiple test methods
+- One RestoreUITest.swift with methods per action+credential combo
 - One restore-config.yaml for all configurations
+- Dedicated Restore scheme handles env vars automatically
 - Automatic resolution using past decisions
 - Standard execution format every time
 
