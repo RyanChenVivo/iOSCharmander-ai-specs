@@ -7,13 +7,20 @@ simulator_preferences:
   device_pattern: "iPhone 17"  # Device name pattern (supports regex)
   fallback_device: "iPhone 16 Pro"  # Fallback if preferred not found
 
+# Execution settings
+execution:
+  scheme: Restore  # Dedicated scheme with RESTORE_ENABLED=true hardcoded
+  # No environment variable prefixes needed — scheme handles it
+
 # Available restore actions
+# test_method_pattern uses {credential} placeholder
 restore_actions:
   deleteOrganization:
     description: Delete all organizations from test account
-    test_method: RestoreUITest/test_restore_deleteOrganization
+    test_method_pattern: "RestoreUITest/test_restore_deleteOrganization_{credential}"
     execution_type: uitest
     uat_helper: UATHelper.deleteTestOrganization
+    available_credentials: [iOS, newToVORTEX, testMFASet]
 
 # Test-specific overrides
 test_overrides:

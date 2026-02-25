@@ -3,7 +3,7 @@
 //  iOSCharmanderUITests
 //
 //  Purpose: Centralized environment restoration for UITests
-//  Usage: RESTORE_ENABLED=true RESTORE_CREDENTIAL=<credential> xcodebuild test -only-testing:RestoreUITest/test_restore_<action>
+//  Usage: xcodebuild test -scheme Restore -destination 'id={UDID}' -only-testing:iOSCharmanderUITests/RestoreUITest/test_restore_{action}_{credential}
 //
 
 import XCTest
@@ -13,57 +13,52 @@ final class RestoreUITest: XCTestCase, CommonOperation {
     var currentFailureCount: Int = 0
 
     override func setUpWithError() throws {
-        // Only run when explicitly enabled (skip in CI)
+        // Skip unless explicitly enabled via Restore scheme
+        // Protects against accidental execution in CI (iOSCharmanderUITests scheme)
         let shouldRestore = ProcessInfo.processInfo.environment["RESTORE_ENABLED"] == "true"
         try XCTSkipIf(!shouldRestore, "Restore tests are manual only")
-
         continueAfterFailure = false
-
-        // Setup app
-        app = XCUIApplication()
-        app.launchArguments.append("-forUAT")
-        app.launchEnvironment = ProcessInfo.processInfo.environment
-        app.launch()
-
-        // Sign in with specified credential
-        let credentialName = ProcessInfo.processInfo.environment["RESTORE_CREDENTIAL"] ?? "iOS"
-        let credential = parseCredential(credentialName)
-        signIn(credential)
     }
 
     override func tearDownWithError() throws {
         checkTestResult(testRun)
-        app.terminate()
+        app?.terminate()
+    }
+
+    // MARK: - Private Setup
+
+    private func setupAndSignIn(_ credential: SigninCredential) {
+        app = XCUIApplication()
+        app.launchArguments.append("-forUAT")
+        app.launchEnvironment = ProcessInfo.processInfo.environment
+        app.launch()
+        signIn(credential)
     }
 
     // MARK: - Restore Actions
+    // Pattern: test_restore_{action}_{credential}
+    // Each method calls setupAndSignIn then the UATHelper method
 
-    /// Delete all organizations from test account
-    /// Usage: RESTORE_ENABLED=true RESTORE_CREDENTIAL=newToVORTEX xcodebuild test -only-testing:RestoreUITest/test_restore_deleteOrganization
-    func test_restore_deleteOrganization() {
+    func test_restore_deleteOrganization_iOS() {
+        setupAndSignIn(.iOS)
         UATHelper.deleteTestOrganization(app)
     }
 
-    // MARK: - Add more restore actions here as needed
-    // Template:
-    // func test_restore_<actionName>() {
-    //     UATHelper.<method>(app)
-    // }
-
-    // MARK: - Helper
-
-    private func parseCredential(_ name: String) -> SigninCredential {
-        // Convert string to SigninCredential enum
-        switch name.lowercased() {
-        case "ios": return .iOS
-        case "newtovortex": return .newToVORTEX
-        case "viewer": return .viewer
-        case "testmfaset": return .testMFASet
-        case "testforcemfa": return .testForceMFA
-        case "mobileuat": return .mobileUAT
-        default:
-            print("⚠️ Unknown credential: \(name), falling back to .iOS")
-            return .iOS
-        }
+    func test_restore_deleteOrganization_newToVORTEX() {
+        setupAndSignIn(.newToVORTEX)
+        UATHelper.deleteTestOrganization(app)
     }
+
+    func test_restore_deleteOrganization_testMFASet() {
+        setupAndSignIn(.testMFASet)
+        UATHelper.deleteTestOrganization(app)
+    }
+
+    // MARK: - Add more restore actions here
+    // Template for new action:
+    //
+    // func test_restore_{actionName}_{credential}() {
+    //     setupAndSignIn(.{credential})
+    //     UATHelper.{method}(app)
+    // }
 }
