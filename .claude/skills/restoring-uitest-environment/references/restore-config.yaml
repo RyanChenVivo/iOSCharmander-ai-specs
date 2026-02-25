@@ -20,20 +20,20 @@ restore_actions:
     test_method_pattern: "RestoreUITest/test_restore_deleteOrganization_{credential}"
     execution_type: uitest
     uat_helper: UATHelper.deleteTestOrganization
-    available_credentials: [iOS, newToVORTEX, testMFASet]
+    available_credentials: [newToVORTEX]
 
 # Test-specific overrides
 test_overrides:
   # NewToVortex test series - all use newToVORTEX credential
-  "SigninUITest.test_newToVortex":
+  "NewToVortexUITest.test_newToVortex":
     actions: [deleteOrganization]
     credential: newToVORTEX
 
-  "SigninUITest.test_newToVortex_tryDifferentEmail":
+  "NewToVortexUITest.test_newToVortex_tryDifferentEmail":
     actions: [deleteOrganization]
     credential: newToVORTEX
 
-  "SigninUITest.test_createOrganizationWithRestrictFormat":
+  "NewToVortexUITest.test_createOrganizationWithRestrictFormat":
     actions: [deleteOrganization]
     credential: newToVORTEX
 
