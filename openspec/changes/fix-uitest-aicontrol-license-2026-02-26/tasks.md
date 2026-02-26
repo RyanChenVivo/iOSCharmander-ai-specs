@@ -1,7 +1,7 @@
 ## 1. AIControlSetting Restore Mechanism
 
 - [x] 1.1 Add `test_restore_deleteOrganization_testAIControlSetting` to `RestoreUITest.swift` — sign in with `.testAIControlSetting(true)` and call `UATHelper.deleteTestOrganization(app)`
-- [ ] 1.2 Run the restore test via Restore scheme to clean up the current residual organization on CI (manual — requires CI access)
+- [x] 1.2 Run the restore test via Restore scheme to clean up the current residual organization on CI (manual — requires CI access)
 
 ## 2. License Tab Check Update
 
