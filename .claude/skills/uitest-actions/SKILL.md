@@ -124,7 +124,7 @@ When multiple tests need to be observed together (from Phase 0 multi-failure han
 
 ## Fix Action
 
-Prepare to fix the issue via OpenSpec proposal.
+Route to `fixing-uitest` skill with entry context.
 
 ### When to Use
 - Root cause is clear
@@ -133,37 +133,30 @@ Prepare to fix the issue via OpenSpec proposal.
 
 ### Steps
 
-1. **Gather context for proposal**
-   - Test name and error message
-   - Root cause from investigation (if available)
-   - Affected code location (from test code reading in Step 0)
-   - Screenshot evidence path (if downloaded)
+1. **Package context for fixing-uitest**
 
-2. **Prepare proposal content**
+   | Field | Source | Required |
+   |-------|--------|----------|
+   | test_names | From analysis | Yes |
+   | error_messages | From analysis | Yes |
+   | root_cause | From investigation | Yes |
+   | screenshot_path | From investigation | No |
+   | pattern_id | From patterns.md match | No |
 
-   **Problem description:**
-   - Which test(s) failed
-   - What the error was
-   - When it started occurring (if known)
+2. **Invoke fixing-uitest skill**
 
-   **Root cause analysis:**
-   - What investigation revealed
-   - Screenshot evidence summary
-   - Why this is happening
+   The skill handles: understanding test code, classifying fix pattern, creating OpenSpec change (opsx:ff), asking user to apply, build validation during implementation.
 
-   **Proposed fix approach:**
-   - What code changes are needed
-   - Which files will be modified
-   - Any new handlers or logic required
+3. **Receive completion result**
 
-3. **Create OpenSpec proposal**
-   - Use `/opsx:new` with gathered context
-   - Reference observation ID if was under observation
-   - Link to investigation summary if available
+   | Field | Description |
+   |-------|-------------|
+   | processed_tests | Test names that were fixed |
+   | conclusion | "Fix" |
+   | summary | OpenSpec change name + status |
 
 4. **Update tracking**
    - If was under observation → close observation in `active.json`
-   - Record proposal creation in return summary
 
 ### After Completion
 
