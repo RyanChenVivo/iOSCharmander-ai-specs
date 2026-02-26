@@ -20,7 +20,7 @@ restore_actions:
     test_method_pattern: "RestoreUITest/test_restore_deleteOrganization_{credential}"
     execution_type: uitest
     uat_helper: UATHelper.deleteTestOrganization
-    available_credentials: [newToVORTEX]
+    available_credentials: [newToVORTEX, testAIControlSetting]
 
 # Test-specific overrides
 test_overrides:
@@ -36,6 +36,27 @@ test_overrides:
   "NewToVortexUITest.test_createOrganizationWithRestrictFormat":
     actions: [deleteOrganization]
     credential: newToVORTEX
+
+  # AIControlSetting test series - all use testAIControlSetting credential
+  "AIControlSettingUITest.testAgreementDisable":
+    actions: [deleteOrganization]
+    credential: testAIControlSetting
+
+  "AIControlSettingUITest.testAIFacialOptionOnOffFunction":
+    actions: [deleteOrganization]
+    credential: testAIControlSetting
+
+  "AIControlSettingUITest.testAILicensePlateOptionOnOffFunction":
+    actions: [deleteOrganization]
+    credential: testAIControlSetting
+
+  "AIControlSettingUITest.testControlSettingCheckAgreementNotShowAgain":
+    actions: [deleteOrganization]
+    credential: testAIControlSetting
+
+  "AIControlSettingUITest.testForceContinue":
+    actions: [deleteOrganization]
+    credential: testAIControlSetting
 
 # File defaults (for tests not in test_overrides)
 file_defaults: {}
