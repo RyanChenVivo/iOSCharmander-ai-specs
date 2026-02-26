@@ -48,7 +48,7 @@ Backend:       Backend:           Backend:
 
 ### Phase Details
 
-1. **Add Dark Release** -- Frontend adds `SupportFeature` enum case + `.contains()` check in `canViewTab`; backend adds feature to specific organizations' support array.
+1. **Add Dark Release** -- Frontend adds `SupportFeature` enum case + `.contains()` check in `canView(for:)`; backend adds feature to specific organizations' support array.
 2. **Gradual Rollout** -- Backend adds more organizations; frontend unchanged.
 3. **Full Release** -- Backend sets feature to "all"; frontend unchanged; `.contains()` still returns `true`.
 4. **(Optional) Remove Dark Release** -- Only with explicit user confirmation; remove `.contains()` check from frontend. This is rarely needed.
@@ -76,11 +76,11 @@ public enum SupportFeature: String, VortexBackendModel {
 
 ---
 
-### 4.2 FeatureToggle -- canViewTab
+### 4.2 `canView(for tab:)` -- Visibility
 
 **Location:** `iOSCharmander/Common/FeatureProvider/FeatureToggle.swift`
 
-Controls whether the tab/feature appears in the UI.
+Controls whether the tab/feature appears in the UI. Add a new case to the `canView(for:)` switch statement.
 
 **Check Order:**
 1. Dark Release (organization support) -- **required**
@@ -101,16 +101,13 @@ case .yourFeature:
     hasAnyDeviceWithPrivilege(.live)
 ```
 
-#### Available privilege helper methods:
+#### Available privilege helper methods
+
+These helpers are already defined in `FeatureToggle.swift`. Use them directly in your new switch cases:
 
 ```swift
-// Check if any device has a specific privilege
 private func hasAnyDeviceWithPrivilege(_ privilege: PrivilegeDeviceScope) -> Bool
-
-// Check specific device privilege
 private func hasDevicePrivilege(_ device: DeviceItem, _ privilege: PrivilegeDeviceScope) -> Bool
-
-// Check organization-level privilege
 private func hasOrgPrivilege(_ privilege: PrivilegeOrganizationScope) -> Bool
 ```
 
@@ -120,54 +117,66 @@ private func hasOrgPrivilege(_ privilege: PrivilegeOrganizationScope) -> Bool
 
 ---
 
-### 4.3 FeatureToggle -- canTriggerTab
+### 4.3 `canAccess(for tab:)` -- Access Gating
 
-Controls whether a visible tab can be interacted with (license-based).
+Controls whether a visible tab can be accessed (plan/subscription-based). Not every feature needs this -- only add a case when there's a plan-level restriction.
 
 ```swift
 case .yourFeature:
-    licenseManager.hasValidLicense(for: .yourFeature)
+    !myOrganizationIsFreePlan
 ```
 
-**Result:** If `false`, tab shows but is grayed out (disabled state).
+**Result:** If `false`, the tab may show a promotion view or restricted state.
 
 ---
 
-### 4.4 FeatureToggle -- tabCanDisable
+### 4.4 `canTrigger(for tab:)` -- Interaction
 
-Defines whether the tab can be shown in disabled state.
+Controls whether a visible tab can be interacted with (license-phase-based).
+
+The default behavior checks `myOrganizationLicensePhase != .renewalOverdue`. Only add a case if your feature needs different logic:
 
 ```swift
+// Default for most features (already handled):
+default:
+    myOrganizationLicensePhase != .renewalOverdue
+
+// Only add a case if your feature should always be triggerable:
 case .yourFeature:
-    true  // Allow showing as disabled when license issues occur
+    true
 ```
 
-**Common values:**
-- `true` -- For features like `.floorPlan`, `.message`, `.archive`
-- `false` -- For critical features that should be hidden when unavailable
+**Result:** If `false`, tab shows but is disabled (grayed out).
 
 ---
 
 ## 5. Check Priority Flow
 
 ```
-┌─────────────────────────┐
-│ canViewTab()            │ → Dark Release + Permissions
-│ (Should tab appear?)    │
-└───────────┬─────────────┘
+┌──────────────────────────┐
+│ canView(for:)            │ → Dark Release + Permissions
+│ (Should tab appear?)     │
+└───────────┬──────────────┘
             │
             ├─ false → Tab Hidden
             │
             └─ true ↓
 
-┌─────────────────────────┐
-│ canTriggerTab()         │ → License Check
-│ (Can user interact?)    │
-└───────────┬─────────────┘
+┌──────────────────────────┐
+│ canAccess(for:)          │ → Plan/Subscription Check
+│ (Can user access?)       │
+└───────────┬──────────────┘
             │
-            ├─ false → Check tabCanDisable()
-            │            ├─ true → Show Grayed Out
-            │            └─ false → Hide
+            ├─ false → Show Promotion / Restricted
+            │
+            └─ true ↓
+
+┌──────────────────────────┐
+│ canTrigger(for:)         │ → License Phase Check
+│ (Can user interact?)     │
+└───────────┬──────────────┘
+            │
+            ├─ false → Show Disabled (grayed out)
             │
             └─ true → Show Active
 ```
@@ -182,28 +191,24 @@ public enum SupportFeature: String, VortexBackendModel {
     case floorPlan = "FloorPlan"
 }
 
-// 2. FeatureToggle.swift - canViewTab
+// 2. FeatureToggle.swift - canView(for:)
 case .floorPlan:
     myOrganizationSupportFeatures.contains(.floorPlan)
 
-// 3. FeatureToggle.swift - canTriggerTab
-case .floorPlan:
-    licenseManager.hasValidLicense(for: .floorPlan)
+// 3. canAccess(for:) — not needed for floor plan (default returns true)
 
-// 4. FeatureToggle.swift - tabCanDisable
-case .floorPlan:
-    true  // Can show as disabled
+// 4. canTrigger(for:) — uses default: myOrganizationLicensePhase != .renewalOverdue
 ```
 
-Note: Floor plan uses dark release only in `canViewTab` -- no privilege check is needed for this feature.
+Note: Floor plan uses dark release only in `canView(for:)` -- no privilege check and no custom access/trigger logic needed.
 
 ---
 
 ## 7. Testing Checklist
 
 - [ ] Feature hidden when organization doesn't have support flag
-- [ ] Feature visible when organization has support flag + user has permissions
-- [ ] Feature grayed out when license invalid (if `tabCanDisable` returns true)
+- [ ] Feature visible when organization has support flag (+ user has permissions, if applicable)
+- [ ] Feature grayed out when license phase is `renewalOverdue` (controlled by `canTrigger(for:)`)
 - [ ] Feature works normally when all conditions met
 - [ ] Proper error messages shown when access denied
 
@@ -241,7 +246,7 @@ Note: Floor plan uses dark release only in `canViewTab` -- no privilege check is
 ### Permissions
 
 - Do not add privilege checks to every feature -- only when role restriction is needed.
-- Do not check license in `canViewTab` -- license checks belong in `canTriggerTab`.
+- Do not check license phase in `canView(for:)` -- license checks belong in `canTrigger(for:)`.
 - Do not skip dark release check when the feature has one.
 
 ### General
