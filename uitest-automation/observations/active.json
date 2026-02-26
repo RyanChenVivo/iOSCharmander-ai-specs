@@ -49,6 +49,26 @@
       "decision": "observe",
       "expiresOn": "2025-12-21",
       "notes": "XCTAssertTrue failed (CommonOperation.swift:97). First-time failure. Test involves rebooting camera device. Could be device offline, reboot timeout, or simulator connectivity issue. Observing to see if transient environment issue."
+    },
+    {
+      "id": "AIControlSettingUITest.testAgreementDisable",
+      "firstSeen": "2026-02-26",
+      "lastSeen": "2026-02-26",
+      "occurrences": 1,
+      "pattern": "ENVIRONMENT_STATE_RESIDUAL",
+      "decision": "pending_restore",
+      "expiresOn": "2026-03-05",
+      "notes": "5/5 AIControlSettingUITest tests fail: 'createOrganizationButton' Button is not exist. Screenshot confirms app is on main View screen with existing organization ('Ungrouped Cameras' visible), instead of expected 'Create Organization' screen. testAIControlSetting account has residual organization data from previous test run. RESTORE METHOD CONFIRMED: Add test_restore_deleteOrganization_testAIControlSetting to RestoreUITest — setupAndSignIn(.testAIControlSetting(true)) then UATHelper.deleteTestOrganization(app). Long-term fix: add organization cleanup to tearDownWithError(). Tests affected: testAgreementDisable, testAIFacialOptionOnOffFunction, testAILicensePlateOptionOnOffFunction, testControlSettingCheckAgreementNotShowAgain, testForceContinue."
+    },
+    {
+      "id": "ArchiveUITest.testArchive_ArchiveMoreFunction_In_ArchiveTab",
+      "firstSeen": "2026-02-25",
+      "lastSeen": "2026-02-26",
+      "occurrences": 2,
+      "pattern": "PHOTOS_APP_NAVIGATION",
+      "decision": "pending_fix",
+      "expiresOn": "2026-03-12",
+      "notes": "Archive 功能本身正常（建立、下載、刪除皆成功），失敗在最後 Photos app 驗證步驟：checkVideoInPhotos 導航到錯誤的舊照片 (Feb 18, IMG_0091)，找不到剛下載的 archive 檔案 'Archive_UAT_ArchiveTab'。可能原因：(1) scrollViews.images.lastMatch 未涵蓋 video 類型 (2) iOS 18.6 Photos app 排序變更 (3) swipeDown 幅度不足。已指派同仁檢視修正，待補上原因及處理方式。連續 2 天失敗 (02-25, 02-26)。"
     }
   ]
 }
