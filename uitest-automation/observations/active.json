@@ -1,74 +1,44 @@
 {
   "observations": [
     {
-      "id": "SigninWithSSO.testSignInWithSSO_ShouldFailed_whenTypeDifferentEmailOnMicrosoftPage",
-      "firstSeen": "2025-12-10",
-      "lastSeen": "2025-12-19",
-      "occurrences": 8,
-      "pattern": "EXTERNAL_SERVICE_CHANGE",
-      "decision": "escalate_to_fix",
-      "expiresOn": "2025-12-20",
-      "notes": "Microsoft Entra ID changed auth flow to PASSWORDLESS authentication. Screenshot evidence (2025-12-19): Microsoft now shows 'Get a code to sign in' page requiring one-time code sent to email, bypassing password entry entirely. Test expects password entry → 'Stay signed in?' dialog, but flow never reaches that point. Failed consistently 2025-12-10~19 (8 occurrences). Previous passkey fix (2025-12-15) was temporary. ROOT CAUSE CONFIRMED: Microsoft passwordless flow change. ESCALATED from observe to fix - needs test code update to handle passwordless authentication."
-    },
-    {
-      "id": "SigninWithSSO.testSignInWithSSO_Success",
-      "firstSeen": "2025-12-10",
-      "lastSeen": "2025-12-19",
-      "occurrences": 8,
-      "pattern": "EXTERNAL_SERVICE_CHANGE",
-      "decision": "escalate_to_fix",
-      "expiresOn": "2025-12-20",
-      "notes": "Microsoft Entra ID changed auth flow to PASSWORDLESS authentication. Screenshot evidence (2025-12-19): Microsoft now shows 'Get a code to sign in' page requiring one-time code sent to email, bypassing password entry entirely. Test expects password entry → 'Stay signed in?' dialog, but flow never reaches that point. Failed consistently 2025-12-10~19 (8 occurrences). Previous passkey fix (2025-12-15) was temporary. ROOT CAUSE CONFIRMED: Microsoft passwordless flow change. ESCALATED from observe to fix - needs test code update to handle passwordless authentication."
-    },
-    {
-      "id": "OrgForceMFAUITest.testSSOSignInWithOrgForceMFA",
-      "firstSeen": "2025-12-10",
-      "lastSeen": "2025-12-19",
-      "occurrences": 8,
-      "pattern": "EXTERNAL_SERVICE_CHANGE",
-      "decision": "escalate_to_fix",
-      "expiresOn": "2025-12-20",
-      "notes": "Microsoft Entra ID changed auth flow to PASSWORDLESS authentication. Screenshot evidence (2025-12-19): Microsoft now shows 'Get a code to sign in' page requiring one-time code sent to email, bypassing password entry entirely. Test expects password entry → 'Stay signed in?' dialog, but flow never reaches that point. Failed consistently 2025-12-10~19 (8 occurrences). Previous passkey fix (2025-12-15) was temporary. ROOT CAUSE CONFIRMED: Microsoft passwordless flow change. ESCALATED from observe to fix - needs test code update to handle passwordless authentication."
-    },
-    {
-      "id": "FloorPlanUITest.testSelectCameraByTappingMarker",
-      "firstSeen": "2025-12-19",
-      "lastSeen": "2025-12-19",
-      "occurrences": 1,
-      "pattern": "NAVIGATION_ELEMENT_NOT_FOUND",
-      "decision": "observe",
-      "expiresOn": "2025-12-21",
-      "notes": "'NavigationHeaderView_View' StaticText not found after tapping floor plan marker. First-time failure. Could be navigation timing issue or UI bug. Observing to see if transient or requires investigation."
-    },
-    {
-      "id": "CameraSettingsUITest.test_rebootDevice",
-      "firstSeen": "2025-12-19",
-      "lastSeen": "2025-12-19",
-      "occurrences": 1,
-      "pattern": "UNKNOWN_ASSERTION",
-      "decision": "observe",
-      "expiresOn": "2025-12-21",
-      "notes": "XCTAssertTrue failed (CommonOperation.swift:97). First-time failure. Test involves rebooting camera device. Could be device offline, reboot timeout, or simulator connectivity issue. Observing to see if transient environment issue."
-    },
-    {
       "id": "AIControlSettingUITest.testAgreementDisable",
       "firstSeen": "2026-02-26",
-      "lastSeen": "2026-02-26",
-      "occurrences": 1,
+      "lastSeen": "2026-03-02",
+      "occurrences": 2,
       "pattern": "ENVIRONMENT_STATE_RESIDUAL",
-      "decision": "pending_restore",
-      "expiresOn": "2026-03-05",
-      "notes": "5/5 AIControlSettingUITest tests fail: 'createOrganizationButton' Button is not exist. Screenshot confirms app is on main View screen with existing organization ('Ungrouped Cameras' visible), instead of expected 'Create Organization' screen. testAIControlSetting account has residual organization data from previous test run. RESTORE METHOD CONFIRMED: Add test_restore_deleteOrganization_testAIControlSetting to RestoreUITest — setupAndSignIn(.testAIControlSetting(true)) then UATHelper.deleteTestOrganization(app). Long-term fix: add organization cleanup to tearDownWithError(). Tests affected: testAgreementDisable, testAIFacialOptionOnOffFunction, testAILicensePlateOptionOnOffFunction, testControlSettingCheckAgreementNotShowAgain, testForceContinue."
+      "decision": "observe",
+      "expiresOn": "2026-03-03",
+      "notes": "5/5 AIControlSettingUITest tests fail: 'createOrganizationButton' Button is not exist. testAIControlSetting 帳號有殘留組織資料。2/26 首次發現，3/2 再次出現但 retry 後通過（flaky）。持續觀察是否自癒或需要 restore。Tests affected: testAgreementDisable, testAIFacialOptionOnOffFunction, testAILicensePlateOptionOnOffFunction, testControlSettingCheckAgreementNotShowAgain, testForceContinue."
     },
     {
       "id": "ArchiveUITest.testArchive_ArchiveMoreFunction_In_ArchiveTab",
       "firstSeen": "2026-02-25",
-      "lastSeen": "2026-02-26",
-      "occurrences": 2,
+      "lastSeen": "2026-03-02",
+      "occurrences": 3,
       "pattern": "PHOTOS_APP_NAVIGATION",
-      "decision": "pending_fix",
-      "expiresOn": "2026-03-12",
-      "notes": "Archive 功能本身正常（建立、下載、刪除皆成功），失敗在最後 Photos app 驗證步驟：checkVideoInPhotos 導航到錯誤的舊照片 (Feb 18, IMG_0091)，找不到剛下載的 archive 檔案 'Archive_UAT_ArchiveTab'。可能原因：(1) scrollViews.images.lastMatch 未涵蓋 video 類型 (2) iOS 18.6 Photos app 排序變更 (3) swipeDown 幅度不足。已指派同仁檢視修正，待補上原因及處理方式。連續 2 天失敗 (02-25, 02-26)。"
+      "decision": "observe",
+      "expiresOn": "2026-03-03",
+      "notes": "Archive 功能本身正常，失敗在 Photos app 驗證步驟：checkVideoInPhotos 找不到剛下載的 archive 檔案 'Archive_UAT_ArchiveTab'。連續 3 天出現 (02-25, 02-26, 03-02)，但 3/2 retry 後通過。已指派同仁檢視修正，持續觀察。"
+    },
+    {
+      "id": "LicensePhaseUITest.testLicenseGracePeriod",
+      "firstSeen": "2026-03-02",
+      "lastSeen": "2026-03-02",
+      "occurrences": 1,
+      "pattern": "ELEMENT_NOT_FOUND",
+      "decision": "observe",
+      "expiresOn": "2026-03-03",
+      "notes": "'More' Button is not exist. 首次出現，retry 後通過（flaky）。可能是 timing issue 或 UI 載入延遲。觀察是否重複出現。"
+    },
+    {
+      "id": "LicensePhaseUITest.testLicenseOverdue",
+      "firstSeen": "2026-03-02",
+      "lastSeen": "2026-03-02",
+      "occurrences": 1,
+      "pattern": "ELEMENT_NOT_FOUND",
+      "decision": "observe",
+      "expiresOn": "2026-03-03",
+      "notes": "'More' Button is not exist. 首次出現，retry 後通過（flaky）。與 testLicenseGracePeriod 同群組、同錯誤，可能同源。觀察是否重複出現。"
     }
   ]
 }
