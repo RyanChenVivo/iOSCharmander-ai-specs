@@ -2,8 +2,9 @@
 name: analyzing-uitest-failures
 description: >
   Use when CI reports UITest failures, or user mentions flaky tests,
-  xcresult, test errors. Triggers: "element not found", "timeout",
-  "401", "unauthorized", "SIGABRT".
+  xcresult, test errors, or wants daily UITest analysis.
+  Triggers: "element not found", "timeout", "401", "unauthorized",
+  "SIGABRT", "flaky", "retry", "all passed".
 ---
 
 # UITest Failure Analysis
@@ -35,8 +36,8 @@ If no data exists or user requests refresh:
    - **Failed** → Error: "❌ 自動下載失敗。請手動執行：`bash uitest-automation/scripts/download_uitest_data.sh`" and stop analysis
 5. Verify data files present before proceeding
 
-3. Check failure count:
-   - **No failures** → Congratulate: "🎉 所有測試通過！沒有需要分析的失敗。"
+3. Check failure count from `test_summary.json` (`failedTests` field):
+   - **No failures** → Proceed to Observation Maintenance (flaky tests may still exist)
    - **Has failures** → Proceed to step 4
 
 4. Check existing report:
@@ -44,6 +45,112 @@ If no data exists or user requests refresh:
    - Ask: "今天已有分析報告，要繼續處理未完成項目嗎？"
    - **Yes** → Read report, identify items with ⏳ status, continue from Step 4
    - **No** → Start fresh analysis from Step 1
+
+---
+
+## Observation Maintenance
+
+**Runs every time**, before failure analysis. Maintains `uitest-automation/observations/active.json`.
+
+```dot
+digraph obs_maintenance {
+    "Read test_failures.json" [shape=box];
+    "Has flaky entries?" [shape=diamond];
+    "Process each flaky test" [shape=box];
+    "Check expired observations" [shape=box];
+    "Display maintenance summary" [shape=box];
+    "Has real failures?" [shape=diamond];
+    "Proceed to Analysis Flow" [shape=box];
+    "Done" [shape=doublecircle];
+
+    "Read test_failures.json" -> "Has flaky entries?";
+    "Has flaky entries?" -> "Process each flaky test" [label="yes"];
+    "Has flaky entries?" -> "Check expired observations" [label="no"];
+    "Process each flaky test" -> "Check expired observations";
+    "Check expired observations" -> "Display maintenance summary";
+    "Display maintenance summary" -> "Has real failures?";
+    "Has real failures?" -> "Proceed to Analysis Flow" [label="yes"];
+    "Has real failures?" -> "Done" [label="no"];
+}
+```
+
+### M1: Identify Flaky Tests
+
+Compare `test_failures.json` (initial failures) against `test_summary.json` (`failedTests` count):
+
+- **`test_failures.json` has entries BUT `failedTests == 0`** → All entries are flaky (retry passed)
+- **`test_failures.json` has more entries than `failedTests`** → Difference = flaky tests
+- **Counts match** → No flaky tests, all are real failures
+
+### M2: Update Observations for Flaky Tests
+
+For each flaky test, check `active.json`:
+
+| Situation | Action |
+|-----------|--------|
+| Already in `active.json` | Update `lastSeen` to today, `occurrences` +1 |
+| Not in `active.json` | Add new entry with `decision: "observe"`, `occurrences: 1` |
+| `occurrences` reaches ≥3 | Mark as `escalate_recommended: true` |
+
+**New observation entry format:**
+```json
+{
+  "id": "<TestClass>.<testMethod>",
+  "firstSeen": "YYYY-MM-DD",
+  "lastSeen": "YYYY-MM-DD",
+  "occurrences": 1,
+  "pattern": "<pattern_id or FLAKY>",
+  "decision": "observe",
+  "expiresOn": "YYYY-MM-DD+1",
+  "notes": "<error message>. Retry 後通過（flaky）。"
+}
+```
+
+**Default `expiresOn`:** Next day (today + 1). User may override.
+
+### M3: Check Expired Observations
+
+For each entry in `active.json` where `expiresOn <= today`:
+
+| Situation | Action |
+|-----------|--------|
+| Expired + NOT in today's `test_failures.json` | Recommend removal |
+| Expired + still flaky today | Recommend escalation to Investigate |
+| Not expired | No action |
+
+### M4: Display Maintenance Summary
+
+```
+📋 觀察維護結果
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+日期：YYYY-MM-DD
+
+🔄 Flaky Tests（retry 後通過）：N 個
+   ┌────────────────────────────────
+   │ • <test_name> — <error> (第 N 次出現)
+   └────────────────────────────────
+
+⚠️ 建議升級調查（≥3 次）：N 個
+   ┌────────────────────────────────
+   │ • <test_name> — 已連續 N 次 flaky
+   └────────────────────────────────
+
+🗑️ 建議移除（到期且未再出現）：N 個
+   ┌────────────────────────────────
+   │ • <test_name> — 最後出現 YYYY-MM-DD
+   └────────────────────────────────
+
+✅ 仍在觀察中：N 個
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+### M5: User Confirmation
+
+- **建議移除的項目** → 列出，等使用者確認後才從 `active.json` 刪除
+- **建議升級的項目** → 列出，使用者決定是否進入 Investigate
+- **Flaky 更新** → 自動執行，告知使用者結果
+
+After maintenance, if no real failures exist → End with summary. Do NOT generate triage report.
 
 ---
 
@@ -67,7 +174,7 @@ If matched → Use pattern's recommended action and skip to Step 2 (history chec
 
 **1b. Check History**
 
-Query `uitest-automation/observations/active.json`:
+Query `uitest-automation/observations/active.json` (already maintained by Observation Maintenance step):
 
 - If test is under observation and failed again → Escalate (observe → investigate/fix)
 - If first occurrence → Continue to classification
