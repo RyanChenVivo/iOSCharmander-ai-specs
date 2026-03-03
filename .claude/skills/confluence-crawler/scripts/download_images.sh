@@ -18,8 +18,9 @@ RAW_JSON="${2:?Usage: $0 <page_id> <raw_json_file> [output_dir]}"
 OUTPUT_DIR="${3:-./confluence-pages}"
 
 # Load credentials from .env
-if [[ -f ".env" ]]; then
-    source .env
+SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+if [[ -f "$SKILL_DIR/.env" ]]; then
+    source "$SKILL_DIR/.env"
 fi
 
 BASE_URL="${CONFLUENCE_BASE_URL:-https://confluence.vivotek.com}"

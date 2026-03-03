@@ -3,18 +3,24 @@
 #
 # Usage: ./create_env.sh
 
-cat > .env << 'EOF'
+SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ENV_FILE="$SKILL_DIR/.env"
+PROJECT_ROOT="$(cd "$SKILL_DIR/../../.." && pwd)"
+GITIGNORE="$PROJECT_ROOT/.gitignore"
+
+cat > "$ENV_FILE" << 'EOF'
 # Confluence Credentials
 # Please fill in your credentials below
 CONFLUENCE_USER=your_username_here
 CONFLUENCE_PASS=your_password_here
 EOF
 
-# Add .env to .gitignore if not already present
-if [[ -f ".gitignore" ]]; then
-    grep -qxF '.env' .gitignore || echo '.env' >> .gitignore
+# Add .claude/skills/confluence-crawler/.env to .gitignore if not already present
+REL_ENV=".claude/skills/confluence-crawler/.env"
+if [[ -f "$GITIGNORE" ]]; then
+    grep -qxF "$REL_ENV" "$GITIGNORE" || echo "$REL_ENV" >> "$GITIGNORE"
 else
-    echo '.env' > .gitignore
+    echo "$REL_ENV" > "$GITIGNORE"
 fi
 
-echo "Created .env file and added to .gitignore"
+echo "Created .env file at $ENV_FILE and added to .gitignore"

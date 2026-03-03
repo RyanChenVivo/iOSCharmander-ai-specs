@@ -16,6 +16,12 @@ PAGE_ID="${1:?Usage: $0 <page_id> [output_dir]}"
 OUTPUT_DIR="${2:-./confluence-pages}"
 BASE_URL="${CONFLUENCE_BASE_URL:-https://confluence.vivotek.com}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# Load credentials from .env
+if [[ -f "$SKILL_DIR/.env" ]]; then
+    source "$SKILL_DIR/.env"
+fi
 
 # Check credentials
 if [[ -z "$CONFLUENCE_USER" || -z "$CONFLUENCE_PASS" ]]; then

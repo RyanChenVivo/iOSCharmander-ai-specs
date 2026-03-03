@@ -17,8 +17,9 @@ SPACE_KEY="${1:?Usage: $0 <space_key> <title>}"
 TITLE="${2:?Usage: $0 <space_key> <title>}"
 
 # Load credentials from .env
-if [[ -f ".env" ]]; then
-    source .env
+SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+if [[ -f "$SKILL_DIR/.env" ]]; then
+    source "$SKILL_DIR/.env"
 fi
 
 BASE_URL="${CONFLUENCE_BASE_URL:-https://confluence.vivotek.com}"
