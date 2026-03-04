@@ -25,7 +25,6 @@
 ```
 uitest-automation/
 ├── README.md                       # 本檔案 - 快速開始與使用指南
-├── WRITING_GUIDE.md                # UITest 編寫指南
 ├── SETUP.md                        # 環境設定指南
 ├── download_test_data.sh          # 輕量下載腳本（僅下載 JSON）
 ├── config.example.sh              # 設定檔範例
@@ -155,7 +154,6 @@ nano config.sh
 
 ## 📖 詳細文件
 
-- **[WRITING_GUIDE.md](./WRITING_GUIDE.md)** - UITest 編寫指南
 - **[SETUP.md](./SETUP.md)** - 環境設定指南
 - **[ci-scripts/README.md](./ci-scripts/README.md)** - CI 端腳本部署說明（CI 管理員）
 - **[observations/README.md](./observations/README.md)** - 觀察追蹤器機制說明
