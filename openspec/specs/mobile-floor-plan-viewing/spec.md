@@ -114,11 +114,16 @@ The system SHALL display multiple camera devices on the floor plan at their conf
 - **AND** each marker shows camera icon
 - **AND** markers are positioned accurately on floor plan image
 
+#### Scenario: Camera marker size
+- **WHEN** displaying camera marker on floor plan
+- **THEN** marker circle SHALL be 24x24 pt
+- **AND** device type icon inside marker SHALL be 20x20 pt
+- **AND** marker size SHALL be consistent across all device states (online, offline, updating)
+
 #### Scenario: Online device marker
 - **WHEN** device status is online
 - **THEN** marker circle displays green background (#2FBB00)
 - **AND** device type icon displays in white (template mode)
-- **AND** marker size is 32x32
 
 #### Scenario: Offline device marker
 - **WHEN** device status is offline
@@ -145,6 +150,15 @@ The system SHALL display pre-configured camera field-of-view (FOV) sectors on th
 - **THEN** system renders FOV sector overlay
 - **AND** sector originates from camera marker position
 - **AND** sector displays configured angle, direction, and depth
+
+#### Scenario: FOV direction uses geographic-to-SwiftUI coordinate conversion
+- **WHEN** system renders FOV sector direction
+- **THEN** system SHALL convert `fovDirection` from geographic coordinate system (0° = North, clockwise) to SwiftUI rendering coordinate system (0° = East, clockwise with Y-axis down)
+- **AND** the conversion formula SHALL be: `renderAngle = fovDirection - 90°`
+- **AND** a `fovDirection` of 0° (North) SHALL render the FOV sector pointing upward on screen
+- **AND** a `fovDirection` of 90° (East) SHALL render the FOV sector pointing right on screen
+- **AND** a `fovDirection` of 180° (South) SHALL render the FOV sector pointing downward on screen
+- **AND** a `fovDirection` of 270° (West) SHALL render the FOV sector pointing left on screen
 
 #### Scenario: Online device FOV color
 - **WHEN** device status is online
