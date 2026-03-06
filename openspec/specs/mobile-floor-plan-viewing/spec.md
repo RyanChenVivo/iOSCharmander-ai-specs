@@ -151,6 +151,12 @@ The system SHALL display pre-configured camera field-of-view (FOV) sectors on th
 - **AND** sector originates from camera marker position
 - **AND** sector displays configured angle, direction, and depth
 
+#### Scenario: FOV depth denormalization uses image diagonal
+- **WHEN** system converts normalized `fovDepth` (0-1) to pixel radius for rendering
+- **THEN** system SHALL compute the image diagonal as `hypot(imageWidth, imageHeight)` (equivalent to `√(width² + height²)`)
+- **AND** the pixel radius SHALL be `fovDepth × diagonal`
+- **AND** this formula SHALL match the Portal (web) platform's denormalization to ensure cross-platform consistency
+
 #### Scenario: FOV direction uses geographic-to-SwiftUI coordinate conversion
 - **WHEN** system renders FOV sector direction
 - **THEN** system SHALL convert `fovDirection` from geographic coordinate system (0° = North, clockwise) to SwiftUI rendering coordinate system (0° = East, clockwise with Y-axis down)
