@@ -92,6 +92,22 @@ The system SHALL display floor plan images with zoom and pan capabilities using 
 - **THEN** system pans image within boundaries
 - **AND** prevents panning beyond image edges
 
+#### Scenario: Floor plan image caching with URL-based invalidation
+- **WHEN** floor plan image is loaded from backend
+- **THEN** system caches image using Kingfisher with cache key `floorplan_{id}_{imageUrl.hashValue}`
+- **AND** cache key includes imageUrl hash to ensure cache invalidates when image changes on server
+- **AND** subsequent loads for same image URL use cached version
+- **AND** when Portal updates floor plan image, API returns new imageUrl (S3 presigned URL)
+- **AND** new imageUrl produces different hash, causing cache miss and fresh download
+
+#### Scenario: Floor plan image refreshes after server-side update
+- **WHEN** floor plan image is updated via Portal
+- **AND** user performs pull-to-refresh on floor plan list
+- **THEN** system fetches updated floor plan data with new imageUrl from API
+- **AND** SwiftUI `.task(id: floorPlan.imageUrl)` detects URL change and re-triggers image loading
+- **AND** ThumbnailManager downloads new image due to cache key mismatch
+- **AND** updated image is displayed to user
+
 #### Scenario: Double-tap to reset zoom
 - **WHEN** user double-taps floor plan
 - **THEN** system resets zoom to 1.0x

@@ -110,6 +110,30 @@ The FloorPlanManager SHALL pre-populate complete device information in DevicePos
 - **AND** streaming can start immediately with position.device
 - **AND** simplified flow eliminates redundant findDevice calls
 
+### Requirement: Floor Plan Image Caching Strategy
+The system SHALL cache floor plan images via ThumbnailManager using Kingfisher with URL-aware cache keys to ensure images update when changed on the server.
+
+#### Scenario: Cache key includes imageUrl hash for invalidation
+- **WHEN** ThumbnailManager loads a floor plan image
+- **THEN** cache key SHALL be `floorplan_{floorPlan.id}_{imageUrl.hashValue}`
+- **AND** cache key includes imageUrl hash so that server-side image changes produce a different key
+- **AND** old cached images are naturally superseded when URL changes
+- **AND** same image URL always hits cache for performance
+
+#### Scenario: ThumbnailManager download and cache flow
+- **WHEN** floor plan image is requested via `getFloorPlanThumbnail(of:)`
+- **THEN** system first checks Kingfisher cache using the URL-aware cache key
+- **AND** if cache hit, returns cached UIImage immediately
+- **AND** if cache miss, downloads image from S3 presigned URL via HttpRequestManager
+- **AND** stores downloaded image in Kingfisher cache via ImageProvider.store
+- **AND** returns downloaded UIImage
+
+#### Scenario: View layer detects image URL changes
+- **WHEN** FloorPlanDetailView displays floor plan image
+- **THEN** SwiftUI `.task(id: floorPlan.imageUrl)` modifier tracks imageUrl for changes
+- **AND** when imageUrl changes (e.g., after pull-to-refresh), task re-triggers
+- **AND** new image is loaded via ThumbnailManager with new cache key
+
 ### Requirement: ViewModel UI Logic Only
 The floor plan ViewModels SHALL contain only View-related logic (UI state, user interactions) and SHALL NOT contain data-related logic (API calls, data transformation, device lookups).
 
