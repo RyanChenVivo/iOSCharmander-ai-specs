@@ -14,6 +14,8 @@ Record known failure patterns to improve triage decision consistency.
 | environment-state-residual | Setup stage unexpected state | Restore | No |
 | timing-element-not-ready | Quick failure + no UI changes | Observe | Usually yes |
 | message-user-feedback | UserFeedback button disabled | Observe | Usually yes |
+| tab-label-mismatch | 100% class failure + "No matches" at navigation | Fix | No |
+| opacity-hidden-element | waitElementToDisappear timeout + element visually gone | Fix | No |
 
 ---
 
@@ -183,6 +185,78 @@ Record known failure patterns to improve triage decision consistency.
 
 ---
 
+## tab-label-mismatch
+
+**Trigger Conditions:**
+- Error: `No matches found for Elements matching predicate '"X" IN identifiers'`
+- 100% failure rate for all tests in a specific test class
+- All failures at the same navigation step (e.g., `switchTo(tab:)`)
+- Available elements list shows a **similar but different** label (e.g., "Floor Plan" vs "Floorplans")
+
+**Recommended Action:** Fix
+
+**Reason:** Production code changed a UI element's label/identifier (often via localization key change), but test code was not updated to match. Or a previous test fix over-corrected by changing all references without verifying each one's actual source.
+
+**Diagnosis Steps:**
+1. Compare the expected identifier in test code with the actual label in the error's element list
+2. Check `git log` for recent commits that modified the relevant View or localization keys
+3. Verify that `VortexTab.tabButton` (More menu label) and `VortexTab.navigationHeader` may come from **different** localization sources:
+   - `tabButton` label → `HomeViewTab+Extension.swift` → localized key (e.g., `"Floor_plan"`)
+   - `navigationHeader` → the View's `.vortexPrimaryNavigation(navigationTitle:)` → different localized key (e.g., `"Floorplans"`)
+
+**Historical Cases:**
+- 2026-03-11: `FloorPlanTabView` navigation title changed from `"Floor_plan"` to `"Floorplans"` (commit `d270e40d8`), but `HomeViewTab+Extension` still used `"Floor_plan"` key. A fix attempt (`adeb6e873`) changed all 3 VortexTab references to `"Floorplans"`, but `tabButton` should have stayed as `"Floor Plan"`.
+  - Root cause: Two different localization keys feeding different UI elements
+  - Fix: `tabButton` → `"Floor Plan"`, `navigationHeader` → `"NavigationHeaderView_Floorplans"`
+
+**Notes:**
+- When fixing identifier mismatches, always trace **each** reference back to its actual production code source — don't blindly change all references to the same value
+- `VortexTab` has 3 properties (`desc`, `tabButton`, `navigationHeader`) that may each correspond to different production code sources
+
+---
+
+## opacity-hidden-element
+
+**Trigger Conditions:**
+- Error at `UATHelper.otherShouldBeDisappear` or `waitElementToDisappear` (line 67)
+- Test duration ~60-80 seconds (timeout waiting for element to not exist)
+- Screenshot shows the element is visually NOT displayed, but test says it still exists
+- Recent commits changed view from `if condition { View() }` to `.opacity(condition ? 1 : 0)`
+
+**Recommended Action:** Fix
+
+**Reason:** SwiftUI `.opacity(0)` hides an element visually but keeps it in the accessibility hierarchy (`exists == true`). Tests using `exists == false` will always fail. This is an intentional production code pattern (avoids view recreation to preserve state like streaming connections).
+
+**Diagnosis Steps:**
+1. Check if the target view uses `.opacity()` instead of `if/else` for visibility
+2. Look at git history for commits that changed from conditional rendering to opacity-based
+3. Verify the screenshot confirms the element is visually hidden
+
+**Fix Pattern:**
+```swift
+// Before (fails with opacity-based hiding):
+UATHelper.otherShouldBeDisappear("elementId", app)
+
+// After (works with opacity-based hiding):
+let element = app.otherElements["elementId"]
+XCTAssertTrue(
+    element.waitForPredicate(NSPredicate(format: "isHittable == false"), timeout: 5),
+    "element should not be hittable when hidden"
+)
+```
+
+**Historical Cases:**
+- 2026-03-11: `SelectedDeviceInfoPanel` (streamingPanel) changed from `if selectedDeviceID != nil` to `.opacity(panelOpacity)` in commit `e338f78d`. 4 FloorPlan tests failed because `verifyFullScreenFloorPlan()` used `exists == false`.
+  - Fix: Changed to `isHittable == false` check in `FloorPlanOperation.swift`
+
+**Notes:**
+- `opacity(0)` → `exists == true`, `isHittable == false`
+- `if false { View() }` → `exists == false`
+- Production code may intentionally use opacity to preserve view state (e.g., streaming connections, scroll position)
+- Do NOT suggest changing production code back to `if/else` without understanding why opacity was chosen
+
+---
+
 ## Adding New Patterns
 
 When adding a new pattern, include:
@@ -219,4 +293,4 @@ When adding a new pattern, include:
 
 ---
 
-**Last Updated:** 2025-02-09
+**Last Updated:** 2026-03-11
