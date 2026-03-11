@@ -1,23 +1,60 @@
 ---
 name: feature-toggle-integration
-description: Implement Feature Toggle and Dark Release controls. Use when adding new features that need gradual rollout or organization-specific access control.
+description: Use when modifying FeatureToggle.swift, FeatureProvider.swift, or MockFeatureProvider.swift. Also triggers when implementing OpenSpec tasks, bug fixes, or any feature work that involves adding/moving/editing feature toggle functions, MARK groups, or dark release checks.
 ---
 
 # Feature Toggle & Dark Release Integration
 
-Use this skill when adding new features that need:
-- Gradual rollout to specific organizations
-- Permission-based access control
-- License-based restrictions
-
 ## 1. When to Use
 
-- Adding a new tab/feature to the app
-- Implementing organization-specific capabilities
-- Adding license-gated features
-- Any feature that needs controlled rollout
+- Adding a new tab/feature with dark release or permission control
+- Adding/moving/editing any function in `FeatureToggle.swift`
+- Implementing OpenSpec tasks or bug fixes that touch feature toggle files
+- Any change that affects `FeatureProvider.swift` protocol or `MockFeatureProvider.swift`
 
-## 2. AI Behavior Guide
+## 2. MARK Group Convention (Critical)
+
+FeatureToggle uses `// MARK:` sections to organize functions by domain. **Three files must stay in sync:**
+
+| File | Role | MARK Style |
+|------|------|------------|
+| `FeatureToggle.swift` | Implementation | `// MARK: - Section` as separate `extension` |
+| `FeatureProvider.swift` | Protocol | `// MARK: - Section` inside protocol body |
+| `MockFeatureProvider.swift` | Mock | `// MARK: - Section` in 4 places (property, init param, init body, conformance) |
+
+### Current MARK Groups (in order)
+
+```
+Site → Device → Device Settings → Message → Message Search →
+Floor Plan → Archive → AI → AI Search Result → AI Search →
+VCA Features → Face Profile → Snooze Rule → Alarm Setting →
+Customized View → Organization & System →
+User Management & Authentication → Reseller & License →
+UI & Navigation → Helper Methods (FeatureToggle only)
+```
+
+### Rules
+
+1. **New function must go in the semantically correct MARK group.** Do NOT append to whichever section happens to be nearby.
+2. **If no existing group fits, create a new `// MARK: - GroupName` section** with its own `extension` in FeatureToggle.swift, and add matching MARKs to FeatureProvider.swift and MockFeatureProvider.swift.
+3. **When adding to MockFeatureProvider.swift, update all 4 locations:**
+   - Property declaration (top)
+   - `init` parameter with default `unimplemented(...)` value
+   - `init` body assignment (`self._xxx = _xxx`)
+   - Protocol conformance function
+4. **Verify placement after every edit** by checking the surrounding `// MARK:` comments match the function's domain.
+
+### Verification Checklist
+
+After any FeatureToggle change, confirm:
+- [ ] Function is under the correct `// MARK:` group in all 3 files
+- [ ] MARK group order is consistent across all 3 files
+- [ ] MockFeatureProvider has the property, init param, init body assignment, and conformance function
+- [ ] No function is orphaned between unrelated MARK sections
+
+---
+
+## 3. AI Behavior Guide
 
 Before acting on requests related to dark release or feature toggles, confirm intent:
 
@@ -27,7 +64,9 @@ Before acting on requests related to dark release or feature toggles, confirm in
 | "release to all users", "full rollout" | This should be handled by the backend setting the support feature to "all". The frontend doesn't need changes. Can you confirm? |
 | "delete SupportFeature enum case" | Deleting the enum case means this feature can never be controlled via dark release again. Are you sure you want to permanently remove this feature's dark release mechanism? |
 
-## 3. Dark Release Lifecycle
+---
+
+## 4. Dark Release Lifecycle
 
 **Full release does NOT mean deleting frontend code. Full release is a backend operation.**
 
@@ -46,211 +85,101 @@ Backend:       Backend:           Backend:
   orgs
 ```
 
-### Phase Details
-
 1. **Add Dark Release** -- Frontend adds `SupportFeature` enum case + `.contains()` check in `canView(for:)`; backend adds feature to specific organizations' support array.
 2. **Gradual Rollout** -- Backend adds more organizations; frontend unchanged.
 3. **Full Release** -- Backend sets feature to "all"; frontend unchanged; `.contains()` still returns `true`.
-4. **(Optional) Remove Dark Release** -- Only with explicit user confirmation; remove `.contains()` check from frontend. This is rarely needed.
+4. **(Optional) Remove Dark Release** -- Only with explicit user confirmation; remove `.contains()` check from frontend.
 
-## 4. Implementation Checklist
+---
 
-### 4.1 Backend Enum Definition
+## 5. Implementation Checklist
 
-Add feature to `MyOrganization.SupportFeature` enum:
+### 5.1 Backend Enum Definition
 
 **Location:** `VortexFeatures/Sources/VortexFeatures/Core/VortexBackend/Model/Organization/MyOrganization.swift`
 
 ```swift
 public enum SupportFeature: String, VortexBackendModel {
-    case licensePlateRecognition = "LicensePlateRecognition"
-    case spotOccupancy = "SpotOccupancy"
-    case floorPlan = "FloorPlan"
-    case yourNewFeature = "YourNewFeature"  // Add your feature
+    case yourNewFeature = "YourNewFeature"  // PascalCase, match backend exactly
 }
 ```
 
-**Naming Convention:**
-- Use PascalCase for the raw value
-- Match the backend's feature flag name exactly
-
----
-
-### 4.2 `canView(for tab:)` -- Visibility
+### 5.2 `canView(for tab:)` -- Visibility
 
 **Location:** `iOSCharmander/Common/FeatureProvider/FeatureToggle.swift`
 
-Controls whether the tab/feature appears in the UI. Add a new case to the `canView(for:)` switch statement.
-
-**Check Order:**
-1. Dark Release (organization support) -- **required**
-2. Privilege check -- **optional** (only when role restriction is needed)
-
-#### Minimal example (dark release only):
+**Check Order:** Dark Release (required) → Privilege check (optional)
 
 ```swift
+// Dark release only:
 case .yourFeature:
     myOrganizationSupportFeatures.contains(.yourNewFeature)
-```
 
-#### With privilege check:
-
-```swift
+// With privilege check:
 case .yourFeature:
     myOrganizationSupportFeatures.contains(.yourNewFeature) &&
     hasAnyDeviceWithPrivilege(.live)
 ```
 
-#### Available privilege helper methods
-
-These helpers are already defined in `FeatureToggle.swift`. Use them directly in your new switch cases:
-
+**Available helpers** (already defined in FeatureToggle.swift):
 ```swift
 private func hasAnyDeviceWithPrivilege(_ privilege: PrivilegeDeviceScope) -> Bool
 private func hasDevicePrivilege(_ device: DeviceItem, _ privilege: PrivilegeDeviceScope) -> Bool
 private func hasOrgPrivilege(_ privilege: PrivilegeOrganizationScope) -> Bool
 ```
 
-**Reference for privilege scopes:** `VortexFeatures/Sources/VortexFeatures/Core/VortexBackend/PrivilegeProvider/PrivilegeScope.swift`
+**Privilege scopes reference:** `VortexFeatures/Sources/VortexFeatures/Core/VortexBackend/PrivilegeProvider/PrivilegeScope.swift`
 
-**Result:** If `false`, tab is completely removed from UI.
+### 5.3 `canAccess(for tab:)` -- Access Gating
 
----
-
-### 4.3 `canAccess(for tab:)` -- Access Gating
-
-Controls whether a visible tab can be accessed (plan/subscription-based). Not every feature needs this -- only add a case when there's a plan-level restriction.
+Only add when there's a plan-level restriction:
 
 ```swift
 case .yourFeature:
     !myOrganizationIsFreePlan
 ```
 
-**Result:** If `false`, the tab may show a promotion view or restricted state.
+### 5.4 `canTrigger(for tab:)` -- Interaction
+
+Default already handles most features. Only add a case if different logic is needed.
 
 ---
 
-### 4.4 `canTrigger(for tab:)` -- Interaction
-
-Controls whether a visible tab can be interacted with (license-phase-based).
-
-The default behavior checks `myOrganizationLicensePhase != .renewalOverdue`. Only add a case if your feature needs different logic:
-
-```swift
-// Default for most features (already handled):
-default:
-    myOrganizationLicensePhase != .renewalOverdue
-
-// Only add a case if your feature should always be triggerable:
-case .yourFeature:
-    true
-```
-
-**Result:** If `false`, tab shows but is disabled (grayed out).
-
----
-
-## 5. Check Priority Flow
+## 6. Check Priority Flow
 
 ```
-┌──────────────────────────┐
-│ canView(for:)            │ → Dark Release + Permissions
-│ (Should tab appear?)     │
-└───────────┬──────────────┘
-            │
-            ├─ false → Tab Hidden
-            │
-            └─ true ↓
-
-┌──────────────────────────┐
-│ canAccess(for:)          │ → Plan/Subscription Check
-│ (Can user access?)       │
-└───────────┬──────────────┘
-            │
-            ├─ false → Show Promotion / Restricted
-            │
-            └─ true ↓
-
-┌──────────────────────────┐
-│ canTrigger(for:)         │ → License Phase Check
-│ (Can user interact?)     │
-└───────────┬──────────────┘
-            │
-            ├─ false → Show Disabled (grayed out)
-            │
-            └─ true → Show Active
+canView(for:)      → Dark Release + Permissions  → false → Tab Hidden
+       ↓ true
+canAccess(for:)    → Plan/Subscription Check     → false → Show Promotion
+       ↓ true
+canTrigger(for:)   → License Phase Check         → false → Show Disabled
+       ↓ true
+                   → Show Active
 ```
-
----
-
-## 6. Example: Floor Plan Feature
-
-```swift
-// 1. Backend enum (MyOrganization.swift)
-public enum SupportFeature: String, VortexBackendModel {
-    case floorPlan = "FloorPlan"
-}
-
-// 2. FeatureToggle.swift - canView(for:)
-case .floorPlan:
-    myOrganizationSupportFeatures.contains(.floorPlan)
-
-// 3. canAccess(for:) — not needed for floor plan (default returns true)
-
-// 4. canTrigger(for:) — uses default: myOrganizationLicensePhase != .renewalOverdue
-```
-
-Note: Floor plan uses dark release only in `canView(for:)` -- no privilege check and no custom access/trigger logic needed.
 
 ---
 
 ## 7. Testing Checklist
 
 - [ ] Feature hidden when organization doesn't have support flag
-- [ ] Feature visible when organization has support flag (+ user has permissions, if applicable)
-- [ ] Feature grayed out when license phase is `renewalOverdue` (controlled by `canTrigger(for:)`)
+- [ ] Feature visible when organization has support flag
+- [ ] Feature grayed out when license phase is `renewalOverdue`
 - [ ] Feature works normally when all conditions met
-- [ ] Proper error messages shown when access denied
+- [ ] MARK group placement verified across all 3 files
 
 ---
 
-## 8. Backend Coordination
-
-**Required Backend Changes:**
-1. Add feature flag to organization's `support` array
-2. Update `listMyOrganization` API response to include new feature
-3. Coordinate with backend team on feature flag name
-
-**API Response Example:**
-```json
-{
-  "support": ["FloorPlan", "YourNewFeature"]
-}
-```
-
-**The "all" mechanism for full release:**
-- When backend sets a support feature to "all", it is equivalent to adding it to every organization's support array.
-- The frontend `.contains()` check continues to work -- it returns `true` for all organizations.
-- This is the standard way to fully release a dark-released feature. No frontend changes are needed.
-
----
-
-## 9. Common Pitfalls
+## 8. Common Pitfalls
 
 ### Dark Release
+- Do NOT delete `SupportFeature` enum case to "release" a feature -- full release is a backend operation.
+- Do NOT remove frontend `.contains()` check to "release" a feature.
 
-- Do not delete `SupportFeature` enum case to "release" a feature -- full release is a backend operation (set to "all").
-- Do not remove frontend `.contains()` check to "release" a feature -- same reason.
-- Do not remove dark release mechanism without explicit user confirmation.
+### MARK Grouping
+- Do NOT place a function under the wrong MARK section just because it's nearby.
+- Do NOT add a function to only FeatureToggle.swift -- update all 3 files.
+- Do NOT forget MockFeatureProvider's 4 sync points (property, init param, init body, conformance).
 
 ### Permissions
-
-- Do not add privilege checks to every feature -- only when role restriction is needed.
-- Do not check license phase in `canView(for:)` -- license checks belong in `canTrigger(for:)`.
-- Do not skip dark release check when the feature has one.
-
-### General
-
-- Feature flag name must match backend exactly (PascalCase).
-- Test all states -- hidden, visible+disabled, visible+enabled.
-- Coordinate with backend team on feature flag naming and support array.
+- Do NOT add privilege checks to every feature -- only when role restriction is needed.
+- Do NOT check license phase in `canView(for:)` -- license checks belong in `canTrigger(for:)`.
