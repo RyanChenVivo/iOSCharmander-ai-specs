@@ -1,8 +1,52 @@
-# mobile-floor-plan-architecture Specification
+## ADDED Requirements
 
-## Purpose
-Define the architectural separation of concerns for the floor plan feature, establishing clear boundaries between UI layer (ViewModels), data layer (FloorPlanManager), and API layer (VortexRestfulApi) with proper model separation.
-## Requirements
+### Requirement: FloorPlanDetail Combined Data Structure
+The system SHALL provide a `FloorPlanDetail` struct that combines a floor plan and its associated device positions as the single source of truth for the detail view.
+
+#### Scenario: FloorPlanDetail holds floor plan and device positions together
+- **WHEN** a user navigates to a floor plan detail view
+- **THEN** FloorPlanManager exposes `@Published currentFloorPlanDetail: FloorPlanDetail?`
+- **AND** FloorPlanDetail contains `floorPlan: FloorPlan` and `devicePositions: [DevicePosition]`
+- **AND** FloorPlanDetail conforms to Sendable and Equatable
+- **AND** View observes this single property for all detail data
+
+#### Scenario: FloorPlanDetail lifecycle follows detail view navigation
+- **WHEN** user enters a floor plan detail view
+- **THEN** ViewModel fetches positions, fills device info, and calls `setCurrentFloorPlanDetail()` with a populated FloorPlanDetail
+- **AND** WHEN user leaves the detail view
+- **THEN** ViewModel calls `setCurrentFloorPlanDetail(nil)` to clear state
+
+### Requirement: View Observes Manager Published Properties Directly
+Views SHALL observe FloorPlanManager's `@Published` properties directly for data, instead of observing duplicated state on ViewModels.
+
+#### Scenario: FloorPlanTabView reads siteFloorPlans from Manager
+- **WHEN** FloorPlanTabView displays the list of floor plans
+- **THEN** View observes `FloorPlanManager.shared.siteFloorPlans` directly
+- **AND** View does NOT read siteFloorPlans from ViewModel
+- **AND** ViewModel does NOT maintain a `@Published var siteFloorPlans` copy
+
+#### Scenario: FloorPlanDetailView reads currentFloorPlanDetail from Manager
+- **WHEN** FloorPlanDetailView displays floor plan detail
+- **THEN** View observes `FloorPlanManager.shared.currentFloorPlanDetail` directly
+- **AND** View does NOT read devicePositions or floorPlan from ViewModel
+- **AND** ViewModel does NOT maintain `@Published var devicePositions` or `@Published var floorPlan`
+
+### Requirement: DevicePosition Stores Parsed CompositeType
+DevicePosition SHALL store `compositeType: DeviceCompositeType` as a stored property, populated by FloorPlanManager during API data transformation, so consumers do not need to parse the API serial number format.
+
+#### Scenario: Manager parses deviceSerialNumber into compositeType during transformation
+- **WHEN** FloorPlanManager transforms API DevicePositionBackendModel to DevicePosition
+- **THEN** Manager parses `deviceSerialNumber` (format `"thingName:derivant"`) into `DeviceCompositeType`
+- **AND** stores the result as `compositeType: DeviceCompositeType` on DevicePosition
+- **AND** DevicePosition is returned with `device = nil` (not filled by Manager)
+
+#### Scenario: Unexpected serial number format is handled gracefully
+- **WHEN** deviceSerialNumber does not contain a colon separator
+- **THEN** Manager creates DeviceCompositeType with the full string as thingName and empty derivant
+- **AND** a warning is logged
+
+## MODIFIED Requirements
+
 ### Requirement: Floor Plan Manager Layer Separation
 The floor plan feature SHALL have a dedicated Manager layer between ViewModels and API to provide proper separation of concerns where ViewModels handle UI orchestration and Manager handles data transformation and caching only.
 
@@ -37,37 +81,6 @@ The floor plan feature SHALL have a dedicated Manager layer between ViewModels a
 - **AND** protocol is Sendable for Swift 6 concurrency
 - **AND** protocol enables MockFloorPlanManager in tests
 
-### Requirement: Backend and UI Model Separation
-The floor plan feature SHALL maintain separate Backend models (API layer) and UI models (Presentation layer) to ensure proper layering and independence.
-
-#### Scenario: Backend models represent API contract
-- **WHEN** API responses are decoded
-- **THEN** responses decode to Backend models (FloorPlanBackendModel, DevicePositionBackendModel)
-- **AND** Backend models match server response structure exactly
-- **AND** Backend models are located in VortexFeatures/Common/VortexBackend/Model/FloorPlan/
-- **AND** Backend models conform to VortexBackendModel protocol
-
-#### Scenario: UI models represent presentation needs
-- **WHEN** data is displayed in Views
-- **THEN** Views use UI models (FloorPlanItem, DevicePosition)
-- **AND** UI models include computed properties for presentation
-- **AND** UI models are located in VortexFeatures/Core/FloorPlanManager/
-- **AND** UI models conform to Identifiable, Equatable, Sendable
-
-#### Scenario: FloorPlanManager transforms Backend to UI models
-- **WHEN** FloorPlanManager receives Backend models from API
-- **THEN** Manager transforms Backend models to UI models
-- **AND** transformation happens in Manager layer only
-- **AND** ViewModels never access Backend models directly
-- **AND** API layer never references UI models
-
-#### Scenario: API responses use Backend models
-- **WHEN** VortexRestfulApi methods return floor plan data
-- **THEN** GetFloorPlansOutput contains [FloorPlanBackendModel]
-- **AND** GetDevicePositionsOutput contains [DevicePositionBackendModel]
-- **AND** no UI models (FloorPlanItem, DevicePosition) exist in API response types
-- **AND** API layer is independent of UI layer
-
 ### Requirement: Pre-populate Complete Device Information
 DevicePosition SHALL have a mutable `device: DeviceItem?` property that is populated by the ViewModel (not Manager) using DeviceManager, and is reactively updated when device status changes.
 
@@ -99,30 +112,6 @@ DevicePosition SHALL have a mutable `device: DeviceItem?` property that is popul
 - **AND** ViewModel calls `setCurrentFloorPlanDetail()` with updated positions
 - **AND** Manager's `@Published currentFloorPlanDetail` updates
 - **AND** View automatically refreshes device markers with new status
-
-### Requirement: Floor Plan Image Caching Strategy
-The system SHALL cache floor plan images via ThumbnailManager using Kingfisher with URL-aware cache keys to ensure images update when changed on the server.
-
-#### Scenario: Cache key includes imageUrl hash for invalidation
-- **WHEN** ThumbnailManager loads a floor plan image
-- **THEN** cache key SHALL be `floorplan_{floorPlan.id}_{imageUrl.hashValue}`
-- **AND** cache key includes imageUrl hash so that server-side image changes produce a different key
-- **AND** old cached images are naturally superseded when URL changes
-- **AND** same image URL always hits cache for performance
-
-#### Scenario: ThumbnailManager download and cache flow
-- **WHEN** floor plan image is requested via `getFloorPlanThumbnail(of:)`
-- **THEN** system first checks Kingfisher cache using the URL-aware cache key
-- **AND** if cache hit, returns cached UIImage immediately
-- **AND** if cache miss, downloads image from S3 presigned URL via HttpRequestManager
-- **AND** stores downloaded image in Kingfisher cache via ImageProvider.store
-- **AND** returns downloaded UIImage
-
-#### Scenario: View layer detects image URL changes
-- **WHEN** FloorPlanDetailView displays floor plan image
-- **THEN** SwiftUI `.task(id: floorPlan.imageUrl)` modifier tracks imageUrl for changes
-- **AND** when imageUrl changes (e.g., after pull-to-refresh), task re-triggers
-- **AND** new image is loaded via ThumbnailManager with new cache key
 
 ### Requirement: ViewModel UI Logic Only
 The floor plan ViewModels SHALL contain UI state management and orchestration logic (triggering fetches, syncing cross-Manager data, writing assembled data back to Manager) but SHALL NOT contain data transformation logic.
@@ -180,49 +169,3 @@ The FloorPlanManager SHALL have comprehensive unit test coverage (80%+) to ensur
 - **AND** mock returns Backend models (not UI models)
 - **AND** tests verify Manager transforms Backend to UI correctly
 - **AND** tests can simulate API failures
-
-### Requirement: FloorPlanDetail Combined Data Structure
-The system SHALL provide a `FloorPlanDetail` struct that combines a floor plan and its associated device positions as the single source of truth for the detail view.
-
-#### Scenario: FloorPlanDetail holds floor plan and device positions together
-- **WHEN** a user navigates to a floor plan detail view
-- **THEN** FloorPlanManager exposes `@Published currentFloorPlanDetail: FloorPlanDetail?`
-- **AND** FloorPlanDetail contains `floorPlan: FloorPlan` and `devicePositions: [DevicePosition]`
-- **AND** FloorPlanDetail conforms to Sendable and Equatable
-- **AND** View observes this single property for all detail data
-
-#### Scenario: FloorPlanDetail lifecycle follows detail view navigation
-- **WHEN** user enters a floor plan detail view
-- **THEN** ViewModel fetches positions, fills device info, and calls `setCurrentFloorPlanDetail()` with a populated FloorPlanDetail
-- **AND** WHEN user leaves the detail view
-- **THEN** ViewModel calls `setCurrentFloorPlanDetail(nil)` to clear state
-
-### Requirement: View Observes Manager Published Properties Directly
-Views SHALL observe FloorPlanManager's `@Published` properties directly for data, instead of observing duplicated state on ViewModels.
-
-#### Scenario: FloorPlanTabView reads siteFloorPlans from Manager
-- **WHEN** FloorPlanTabView displays the list of floor plans
-- **THEN** View observes `FloorPlanManager.shared.siteFloorPlans` directly
-- **AND** View does NOT read siteFloorPlans from ViewModel
-- **AND** ViewModel does NOT maintain a `@Published var siteFloorPlans` copy
-
-#### Scenario: FloorPlanDetailView reads currentFloorPlanDetail from Manager
-- **WHEN** FloorPlanDetailView displays floor plan detail
-- **THEN** View observes `FloorPlanManager.shared.currentFloorPlanDetail` directly
-- **AND** View does NOT read devicePositions or floorPlan from ViewModel
-- **AND** ViewModel does NOT maintain `@Published var devicePositions` or `@Published var floorPlan`
-
-### Requirement: DevicePosition Stores Parsed CompositeType
-DevicePosition SHALL store `compositeType: DeviceCompositeType` as a stored property, populated by FloorPlanManager during API data transformation, so consumers do not need to parse the API serial number format.
-
-#### Scenario: Manager parses deviceSerialNumber into compositeType during transformation
-- **WHEN** FloorPlanManager transforms API DevicePositionBackendModel to DevicePosition
-- **THEN** Manager parses `deviceSerialNumber` (format `"thingName:derivant"`) into `DeviceCompositeType`
-- **AND** stores the result as `compositeType: DeviceCompositeType` on DevicePosition
-- **AND** DevicePosition is returned with `device = nil` (not filled by Manager)
-
-#### Scenario: Unexpected serial number format is handled gracefully
-- **WHEN** deviceSerialNumber does not contain a colon separator
-- **THEN** Manager creates DeviceCompositeType with the full string as thingName and empty derivant
-- **AND** a warning is logged
-
