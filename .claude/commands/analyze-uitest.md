@@ -10,18 +10,19 @@ Analyze UITest failures from CI using a skill-based approach with dynamic contex
 
 Invokes the `analyzing-uitest-failures` skill, which automatically:
 
-1. **Downloads test data from CI** (lightweight JSON files to `$HOME/Downloads/UITestAnalysis/latest/`)
-2. **Analyzes failures** against known patterns and history
-3. **Provides recommendations** (Observe/Investigate/Fix/Restore/Report)
-4. **Routes to appropriate follow-up skills** as needed
+1. **Always downloads latest test data from CI** (lightweight JSON files to `$HOME/Downloads/UITestAnalysis/latest/`)
+2. **Validates data date** after download — prompts user if not today's data
+3. **Analyzes failures** against known patterns and history
+4. **Provides recommendations** (Observe/Investigate/Fix/Restore/Report)
+5. **Routes to appropriate follow-up skills** as needed
 
 ---
 
 ## How It Works
 
 The `analyzing-uitest-failures` skill will:
-- **Auto-download test data** if missing or outdated
-- Check data freshness (today's data used directly, older data prompts user)
+- **Always download fresh data** before analysis (never skips download)
+- Validate data date after download (prompts user if CI didn't run today)
 - **Handle multiple failures** with grouped summary view
 - Match against known patterns in the pattern library
 - Check observation history for recurring issues

@@ -13,36 +13,27 @@ Analyze UITest failures from CI and provide handling recommendations.
 
 ## Pre-check
 
-Before analysis, verify data availability:
-
-1. Check if `$HOME/Downloads/UITestAnalysis/latest/` exists
-2. Check data date:
-   - **Today** → Use directly
-   - **Past date** → Ask: "Data is from YYYY-MM-DD. Download latest data? Or use this?"
-   - **Not exist** → Proceed to auto-download
-
-**Auto-download when needed:**
-
-If no data exists or user requests refresh:
+Always download fresh data before analysis. Do NOT skip download based on local directory existence.
 
 1. Inform user: "⬇️ 下載最新測試資料..."
-2. Verify script exists: `uitest-automation/scripts/download_uitest_data.sh`
-3. Execute download:
+2. Execute download:
    ```bash
    bash uitest-automation/scripts/download_uitest_data.sh
    ```
-4. Check download result:
-   - **Success** → Inform: "✅ 已下載最新測試資料 (位於 $HOME/Downloads/UITestAnalysis/latest/)"
+3. Check download result:
    - **Failed** → Error: "❌ 自動下載失敗。請手動執行：`bash uitest-automation/scripts/download_uitest_data.sh`" and stop analysis
-5. Verify data files present before proceeding
-
-3. Check failure count from `test_summary.json` (`failedTests` field):
+   - **Success** → Continue
+4. Read `metadata.json` from `$HOME/Downloads/UITestAnalysis/latest/` and check `testDate` field:
+   - **Today** → Inform: "✅ 已下載今天的測試資料" and continue
+   - **Not today** → Inform: "⚠️ CI 今天似乎未執行測試，資料日期為 YYYY-MM-DD。要用此資料繼續分析嗎？"
+     - **User agrees** → Continue
+     - **User declines** → Stop analysis
+5. Check failure count from `test_summary.json` (`failedTests` field):
    - **No failures** → Proceed to Observation Maintenance (flaky tests may still exist)
-   - **Has failures** → Proceed to step 4
-
-4. Check existing report:
-   - If `triage_report_YYYY-MM-DD.md` exists for today's data date
-   - Ask: "今天已有分析報告，要繼續處理未完成項目嗎？"
+   - **Has failures** → Proceed to step 6
+6. Check existing report:
+   - If `triage_report_YYYY-MM-DD.md` exists for the data date
+   - Ask: "此日期已有分析報告，要繼續處理未完成項目嗎？"
    - **Yes** → Read report, identify items with ⏳ status, continue from Step 4
    - **No** → Start fresh analysis from Step 1
 

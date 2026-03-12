@@ -1,3 +1,14 @@
 {
-  "observations": []
+  "observations": [
+    {
+      "id": "MessageUITests.test_setUserFeedbackOnMessageDetail",
+      "firstSeen": "2026-03-12",
+      "lastSeen": "2026-03-12",
+      "occurrences": 1,
+      "pattern": "timing-element-not-ready",
+      "decision": "observe",
+      "expiresOn": "2026-03-13",
+      "notes": "\"userFeedbackedMessage\" StaticText is not exist. 截圖確認元素最終有出現。疑似 @Observable 遷移 (commit 0be488e7f) 導致狀態傳播時序差異。首次出現。"
+    }
+  ]
 }
