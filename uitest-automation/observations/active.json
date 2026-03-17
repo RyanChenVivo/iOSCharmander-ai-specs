@@ -1,14 +1,34 @@
 {
   "observations": [
     {
-      "id": "MessageUITests.test_setUserFeedbackOnMessageDetail",
-      "firstSeen": "2026-03-12",
-      "lastSeen": "2026-03-12",
+      "id": "AccessControlMessageUITest.testCanRemoteUnlockDoorAndFilterMessage",
+      "firstSeen": "2026-03-17",
+      "lastSeen": "2026-03-17",
       "occurrences": 1,
       "pattern": "timing-element-not-ready",
       "decision": "observe",
-      "expiresOn": "2026-03-13",
-      "notes": "\"userFeedbackedMessage\" StaticText is not exist. 截圖確認元素最終有出現。疑似 @Observable 遷移 (commit 0be488e7f) 導致狀態傳播時序差異。首次出現。"
+      "expiresOn": "2026-03-18",
+      "notes": "switchToMessage failed。首次出現，可能是 tab 切換時序問題。"
+    },
+    {
+      "id": "AccessControlMessageUITest.testCanSeeAccessMessageWithinAnHour",
+      "firstSeen": "2026-03-17",
+      "lastSeen": "2026-03-17",
+      "occurrences": 1,
+      "pattern": "timing-element-not-ready",
+      "decision": "observe",
+      "expiresOn": "2026-03-18",
+      "notes": "XCTAssertTrue failed。與同 class 另一測試同日失敗，可能同源。首次出現。"
+    },
+    {
+      "id": "UserPrivilegeUITest.test_listSites_user1_viewer",
+      "firstSeen": "2026-03-17",
+      "lastSeen": "2026-03-17",
+      "occurrences": 1,
+      "pattern": "timing-element-not-ready",
+      "decision": "observe",
+      "expiresOn": "2026-03-18",
+      "notes": "\"Ungrouped Cameras\" StaticText is not exist。首次出現，element not found。"
     }
   ]
 }

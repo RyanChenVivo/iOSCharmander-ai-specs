@@ -16,6 +16,7 @@ Record known failure patterns to improve triage decision consistency.
 | message-user-feedback | UserFeedback button disabled | Observe | Usually yes |
 | tab-label-mismatch | 100% class failure + "No matches" at navigation | Fix | No |
 | opacity-hidden-element | waitElementToDisappear timeout + element visually gone | Fix | No |
+| sso-ios26-passkey-system-sheet | SSO test + max iterations + iOS 26 | Fix | No |
 
 ---
 
@@ -56,6 +57,9 @@ Record known failure patterns to improve triage decision consistency.
 - 2025-12-19: Passwordless auth flow changed to "Get a code to sign in"
   - Fix: Added bypass for passwordless default
   - Archive: `openspec/changes/fix-sso-passwordless-auth-flow-2025-12-19/`
+- 2026-03-17: iOS 26 system-level passkey manager sheet blocks SSO flow
+  - Fix: Added `passkeyManagerSystemSheet` with springboard detection/dismissal
+  - Archive: `openspec/changes/archive/2026-03-17-fix-sso-ios26-passkey-manager-sheet/`
 
 **Notes:**
 - Microsoft changes are typically permanent and require code fix
@@ -257,6 +261,31 @@ XCTAssertTrue(
 
 ---
 
+## sso-ios26-passkey-system-sheet
+
+**Trigger Conditions:**
+- All SSO tests fail with "SSO flow exceeded maximum iterations (15)"
+- Running on iOS 26 simulator
+- `settingUpPasskey` detected repeatedly but Cancel tap has no effect
+- System-level sheet "Choose how to manage your passkeys." visible (springboard, not in-app)
+
+**Recommended Action:** Fix
+
+**Reason:** iOS 26 introduces a system-level passkey manager selection sheet presented by AuthenticationServices framework. This sheet is in the springboard accessibility tree, not the app's. It overlays the web view, blocking interaction with the web Cancel button. Requires accessing `XCUIApplication(bundleIdentifier: "com.apple.springboard")` to dismiss.
+
+**Historical Cases:**
+- 2026-03-17: iOS 26 simulator introduced system passkey manager sheet during Microsoft SSO
+  - Fix: Added `passkeyManagerSystemSheet` case to `SSOPage` with springboard-based detection and dismissal
+  - Archive: `openspec/changes/archive/2026-03-17-fix-sso-ios26-passkey-manager-sheet/`
+
+**Notes:**
+- Different from `choosePasskeyManager` (in-app native alert with Cancel button)
+- System sheet has ✕ close button, "Open Settings", "More Options" — no Cancel
+- Detection uses `exists` (no timeout) to avoid performance impact
+- Backward compatible: sheet doesn't appear on iOS 25, check is a fast no-op
+
+---
+
 ## Adding New Patterns
 
 When adding a new pattern, include:
@@ -293,4 +322,4 @@ When adding a new pattern, include:
 
 ---
 
-**Last Updated:** 2026-03-11
+**Last Updated:** 2026-03-17

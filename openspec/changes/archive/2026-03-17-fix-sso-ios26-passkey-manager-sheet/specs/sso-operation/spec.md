@@ -24,6 +24,8 @@ The system SHALL dismiss the iOS 26 system-level passkey manager sheet by tappin
 - **WHEN** the system checks for the passkey manager sheet on iOS 25 or earlier
 - **THEN** the sheet SHALL not be found and the system SHALL fall through to existing page detection logic
 
+## MODIFIED Requirements
+
 ### Requirement: SSOPage enum defines all known Microsoft SSO pages
 
 The system SHALL define an `SSOPage` enum that includes all known Microsoft Entra SSO page variants:
@@ -100,58 +102,3 @@ Each `SSOPage` case SHALL have a handler function that performs the appropriate 
 #### Scenario: Sign in blocked handler returns failure
 - **WHEN** the handler is called for `signInBlocked` page
 - **THEN** it SHALL return `.failure` with an appropriate error message
-
-### Requirement: SSOPageResult enum controls flow continuation
-
-The system SHALL define an `SSOPageResult` enum with cases:
-- `.continueFlow` - continue detecting and handling pages
-- `.success` - login completed successfully
-- `.failure(String)` - login failed with reason
-
-#### Scenario: Result types are exhaustive
-- **WHEN** a handler completes
-- **THEN** it SHALL return exactly one of the three result types
-
-### Requirement: Main loop executes state machine
-
-The `performEntraSSOSignIn` function SHALL implement a detect-handle-repeat loop.
-
-#### Scenario: Loop detects and handles pages until terminal
-- **WHEN** `performEntraSSOSignIn` is called with account and password
-- **THEN** it SHALL repeatedly call `detectCurrentPage` and the page's handler until a terminal result is returned
-
-#### Scenario: Loop logs each step
-- **WHEN** a page is detected and handled
-- **THEN** the function SHALL print a log message indicating the step number and page type
-
-#### Scenario: Loop enforces maximum iterations
-- **WHEN** the loop exceeds 20 iterations without reaching a terminal state
-- **THEN** it SHALL call `XCTFail` with an appropriate error message
-
-#### Scenario: Loop fails on detection timeout
-- **WHEN** `detectCurrentPage` returns `nil`
-- **THEN** the function SHALL call `XCTFail` indicating the flow is stuck
-
-### Requirement: SSOOperation protocol extends CommonOperation
-
-The `SSOOperation` protocol SHALL inherit from `CommonOperation` and provide default implementations via protocol extension.
-
-#### Scenario: Test class gains SSO capability through conformance
-- **WHEN** a test class declares conformance to `SSOOperation`
-- **THEN** it SHALL automatically have access to `performEntraSSOSignIn` and `detectCurrentPage` methods
-
-#### Scenario: Protocol requires app property
-- **WHEN** a test class conforms to `SSOOperation`
-- **THEN** it SHALL provide the `app: XCUIApplication` property from `CommonOperation`
-
-### Requirement: Adding new page variants requires minimal changes
-
-The architecture SHALL support adding new Microsoft page variants with minimal code changes.
-
-#### Scenario: New page variant addition
-- **WHEN** a new Microsoft SSO page variant is discovered
-- **THEN** it SHALL be addable by: (1) adding a case to `SSOPage` enum, (2) adding detector closure, (3) adding handler case
-
-#### Scenario: Compiler enforces exhaustive handling
-- **WHEN** a new case is added to `SSOPage` enum
-- **THEN** the Swift compiler SHALL require handling in all switch statements
