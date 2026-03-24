@@ -2,11 +2,11 @@
 
 ### Requirement: System-level passkey manager sheet detection
 
-The system SHALL detect the iOS 26 system-level passkey manager sheet ("Choose how to manage your passkeys.") by querying the springboard accessibility tree via `XCUIApplication(bundleIdentifier: "com.apple.springboard")`.
+The system SHALL detect the iOS 26 system-level passkey biometrics sheet ("Simulator requires enrolled biometrics to use passkeys.") by querying the springboard accessibility tree via `XCUIApplication(bundleIdentifier: "com.apple.springboard")`.
 
 #### Scenario: Sheet is present on iOS 26
 - **WHEN** Microsoft SSO triggers passkey setup on iOS 26
-- **THEN** the system SHALL detect the "Choose how to manage your passkeys." text in the springboard accessibility tree
+- **THEN** the system SHALL detect the "Simulator requires enrolled biometrics to use passkeys." text in the springboard accessibility tree
 
 #### Scenario: Sheet is not present
 - **WHEN** the system checks for the passkey manager sheet and it is not displayed
@@ -14,11 +14,11 @@ The system SHALL detect the iOS 26 system-level passkey manager sheet ("Choose h
 
 ### Requirement: System-level passkey manager sheet dismissal
 
-The system SHALL dismiss the iOS 26 system-level passkey manager sheet by tapping its close button (✕) via the springboard accessibility tree.
+The system SHALL dismiss the iOS 26 system-level passkey biometrics sheet by tapping its Cancel button via the springboard accessibility tree.
 
 #### Scenario: Dismiss sheet and continue SSO flow
-- **WHEN** the system-level passkey manager sheet is detected
-- **THEN** the system SHALL tap the close button on the springboard sheet and return `.continueFlow`
+- **WHEN** the system-level passkey biometrics sheet is detected
+- **THEN** the system SHALL tap the Cancel button on the springboard sheet and return `.continueFlow`
 
 #### Scenario: Backward compatibility with iOS 25
 - **WHEN** the system checks for the passkey manager sheet on iOS 25 or earlier
@@ -87,7 +87,7 @@ Each `SSOPage` case SHALL have a handler function that performs the appropriate 
 
 #### Scenario: System-level passkey manager sheet handler dismisses via springboard
 - **WHEN** the handler is called for `passkeyManagerSystemSheet`
-- **THEN** it SHALL tap the close button (✕) on the springboard sheet, returning `.continueFlow`
+- **THEN** it SHALL tap the Cancel button on the springboard sheet, returning `.continueFlow`
 
 #### Scenario: Stay signed in handler declines
 - **WHEN** the handler is called for `staySignedIn` page

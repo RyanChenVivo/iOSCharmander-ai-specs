@@ -267,20 +267,24 @@ XCTAssertTrue(
 - All SSO tests fail with "SSO flow exceeded maximum iterations (15)"
 - Running on iOS 26 simulator
 - `settingUpPasskey` detected repeatedly but Cancel tap has no effect
-- System-level sheet "Choose how to manage your passkeys." visible (springboard, not in-app)
+- System-level sheet "Simulator requires enrolled biometrics to use passkeys." visible (springboard, not in-app)
 
 **Recommended Action:** Fix
 
-**Reason:** iOS 26 introduces a system-level passkey manager selection sheet presented by AuthenticationServices framework. This sheet is in the springboard accessibility tree, not the app's. It overlays the web view, blocking interaction with the web Cancel button. Requires accessing `XCUIApplication(bundleIdentifier: "com.apple.springboard")` to dismiss.
+**Reason:** iOS 26 introduces a system-level passkey biometrics sheet presented by AuthenticationServices framework. This sheet is in the springboard accessibility tree, not the app's. It overlays the web view, blocking interaction with the web Cancel button. Requires accessing `XCUIApplication(bundleIdentifier: "com.apple.springboard")` to dismiss.
 
 **Historical Cases:**
-- 2026-03-17: iOS 26 simulator introduced system passkey manager sheet during Microsoft SSO
-  - Fix: Added `passkeyManagerSystemSheet` case to `SSOPage` with springboard-based detection and dismissal
+- 2026-03-17: iOS 26 simulator introduced system passkey sheet during Microsoft SSO
+  - Initial fix: Added `passkeyManagerSystemSheet` case but with wrong detection text and button
   - Archive: `openspec/changes/archive/2026-03-17-fix-sso-ios26-passkey-manager-sheet/`
+- 2026-03-24: Corrected detection and dismissal based on actual iOS 26 screenshots
+  - Detection text: "Simulator requires enrolled biometrics to use passkeys." (via springboard)
+  - Dismiss button: "Cancel" (via springboard), not "Close"
+  - Flow after dismissal: "We couldn't create a passkey" → Cancel → "Stay signed in?" → No
 
 **Notes:**
-- Different from `choosePasskeyManager` (in-app native alert with Cancel button)
-- System sheet has ✕ close button, "Open Settings", "More Options" — no Cancel
+- Different from `passkeyBiometricsRequired` (same text but detected via `app.staticTexts` for older iOS)
+- System sheet has Cancel button and "More Options" — accessed via springboard
 - Detection uses `exists` (no timeout) to avoid performance impact
 - Backward compatible: sheet doesn't appear on iOS 25, check is a fast no-op
 
@@ -322,4 +326,4 @@ When adding a new pattern, include:
 
 ---
 
-**Last Updated:** 2026-03-17
+**Last Updated:** 2026-03-24

@@ -34,9 +34,17 @@ UITests depend on external services that we don't control. This document tracks 
 
 **Variants:**
 - **Web-based:** "Setting up your passkey..." with Cancel button
-- **Native dialog:** "Simulator requires enrolled biometrics to use passkeys."
+- **Native dialog (in-app):** "Simulator requires enrolled biometrics to use passkeys." — detected via `app.staticTexts`, dismissed with `app.buttons["Cancel"]`
+- **System sheet (iOS 26, springboard):** "Simulator requires enrolled biometrics to use passkeys." — detected via `XCUIApplication(bundleIdentifier: "com.apple.springboard").staticTexts`, dismissed with `springboard.buttons["Cancel"]`
+- **Passkey creation failed:** "We couldn't create a passkey" — web page with Cancel button (appears after dismissing system sheet)
 
-**Test Impact:** May appear after password entry, must handle both variants.
+**iOS 26 SSO Flow (observed 2026-03-24):**
+1. "Setting up your passkey..." (web)
+2. System sheet: "Simulator requires enrolled biometrics to use passkeys." → tap Cancel (springboard)
+3. "We couldn't create a passkey" → tap Cancel (web)
+4. "Stay signed in?" → tap No (web)
+
+**Test Impact:** May appear after password entry, must handle all variants.
 
 ### Page Load Times
 
@@ -51,6 +59,8 @@ UITests depend on external services that we don't control. This document tracks 
 | 2025-12-03 | Native passkey dialog | SSO tests failed | handlePasskeyDialogIfNeeded() |
 | 2025-12-15 | Web passkey page | SSO tests failed | handlePasskeyWebPageIfNeeded() |
 | 2025-12-19 | Passwordless default | SSO tests failed | Bypass "Get a code" page |
+| 2026-03-17 | iOS 26 system-level passkey sheet | SSO tests failed (max iterations) | Added `passkeyManagerSystemSheet` (initial, had wrong text/button) |
+| 2026-03-24 | Corrected iOS 26 passkey sheet handling | SSO tests failed | Fixed detection text and Cancel button via springboard |
 
 ---
 
@@ -134,4 +144,4 @@ Check:
 
 ---
 
-**Last Updated:** 2025-02-09
+**Last Updated:** 2026-03-24
