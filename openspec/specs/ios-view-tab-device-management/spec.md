@@ -25,7 +25,7 @@ The View Tab SHALL display a control panel above the site list only when there a
 
 ### Requirement: Control Panel Site Count Display
 
-The control panel SHALL display the site count with correct singular/plural form.
+The control panel SHALL display the total site count (including subsites) with correct singular/plural form. The count includes all sites regardless of hierarchy depth.
 
 #### Scenario: Singular display
 
@@ -33,11 +33,11 @@ The control panel SHALL display the site count with correct singular/plural form
 - **WHEN** rendering site count text
 - **THEN** display "1 site"
 
-#### Scenario: Plural display
+#### Scenario: Plural display with subsites
 
-- **GIVEN** organization has 2 or more sites
+- **GIVEN** organization has 2 top-level sites and 3 subsites (5 total)
 - **WHEN** rendering site count text
-- **THEN** display "X sites" (e.g., "5 sites")
+- **THEN** display "5 sites"
 - **AND** use `.textStyle(.callout.color05)` style
 
 ---
