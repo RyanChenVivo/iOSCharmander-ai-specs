@@ -21,6 +21,12 @@ The View Tab SHALL display a control panel above the site list only when there a
 - **THEN** control panel displays above site list
 - **AND** control panel height is 44pt
 
+#### Scenario: Site list refreshes after site deletion
+
+- **WHEN** a site is successfully deleted from MoveToSiteView
+- **AND** `DeviceManager.sites` updates via `@Published`
+- **THEN** the View Tab site list SHALL reactively update to reflect the removal
+
 ---
 
 ### Requirement: Control Panel Site Count Display
