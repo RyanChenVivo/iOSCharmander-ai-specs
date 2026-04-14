@@ -1,9 +1,4 @@
-# subsite-display-name Specification
-
-## Purpose
-Site path resolution logic - resolving full ancestor paths via parentId chain for area display names.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Site Display Name Path Resolution
 
@@ -31,26 +26,6 @@ The system SHALL resolve each site's display name to include the full ancestor p
 
 - **WHEN** joining ancestor names into a display path
 - **THEN** the separator SHALL be " > " (space, greater-than, space)
-
----
-
-### Requirement: Path Resolution Robustness
-
-The system SHALL handle malformed `parentId` data gracefully without crashing.
-
-#### Scenario: Orphan parentId (references non-existent site)
-
-- **GIVEN** a site whose `parentId` points to an ID not present in the site list
-- **WHEN** constructing `SiteItem`
-- **THEN** the path resolution SHALL terminate at the orphan point
-- **AND** display name SHALL include only the resolvable portion of the chain
-
-#### Scenario: Circular parentId reference
-
-- **GIVEN** a site whose `parentId` chain forms a cycle (e.g., A -> B -> A)
-- **WHEN** constructing `SiteItem`
-- **THEN** the path resolution SHALL detect the cycle via visited-set
-- **AND** display name SHALL include only the portion resolved before cycle detection
 
 ---
 
@@ -87,3 +62,8 @@ The system SHALL sort sites alphabetically by their full path display name.
 - **GIVEN** the default site (organization root) exists in the list
 - **WHEN** sorting the site list
 - **THEN** the default site SHALL sort last regardless of its path name
+
+## RENAMED Requirements
+
+### Requirement: Site Display Name Path Resolution
+Scenario renames only — "subsite" → "area" in scenario names and descriptions. No behavioral change.
