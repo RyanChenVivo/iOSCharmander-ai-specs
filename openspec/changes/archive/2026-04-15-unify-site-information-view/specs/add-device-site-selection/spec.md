@@ -1,50 +1,7 @@
-# add-device-site-selection Specification
-
-## Purpose
-Site selection behavior during the Add Device flow - including empty state handling, tree-based site/area selection, and site creation.
-
-## Requirements
-
-### Requirement: No default Site pre-selection in Add Device flow
-The Add Device configuration screen SHALL NOT pre-select a default Site. The user MUST explicitly select a Site.
-
-#### Scenario: Initial Site field state
-- **WHEN** user enters the Add Device configuration screen (AddDeviceByMacView or AddVSSView)
-- **THEN** the Site field SHALL display "Select a site" placeholder text in a muted color (no Site selected)
-- **AND** no default Site SHALL be assigned to the device
-
-#### Scenario: Site persists after explicit selection
-- **WHEN** user selects a Site in MoveToSiteView
-- **AND** returns to AddDeviceByMacView
-- **THEN** the selected Site name SHALL be displayed in the Site field
-
-### Requirement: Add button disabled without valid Site
-The Add button SHALL be disabled when no valid Site is selected for the device.
-
-#### Scenario: Add button disabled when no Site selected
-- **WHEN** user is on AddDeviceByMacView
-- **AND** no Site has been selected (siteID is empty)
-- **THEN** the Add button SHALL be disabled
-
-#### Scenario: Add button disabled when selected Site was deleted
-- **WHEN** user has selected a Site
-- **AND** that Site is deleted via MoveToSiteView
-- **THEN** `device.siteID` SHALL be cleared by MoveToSiteViewModel
-- **AND** the Add button SHALL be disabled
-
-#### Scenario: Add button enabled after Site selection
-- **WHEN** user selects a valid Site in MoveToSiteView
-- **AND** returns to AddDeviceByMacView
-- **THEN** the Add button SHALL be enabled
+## MODIFIED Requirements
 
 ### Requirement: Empty state display when no Sites exist
 MoveToSiteView SHALL display an empty state illustration when the organization has no Sites during the Add Device flow.
-
-#### Scenario: No Sites exist in organization
-- **WHEN** user navigates to MoveToSiteView during Add Device flow
-- **AND** `deviceManager.sites` is empty
-- **THEN** system SHALL display a centered empty state illustration using the shared `NoResultView` component
-- **AND** display a descriptive message indicating no Sites exist and prompting the user to create one
 
 #### Scenario: Empty state includes Create Site or Area button
 - **WHEN** empty state is displayed
@@ -55,53 +12,7 @@ MoveToSiteView SHALL display an empty state illustration when the organization h
 - **WHEN** user creates a Site or Area via SiteInformationView and returns to MoveToSiteView
 - **THEN** empty state SHALL be replaced by the Site list containing the newly created Site or Area
 
-### Requirement: Site list display when Sites exist
-MoveToSiteView SHALL display Sites in a hierarchical tree view using the generic TreeView component when at least one Site exists, replacing the current flat SearchableScrollItemListView.
-
-#### Scenario: Sites exist in organization
-- **WHEN** user navigates to MoveToSiteView during Add Device or Move Device flow
-- **AND** `deviceManager.sites` is not empty
-- **THEN** system SHALL display a TreeView with SiteItem hierarchy
-- **AND** the flat SearchableScrollItemListView SHALL NOT be used
-
-#### Scenario: Tree row shows site name with selection indicator
-- **WHEN** the tree view renders each SiteItem row
-- **THEN** the row SHALL display the site's leaf name (last pathComponent) and icon
-- **AND** if the site matches `viewModel.selectedSite`, a checkmark indicator SHALL be shown
-
-#### Scenario: Selecting a site from tree
-- **WHEN** user taps a Site/Area row in the tree view
-- **THEN** the same selection logic as the current flat list SHALL execute (tapSiteRow)
-- **AND** the view SHALL dismiss after selection (Add flow) or confirm-then-dismiss (Move flow)
-
-### Requirement: Search filters tree while preserving ancestor hierarchy
-When the user searches in MoveToSiteView, the tree SHALL show only matching Sites/Areas and their ancestor chain, keeping the tree structure intact.
-
-#### Scenario: Search matches a deep node
-- **WHEN** user types a keyword in the search bar
-- **AND** a Site/Area at depth N matches the keyword
-- **THEN** the tree SHALL display that node and all its ancestors up to the root
-- **AND** the tree structure (indentation, parent-child relationship) SHALL be preserved
-
-#### Scenario: Search matches expand ancestors automatically
-- **WHEN** search results are displayed in the tree
-- **THEN** all ancestor nodes of matching items SHALL be automatically expanded
-- **AND** the user SHALL see matching items without manually expanding nodes
-
-#### Scenario: Non-matching siblings hidden
-- **WHEN** user types a keyword in the search bar
-- **AND** a node does not match the keyword and has no matching descendants
-- **THEN** that node SHALL NOT appear in the tree
-
-#### Scenario: Search cleared restores full tree
-- **WHEN** user clears the search keyword
-- **THEN** the full tree SHALL be restored with the previous expand/collapse state
-
-#### Scenario: No results found
-- **WHEN** user types a keyword that matches no Sites/Areas
-- **THEN** the tree SHALL display an empty state (NoResultCover)
-
-### Requirement: SiteInformationView supports type selection
+### Requirement: CreateSiteView supports type selection
 SiteInformationView SHALL allow the user to choose between creating a Site or an Area via a segmented picker when in create mode.
 
 #### Scenario: Type picker displayed in create mode
@@ -169,12 +80,10 @@ The `createSite` function SHALL accept an optional `parentId` parameter and pass
 #### Scenario: Creating a top-level Site
 - **WHEN** user creates a Site (type = Site)
 - **THEN** `createSite` SHALL be called with `parentId: nil`
-- **AND** `AddSiteInput` SHALL omit `parentId` or send empty string
 
 #### Scenario: Creating an Area
 - **WHEN** user creates an Area (type = Area) with a selected parent
 - **THEN** `createSite` SHALL be called with `parentId` set to the selected parent's ID
-- **AND** `AddSiteInput` SHALL include `parentId` in the request body
 
 ### Requirement: Site creation error handling
 The system SHALL handle backend 403 errors during site/area creation and display user-friendly messages.
@@ -190,6 +99,8 @@ The system SHALL handle backend 403 errors during site/area creation and display
 #### Scenario: Area count exceeded
 - **WHEN** backend returns 403 with type `/problems/subsite-count-exceeded`
 - **THEN** system SHALL display an error message indicating the maximum number of areas under this parent has been reached
+
+## ADDED Requirements
 
 ### Requirement: SiteInformationView supports editing areas
 SiteInformationView SHALL support editing areas (sites with non-empty parentId) in addition to root-level sites. Editing an area SHALL only allow changing the name.
@@ -242,3 +153,9 @@ SiteInformationView SHALL validate form completeness before enabling the save/cr
 - **WHEN** in edit mode for an area
 - **AND** the name field is not empty
 - **THEN** the save button SHALL be enabled
+
+## REMOVED Requirements
+
+### Requirement: CreateSiteView as separate view
+**Reason**: CreateSiteView and CreateSiteViewModel are merged into SiteInformationView and SiteInformationViewModel. All create capabilities (type picker, parent picker, area creation) are now handled by SiteInformationView.
+**Migration**: All navigation destinations that pointed to CreateSiteView SHALL point to SiteInformationView with `site: nil`. CreateSiteView.swift and CreateSiteViewModel.swift SHALL be deleted.
