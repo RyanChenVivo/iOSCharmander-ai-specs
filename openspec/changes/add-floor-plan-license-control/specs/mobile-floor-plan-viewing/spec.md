@@ -131,6 +131,24 @@ The system SHALL handle license phase transitions while the user is actively usi
 - **THEN** `FloorPlanTabView` SHALL re-render to show the normal floor plan content
 - **AND** system SHALL fetch floor plan data automatically
 
+### Requirement: Floor Plan Data Freshness
+
+The Floor Plan tab SHALL NOT independently refresh device/site data from the backend. Site and device data may be stale relative to the latest backend state; the user is responsible for triggering a refresh (e.g., pull-to-refresh on the Home/View tab) to update shared device and site data.
+
+#### Scenario: Floor plan tab uses existing cached site data
+
+- **WHEN** user navigates to the Floor Plan tab
+- **THEN** system SHALL use the currently cached site data from `featureProvider.accessibleSitesForFloorPlan()`
+- **AND** system SHALL NOT call `deviceManager.fetchAll()` to refresh site/device data
+- **AND** system SHALL only fetch floor plan data via `floorPlanManager.fetchAllFloorPlans()`
+
+#### Scenario: User triggers floor plan refresh
+
+- **WHEN** user performs pull-to-refresh on the Floor Plan tab
+- **THEN** system SHALL re-fetch floor plan data using the currently cached site list
+- **AND** system SHALL NOT trigger a full device/site data refresh
+- **AND** if the user needs updated site data, they must refresh from the Home or View tab first
+
 ## MODIFIED Requirements
 
 ### Requirement: Feature Toggle Control
