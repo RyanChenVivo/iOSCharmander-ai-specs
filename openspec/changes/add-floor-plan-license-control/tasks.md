@@ -41,4 +41,5 @@
 ## 7. Pending External Confirmation (blocked)
 
 - [ ] 7.1 **[Waiting for API team]** Confirm the `BackendErrorType` value returned by API for HTTP 423 on floor plan endpoints; confirm license check behavior per endpoint; confirm the downgrade checklist `mission` string (e.g., `"FLOOR_PLAN_LIMIT"`) — once confirmed, update 5.1 error mapping and 4.1 raw value
-- [ ] 7.2 **[Waiting for UI/Marketing]** Confirm final floor plan promotion page copy (title, description, CTA) and background image asset — once confirmed, update 2.1, 2.2, 2.4 placeholder values
+- [x] 7.2a Background image asset added as `img_floorplan_sample` imageset (light/dark × 1x/2x/3x), `FloorPlanFeaturePromotionView` updated to use `.imgFloorplanSample`
+- [ ] 7.2b **[Waiting for UI/Marketing]** Confirm final floor plan promotion page copy (title, description, CTA) — once confirmed, update placeholder text in `FloorPlanFeaturePromotionView` and `Localizable.xcstrings`
