@@ -1,6 +1,6 @@
 ---
 name: localization-guide
-description: Use when adding user-facing text, editing Localizable.xcstrings, or writing String(localized:...) code. Triggers on countable nouns that may need pluralization.
+description: "MANDATORY before any Edit/Write to Localizable.xcstrings or any .swift file containing localized strings (LocalizedStringKey, String(localized:), VortexEnvironment.productNameLocalized). Also use when adding/changing user-facing text — promotion pages, alerts, buttons, labels. Triggers on: product names (Vortex/CloudSight) in strings, countable nouns needing pluralization, xcstrings key creation."
 ---
 
 # Localization Guide

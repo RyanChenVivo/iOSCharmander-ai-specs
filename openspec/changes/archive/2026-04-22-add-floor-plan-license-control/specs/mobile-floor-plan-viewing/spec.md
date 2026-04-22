@@ -27,7 +27,9 @@ The system SHALL restrict floor plan tab access based on the organization's lice
 - **WHEN** the system needs to display a promotion page for floor plan
 - **THEN** `HomeViewTab.floorPlan.promotionModel` SHALL return a `FeaturePromotionModel`
 - **AND** the model SHALL include a localized title, description, and background image resource
-- **AND** TBD: exact ad copy and promotional image asset (pending UI/marketing confirmation)
+- **AND** the promotion description SHALL read: "See the entire property at a glance. VORTEX Floor Plan turns building layouts into interactive security maps, with cameras placed at their real-world positions and coverage areas visualized on screen. To access this feature, contact your reseller for upgrade options."
+- **AND** "VORTEX" in the description SHALL be replaced with the product name via `VortexEnvironment.productNameLocalized`
+- **AND** the background image asset SHALL be `img_floorplan_sample` (light/dark × 1x/2x/3x)
 
 ### Requirement: Floor Plan Access During RenewalOverdue
 
@@ -66,24 +68,16 @@ The system SHALL maintain full floor plan access during NoticePeriod and GracePe
 - **AND** `featureToggle.canTrigger(for: .floorPlan)` SHALL return `true`
 - **AND** all floor plan functionality SHALL be unrestricted
 
-### Requirement: Floor Plan API 423 Error Handling
+### Requirement: Floor Plan API 423 — Not Applicable to iOS
 
-The system SHALL handle HTTP 423 (Locked) responses from floor plan API endpoints as a defense-in-depth mechanism when the backend enforces license restrictions.
+The iOS app SHALL NOT implement dedicated HTTP 423 error handling for floor plan APIs. Per the high-level spec's API enforcement matrix, HTTP 423 is only returned for create/modify operations during RenewalOverdue. The iOS app is read-only for floor plans (only calls GET list and GET device-positions) — these endpoints always return 200 regardless of license phase. The existing generic `appManager.handleError` SHALL serve as a safety net for any unexpected HTTP errors.
 
-#### Scenario: Floor plan API returns 423 for xLite organization
+#### Scenario: iOS app never encounters 423 from floor plan APIs
 
-- **WHEN** a floor plan API call (GET floor plans, GET device positions) returns HTTP 423
-- **THEN** system SHALL map the response to a `VortexError` indicating the feature is locked
-- **AND** system SHALL display an appropriate error message to the user
-- **AND** system SHALL NOT crash or show a generic error
-- **AND** TBD: exact `BackendErrorType` value the API returns for 423 (pending API team confirmation)
-
-#### Scenario: Front-end gating prevents 423 in normal flow
-
-- **WHEN** `featureToggle.canAccess(for: .floorPlan)` returns `false`
-- **THEN** system SHALL NOT make floor plan API calls
-- **AND** the promotion page SHALL be shown without any network requests
-- **AND** 423 handling serves as a safety net for race conditions only
+- **WHEN** the iOS app calls floor plan GET endpoints (list floor plans, get device positions)
+- **THEN** the backend SHALL always return HTTP 200 regardless of license phase
+- **AND** the iOS app SHALL NOT require dedicated 423 error mapping or handling
+- **AND** the existing `appManager.handleError` SHALL handle any unexpected HTTP errors as a safety net
 
 ### Requirement: Floor Plan Downgrade Prerequisite
 
@@ -94,9 +88,8 @@ The system SHALL include floor plan data deletion as a prerequisite item in the 
 - **WHEN** user views the downgrade eligibility checklist via `postCheckDowngrade()` API
 - **AND** the backend returns a floor plan-related `CheckDowngradeItem`
 - **THEN** system SHALL parse the item into a `MissionType.floorPlan` case
-- **AND** system SHALL display a localized title and description for the floor plan mission
-- **AND** the checklist item SHALL indicate that users must manually delete all floor plan data before downgrade
-- **AND** TBD: exact `mission` string from backend (pending API team confirmation)
+- **AND** system SHALL display title: "Delete floor plans" and description: "You must delete all floor plan data before downgrading."
+- **AND** the backend `mission` string is `"FLOOR_PLAN_LIMIT"`, parsed into `MissionType.floorPlan`
 
 #### Scenario: Floor plan mission not present for organizations without floor plans
 

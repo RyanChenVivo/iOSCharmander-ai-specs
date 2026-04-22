@@ -49,13 +49,11 @@ KA organization exemption is handled entirely by the backend — the iOS app rec
 
 **Verification needed:** Confirm that `canView(.floorPlan)` still returns `true` during RenewalOverdue (tab stays visible but disabled), which it does since `canView` only checks `supportFeatures`.
 
-### Decision 3: API 423 handling as a generic VortexError mapping
+### Decision 3: API 423 handling — not applicable to iOS
 
-**Approach:** When floor plan APIs return HTTP 423, map it to a `VortexError` case (e.g., `.invalidLicense` or a new `.featureLocked` case). The ViewModel can then catch this error and show an appropriate message. The exact error type from the API response body is TBD (tracked in tasks as a pending API confirmation).
+**Conclusion:** After reviewing the high-level spec's API enforcement matrix, HTTP 423 is only returned for create/modify operations (POST/PATCH) during RenewalOverdue. The iOS app is read-only for floor plans — it only calls GET endpoints (list floor plans, get device positions), which always return 200 regardless of license phase. xLite organizations also receive 200 on all floor plan APIs; access gating is handled entirely at the frontend via `canAccess(for: .floorPlan)`.
 
-**Why:** The existing error handling infrastructure in `VortexRestfulApi` already converts backend error types to `VortexError`. Adding 423 handling is an extension of this pattern.
-
-**Note:** Since the iOS app is read-only for floor plans (no create/modify/delete APIs), 423 will only be encountered on GET endpoints for xLite organizations. For RenewalOverdue, GET is still allowed per the spec, so 423 should only surface for xLite users calling list/detail APIs. The front-end gating via `canAccess` should prevent these calls in the first place, making 423 handling a safety net rather than the primary enforcement.
+**Decision:** No dedicated 423 error mapping or handling is needed. The existing generic error handling in `appManager.handleError` is sufficient as a safety net for any unexpected HTTP errors.
 
 ### Decision 4: Downgrade checklist uses existing `MissionType` enum
 
@@ -63,7 +61,7 @@ KA organization exemption is handled entirely by the backend — the iOS app rec
 
 **Why:** This follows the exact same pattern as all other downgrade prerequisites (archiveLimit, caseVault, sso, etc.). The backend drives which items appear; the iOS app just needs to recognize and display the new type.
 
-**Note:** The exact mission string from the backend is TBD — tracked in tasks as pending API confirmation. The spec mentions the message should be "Delete floor plan data you must manually delete all floor plan" but the actual localization key and final copy need confirmation.
+**Confirmed:** Backend mission string is `"FLOOR_PLAN_LIMIT"`. Display copy — title: "Delete floor plans", content: "You must delete all floor plan data before downgrading."
 
 ### Decision 5: Live phase transition handling via existing reactive observation
 
@@ -79,13 +77,13 @@ For paid-to-free transition, `myOrganizationIsFreePlan` updates reactively. When
 ## Risks / Trade-offs
 
 - **[Risk] Promotion page copy and image not finalized** → Track as TBD task; use placeholder text and existing image pattern. Can be swapped without code changes once finalized.
-- **[Risk] API 423 error body format unknown** → Track as TBD task; implement generic handling first, refine once API contract is confirmed.
+- ~~**[Risk] API 423 error body format unknown**~~ → Resolved: iOS app only calls GET endpoints which always return 200; 423 is only for create/modify during RenewalOverdue. No iOS-side handling needed.
 - **[Risk] Downgrade mission string unknown** → Track as TBD task; add `MissionType` case with placeholder raw value, update when backend confirms.
-- **[Trade-off] Front-end gating vs. API enforcement** → Front-end gating prevents unnecessary API calls, but 423 handling provides defense-in-depth. Both are needed.
+- **[Trade-off] Front-end gating vs. API enforcement** → Front-end `canAccess` gating is the sole enforcement mechanism on iOS. API-side 423 only applies to create/modify endpoints which iOS does not call.
 - **[Trade-off] No iOS-side floor plan data deletion** → The spec says floor plan data should be "permanently eliminated" on paid-to-free transition, but this is a backend operation. The iOS app's role is limited to showing the checklist prerequisite. If the backend doesn't handle deletion, data may persist — but this is a backend concern, not an iOS concern.
 
 ## Open Questions
 
-1. **Floor plan promotion page assets** — What image and copy should be used? (Waiting for UI/marketing confirmation)
-2. **API 423 error body format** — What is the exact `BackendErrorType` the API returns for 423 on floor plan endpoints? (Waiting for API team confirmation)
-3. **Downgrade mission string** — What is the exact `mission` string the backend sends for the floor plan checklist item? (Waiting for API team confirmation)
+1. ~~**Floor plan promotion page assets**~~ — Resolved: image asset `img_floorplan_sample` added; copy confirmed: "See the entire property at a glance. VORTEX Floor Plan turns building layouts into interactive security maps..."
+2. ~~**API 423 error body format**~~ — Resolved: not applicable to iOS. 423 only applies to create/modify endpoints during RenewalOverdue; iOS only calls GET endpoints.
+3. ~~**Downgrade mission string**~~ — Resolved: `"FLOOR_PLAN_LIMIT"` confirmed by API team. Display copy confirmed by PM: "Delete floor plans" / "You must delete all floor plan data before downgrading."

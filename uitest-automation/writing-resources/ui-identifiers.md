@@ -119,6 +119,29 @@ app.otherElements["cameraMarker_IB9365-001"].tap()
 
 **Note:** Tab bar buttons use default iOS accessibility - reference by label, not custom ID.
 
+### Feature Promotion Pages (xLite Gating)
+
+| Element | Identifier | Type | Usage |
+|---------|-----------|------|-------|
+| Promotion title | `FeaturePromotionTitle_{title}` | StaticText | Title of the promotion page (e.g., `FeaturePromotionTitle_Floorplans`) |
+| Explore more button | `ExploreMore` | Button | Opens external promotion link (AI Hub only) |
+
+**Dynamic ID Pattern:** Title is derived from `model.title.toString()` at runtime.
+
+**Known title values:**
+- Floor Plan: `FeaturePromotionTitle_Floorplans`
+- Archive: `FeaturePromotionTitle_Archive`
+- AI Hub: `FeaturePromotionTitle_AI Hub`
+
+### Downgrade Checklist
+
+| Element | Identifier | Type | Usage |
+|---------|-----------|------|-------|
+| xLite info link | `xLiteLink` | Text | Opens xLite plan description bottom sheet |
+| Downgrade button | `downgradeButton` | Button | Execute downgrade (enabled when all missions verified) |
+
+**Mission items:** No custom accessibility IDs — use `app.staticTexts["Display text"]` to find mission items by their localized title text (e.g., "Delete floor plan data").
+
 ## Accessibility Value Pattern
 
 Some elements use `accessibilityValue` to expose state information for testing:
