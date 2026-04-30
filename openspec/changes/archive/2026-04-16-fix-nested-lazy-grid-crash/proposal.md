@@ -53,3 +53,11 @@ View Tab 的「全展開」按鈕在大量 site（~1000 sites / ~5000 devices）
 - 問題確認是「lazy 裡面套 lazy」，只要內層不是 SwiftUI lazy container 就應該能解決
 - 外層 `FlexibleGridView` + `RoundedBackgroundDisclosureGroup` 結構不動，改動最小
 - `CollectionGridView` 設計為通用 component（對齊 `FlexibleGridView` API），未來其他地方也能用
+
+### 2026-04-16: Superseded by replace-viewtab-with-treeview
+
+**Status**: Abandoned, will not be implemented.
+
+**Reason**: `replace-viewtab-with-treeview` adopted a flattened single-`LazyVStack` + `TreeView` architecture, modeling site/device as a `ViewTabItem` enum rendered in a single `LazyVStack`, completely eliminating nested lazy containers. This approach is simpler than the UICollectionView solution — no UIKit bridge needed — and has been verified in production.
+
+**Conclusion**: The same crash (FB21851974) has been fixed by `replace-viewtab-with-treeview`. This change is archived without implementation.
