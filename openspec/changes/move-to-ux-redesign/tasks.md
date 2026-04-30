@@ -52,3 +52,16 @@
 
 - [x] 9.1 Change "Move device" button style from `.solidLargePrimary()` to `.ghostLarge(.secondary)` to match Figma (white outline + white text).
 - [x] 9.2 Change "Create site or area" text style from `.callout` to `.title3Semibold` to match Figma (17px semibold white).
+
+## 10. ParentSitePickerSheet — Search & Highlight
+
+- [x] 10.1 Add `@State private var keyword = ""` to `ParentSitePickerSheet`. Apply `.customSearchable(text: $keyword, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search_site")` to provide a search bar.
+- [x] 10.2 Pass `highlightKeyword: keyword.isEmpty ? nil : keyword` to each `SiteTreeRow` inside `ParentSitePickerSheet`, enabling search text highlighting with `HighlightedText`.
+
+## 11. SitePickerSheet — Migrate to SheetManager
+
+- [x] 11.1 Rename `ParentSitePickerSheet` to `SitePickerSheet`. Change `@Binding var selectedParent` to `@Binding var selectedSite`. Add `let navigationTitle: LocalizedStringKey` parameter so callers can customize the title.
+- [x] 11.2 Add `showSitePicker(selectedSite: Binding<SiteItem?>, navigationTitle:)` convenience method to `SheetManager`, using `showViewSheet` to present `SitePickerSheet`. Default title is `"Parent_site"`.
+- [x] 11.3 In `SiteInformationView`, replace `.sheet(isPresented: $showParentPicker)` and `@State showParentPicker` with a call to `SheetManager.shared.showSitePicker(selectedSite: $viewModel.selectedParent)`.
+- [x] 11.4 In `SitePickerSheet`, use `ToolbarItemCancel()` (SheetManager now owns the sheet, so dismiss correctly closes only this layer). Removed `@Environment(\.dismiss)`.
+- [x] 11.5 In `SitePickerSheet`, site selection calls `SheetManager.shared.dismiss()` to stay consistent with the SheetManager dismiss flow.
