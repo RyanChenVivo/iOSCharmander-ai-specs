@@ -35,3 +35,20 @@
 ## 6. Localization
 
 - [x] 6.1 Add localized strings: "Select a destination", "Create site or area", "Current", "Move this device", "The device will be moved to \"%@\".", "ATTENTION!", "Moving device may change their permissions. Some functions may become unavailable.", "Move Device" (button), "Cancel".
+
+## 7. Figma Design Alignment — SiteTreeRow Depth-Based Rendering
+
+- [x] 7.1 Refactor SiteTreeRow to support two rendering modes based on `expandedState`:
+  - **Flat mode** (`expandedState == nil`): depth 0 shows 24px location pin icon (`iconGeneralGroupSolid`) + name; depth > 0 shows `└` grey prefix + name. Row height 56px. SiteTreeRow controls its own horizontal padding (`px-16` for depth 0, `pl-56 pr-16` for depth 1, `pl = 56 + (depth-1)*24` for depth 2+).
+  - **Expand mode** (`expandedState != nil`): unchanged from current behavior (chevron + 28px icon + name, row height 44px, TreeView controls padding).
+- [x] 7.2 Update TreeView to accept an optional `depthIndent: CGFloat?` parameter (default 16). When `depthIndent` is 0 or nil-equivalent, skip the `.padding(.leading, CGFloat(depth) * depthIndent)` so the row content controls its own indentation. Thread this parameter through SearchableTreeView.
+- [x] 7.3 Pass `depthIndent: 0` from MoveToSiteView to SearchableTreeView so SiteTreeRow handles indentation internally in flat mode.
+
+## 8. Figma Design Alignment — Site Group Dividers
+
+- [x] 8.1 Add `colorOutline14` top divider on depth == 0 rows in SiteTreeRow's flatContent. Each root site row gets a `Divider().overlay(.colorOutline14)` at the top of a VStack wrapper, visually separating site groups.
+
+## 9. Figma Design Alignment — Button & Text Style Fixes
+
+- [x] 9.1 Change "Move device" button style from `.solidLargePrimary()` to `.ghostLarge(.secondary)` to match Figma (white outline + white text).
+- [x] 9.2 Change "Create site or area" text style from `.callout` to `.title3Semibold` to match Figma (17px semibold white).
