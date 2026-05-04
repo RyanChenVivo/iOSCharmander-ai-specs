@@ -82,16 +82,28 @@ After committing, report:
 | `test` | Tests |
 | `chore` | Build, deps |
 
+**Jira Reference**: When a commit relates to a Jira issue, add `refs: <ISSUE-KEY>` on a new line after the description. Issue keys vary by team (e.g. `ADAT-62`, `VOR-24280`).
+
+- Only add `refs:` when the related issue is **known in the current session**
+- If uncertain whether there's a related Jira issue, **ask the user** before committing
+- Do NOT guess or assume issue keys
+
 **Examples**:
 ```
 feat(Vortex): add floor plan device selection
+
+refs: ADAT-62
+```
+```
 fix(CloudSight): resolve thread issue in video streaming
-docs(iOSCharmander): update openspec for auth flow
+
+refs: VOR-24280
+```
+```
+refactor(Vortex): extract TreeView component
 ```
 
 ## Guidelines
-
-- Reference ticket IDs when available: `[VOR-24280]`
 - Keep descriptions concise
 - Use filename only (not full path)
 - Confirm project name if uncertain
