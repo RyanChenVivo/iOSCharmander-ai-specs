@@ -94,6 +94,31 @@ In the `.move` flow, a "Move device" button is pinned to the bottom of the scree
 - Tapping the button navigates to `MoveDeviceConfirmationView`.
 - In `.add` flow, this bottom button is hidden — site selection still immediately dismisses as today.
 
+### Decision 7: Separate SiteSelectionView for Add Device flow
+
+Create a new `SiteSelectionView` + `SiteSelectionViewModel` instead of continuing to reuse `MoveToSiteView` with `source: .add`. The Add Device site picker has its own UX: navigation title "Site", Cancel/Save toolbar buttons, and no move-specific UI.
+
+**Why over keeping shared MoveToSiteView:** The two flows are diverging — Move needs "Current" badge, "Select a destination", "Move device" button, confirmation page; Add Device needs Cancel/Save toolbar with deferred confirmation. Keeping them shared means every new requirement adds another `if source == .add` branch. Splitting now prevents that complexity from growing.
+
+**Implementation:**
+- New `SiteSelectionView` in `View/SideMenu/AddDevice/`, presented via NavigationLink push from `AddDeviceByMacView` and `AddVSSView` (same as today).
+- Accepts `Binding<DeviceItem>` to update `device.siteID` on Save.
+- Navigation title: "Site". Leading toolbar: Cancel (pops back without saving). Trailing toolbar: Save (pops back with selected site applied to binding). Save disabled when no site selected.
+- Reuses `SearchableTreeView`, `SiteTreeRow`, `HighlightedText` for the tree list. No "Current" badge (new device has no current site). No "Move device" bottom button.
+- "Create site or area" button (gated by `canCreateSite()`) navigates to `SiteInformationView`.
+- Search bar with keyword highlighting, same as MoveToSiteView.
+- `SiteSelectionViewModel`: simpler than `MoveToSiteViewModel` — holds `selectedSiteID: String?` (local state, not applied to binding until Save), `pushCreateSiteSheet`, `siteForSiteInformation`. No `source`, no `currentSiteID`, no `confirmMoveSite`.
+
+### Decision 8: Clean up MoveToSiteView to move-only
+
+After SiteSelectionView is created, remove all `.add` source handling from MoveToSiteView and MoveToSiteViewModel:
+- Remove `source` property and the `switch viewModel.source` in the view body.
+- MoveToSiteView always wraps in NavigationStack with ToolbarItemCancel (was only for `.move`).
+- Remove `selectSite` function's `.add` case.
+- MoveToSiteViewModel's `init` no longer needs `source` parameter; `currentSiteID` is always derived from `device.siteID`.
+- Update `SheetManager.swift` call site to remove `source: .move` argument.
+- If `AnalyticsEvent.AddDeviceGroupSource.add` has no remaining callers, remove the case (or keep if analytics still needs it for SiteSelectionView).
+
 ## Risks / Trade-offs
 
 **Always-expanded performance with large site trees** → The current TreeView only renders expanded branches. With all nodes expanded, the flat list includes every node. `LazyVStack` mitigates this (only visible rows rendered), but the flat list construction walks all nodes. For typical site trees (hundreds of nodes), this is negligible. If a customer has 10K+ sites, we may need to revisit.

@@ -65,3 +65,37 @@
 - [x] 11.3 In `SiteInformationView`, replace `.sheet(isPresented: $showParentPicker)` and `@State showParentPicker` with a call to `SheetManager.shared.showSitePicker(selectedSite: $viewModel.selectedParent)`.
 - [x] 11.4 In `SitePickerSheet`, use `ToolbarItemCancel()` (SheetManager now owns the sheet, so dismiss correctly closes only this layer). Removed `@Environment(\.dismiss)`.
 - [x] 11.5 In `SitePickerSheet`, site selection calls `SheetManager.shared.dismiss()` to stay consistent with the SheetManager dismiss flow.
+
+## 12. SiteSelectionView — New Page for Add Device Flow
+
+- [x] 12.1 Create `SiteSelectionViewModel` (`@Observable`, `@MainActor`): holds `selectedSiteID: String?` (local state, initialized from `device.siteID`), `pushCreateSiteSheet: Bool`, `siteForSiteInformation: SiteItem?`. Dependencies: `deviceManager`, `appManager`, `analyticsService`, `featureProvider`. Computed `selectedSite: SiteItem?` via `deviceManager.findSite(id:)`. Method `onSiteDeleted(_:)` clears selection if deleted site matches.
+- [x] 12.2 Create `SiteSelectionView` in `View/SideMenu/AddDevice/`. Accepts `Binding<DeviceItem>`. Navigation title "Site". Leading toolbar: Cancel button (dismiss without saving). Trailing toolbar: Save button (apply `selectedSiteID` to `device.siteID`, then dismiss). Save disabled when `selectedSiteID` is nil.
+- [x] 12.3 Wire site tree: reuse `SearchableTreeView` with `expandedState: .constant(nil)` and `depthIndent: 0`. Render `SiteTreeRow` for each site with `isSelected`, `isCurrent: false`, `highlightKeyword`. Tap selects site locally (updates `selectedSiteID`), does NOT dismiss.
+- [x] 12.4 Add "Create site or area" button above tree (gated by `canCreateSite()`), wired to `pushCreateSiteSheet`. NavigationDestination to `SiteInformationView(site: nil)`.
+- [x] 12.5 Add search bar via `.customSearchable(text: $keyword, …, prompt: "Search_site")`.
+- [x] 12.6 Add context menu on site rows: "Site information" (gated by `canEditSite()`) and "Delete" (gated by `canDelete(for:)`), same pattern as MoveToSiteView.
+- [x] 12.7 Add empty state: when `deviceManager.sites.isEmpty`, show `NoResultContentView`.
+- [x] 12.8 Add dividers between site groups: depth 0 rows (except first) get `Divider.outline14` above.
+
+## 13. Switch AddDevice to SiteSelectionView
+
+- [x] 13.1 In `AddDeviceByMacView`, change NavigationLink destination from `MoveToSiteView(device:, source: .add)` to `SiteSelectionView(device:)`.
+- [x] 13.2 In `AddVSSView`, change NavigationLink destination from `MoveToSiteView(device:, source: .add)` to `SiteSelectionView(device:)`.
+
+## 14. Clean Up MoveToSiteView — Remove .add Source
+
+- [x] 14.1 Remove `source` parameter from `MoveToSiteViewModel.init` and `.make`. Remove `source` stored property. `currentSiteID` always derived from `device.siteID` (non-empty check only).
+- [x] 14.2 Remove `source` parameter from `MoveToSiteView.init`. Remove `switch viewModel.source` in body — always wrap content in NavigationStack with ToolbarItemCancel.
+- [x] 14.3 Remove `selectSite` function's `.add` case. Site tap always updates `viewModel.device.siteID` (move behavior).
+- [x] 14.4 Remove "Select a destination" conditional on `viewModel.source == .move` — always show it. Remove "Move device" button conditional on `viewModel.source == .move` — always show it.
+- [x] 14.5 Update `SheetManager.swift` call site: change `MoveToSiteView(device: .constant(device), source: .move)` to `MoveToSiteView(device: .constant(device))`.
+- [x] 14.6 Evaluate `AnalyticsEvent.AddDeviceGroupSource.add`: still used by SiteSelectionViewModel and SiteInformationViewModel — kept.
+
+## 15. Tests
+
+- [x] 15.1 Create `SiteSelectionViewModelTest`: test `selectedSite` computation, tap site row updates local selection, Save applies to device binding, Cancel preserves original siteID, `onSiteDeleted` clears selection, `tapCreateSiteButton` sets flag.
+- [x] 15.2 Update `MoveToSiteViewModelTest`: remove all `.add` source test cases. Update remaining tests to not pass `source` parameter.
+
+## 16. Localization
+
+- [x] 16.1 All localized strings reused from existing keys: "Site", "Save", "Cancel", "Search_site", "Create_site_or_area", "Site_information", "Delete", "No_sites_create_one_to_get_started".
