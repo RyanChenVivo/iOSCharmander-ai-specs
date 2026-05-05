@@ -74,9 +74,19 @@ Create `SiteCheckboxTreeRow` that shares tree layout logic (depth indentation, `
 
 `ToggleAllSectionHeader` accepts `Binding<[R]>` and `items: [R]`. In multi mode:
 - `selected` binds to `$viewModel.selectedSites`
-- `items` is `deviceManager.sites` (flat array of all sites including areas)
+- `items` is the site list provided to the view (either caller-provided or `deviceManager.sites`)
 
 No modification needed — the component already handles count display, "Select all" / "Deselect all" toggle, and the "No items selected yet" empty state.
+
+### Decision 6: Optional items parameter for caller-provided site source
+
+`SiteSelectionView` accepts an optional `items: [SiteItem]?` parameter (default `nil`):
+- `nil` → uses `deviceManager.sites` with `onChange` listener for live updates (Add Device scenario)
+- Caller-provided array → uses that as the tree source (Message filter scenario where sites are pre-filtered by `featureProvider.accessibleSitesFor...()`)
+
+This behavior is mode-independent — both single and multi mode respect the same items source logic.
+
+**Why:** Message tab filters only show sites accessible for the specific feature (Access Control, Smart Sensor). These are subsets of `deviceManager.sites` determined by `featureProvider`. The view cannot know which filter to apply, so the caller must provide the filtered list.
 
 ## Risks / Trade-offs
 

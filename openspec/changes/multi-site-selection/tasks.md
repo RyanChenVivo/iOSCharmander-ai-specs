@@ -15,7 +15,7 @@
 
 ## 3. SiteSelectionView Multi Mode UI
 
-- [ ] 3.1 Update `SiteSelectionView` init to accept `SiteSelectionMode` instead of `Binding<DeviceItem>`
+- [ ] 3.1 Update `SiteSelectionView` init to accept `SiteSelectionMode` and optional `items: [SiteItem]?` (nil = use `deviceManager.sites` with onChange listener; non-nil = use caller-provided list)
 - [ ] 3.2 Conditionally render control bar: single → "Create site or area" button; multi → `ToggleAllSectionHeader`
 - [ ] 3.3 Conditionally render row: single → `SiteTreeRow`; multi → `SiteCheckboxTreeRow`
 - [ ] 3.4 Conditionally show/hide context menu (only in single mode)
@@ -32,8 +32,8 @@
 
 ## 5. Update Message Filter Callers (Multi Mode)
 
-- [ ] 5.1 Replace `MultipleSelectionView` for site selection in `AccessControlMessageSearchView.groupSection` with `SiteSelectionView(mode: .multi($viewModel.selectedSites))`
-- [ ] 5.2 Replace `MultipleSelectionView` for site selection in `SmartSensorMessageSearchView.groupSection` with `SiteSelectionView(mode: .multi($viewModel.selectedSites, allowEmptySelection: true))`
+- [ ] 5.1 Replace `MultipleSelectionView` for site selection in `AccessControlMessageSearchView.groupSection` with `SiteSelectionView(mode: .multi($viewModel.selectedSites), items: viewModel.sites)`
+- [ ] 5.2 Replace `MultipleSelectionView` for site selection in `SmartSensorMessageSearchView.groupSection` with `SiteSelectionView(mode: .multi($viewModel.selectedSites, allowEmptySelection: true), items: viewModel.sites)`
 - [ ] 5.3 Verify Message filter flow works end-to-end (open picker, select/deselect sites, Save, filter applied)
 
 ## 6. Tests
