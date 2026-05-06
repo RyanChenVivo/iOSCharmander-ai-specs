@@ -1,11 +1,11 @@
 ## MODIFIED Requirements
 
 ### Requirement: Site selection uses SiteSelectionView
-AddDeviceByMacView and AddVSSView SHALL use `SiteSelectionView` with single mode for site selection.
+AddDeviceByMacView and AddVSSView SHALL use `SiteSelectionView` with the single-select init for site selection.
 
-#### Scenario: NavigationLink uses single mode
+#### Scenario: NavigationLink uses single-select init
 - **WHEN** user taps the Site field in AddDeviceByMacView or AddVSSView
-- **THEN** the NavigationLink SHALL push `SiteSelectionView(mode: .single($siteID))` where `siteID` is a `Binding<String?>`
+- **THEN** the NavigationLink SHALL push `SiteSelectionView(selectedSiteID: $siteID)` where `siteID` is a `Binding<String?>`
 
 #### Scenario: Site persists after Save
 - **WHEN** user selects a Site in SiteSelectionView (single mode)

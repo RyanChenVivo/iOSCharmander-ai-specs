@@ -4,11 +4,11 @@ The Message tab filters (Access Control, Smart Sensor) currently use a flat-list
 
 ## What Changes
 
-- Extend `SiteSelectionView` to support both single-select and multi-select modes via a `SiteSelectionMode` enum
+- Extend `SiteSelectionView` with two public inits (single-select and multi-select), using an internal `SiteSelectionMode` enum for branching
 - Add a new `SiteCheckboxTreeRow` component for multi-select checkbox rendering, sharing tree layout logic with existing `SiteTreeRow`
 - Update `SiteSelectionViewModel` to manage either `String?` (single) or `[SiteItem]` (multi) selection state
 - In multi mode: show `ToggleAllSectionHeader` (N/M selected + Select all / Deselect all), hide "Create site or area" button and context menus
-- Replace `MultipleSelectionView` usage for site selection in `AccessControlMessageSearchView` and `SmartSensorMessageSearchView` with `SiteSelectionView(mode: .multi(...))`
+- Replace `MultipleSelectionView` usage for site selection in `AccessControlMessageSearchView` and `SmartSensorMessageSearchView` with `SiteSelectionView(selectedSites:items:)`
 - Support `allowEmptySelection` parameter in multi mode to control Save button behavior
 
 ## Capabilities
@@ -21,11 +21,11 @@ The Message tab filters (Access Control, Smart Sensor) currently use a flat-list
 
 ## Impact
 
-- **SiteSelectionView / SiteSelectionViewModel**: Major refactor to support mode enum
+- **SiteSelectionView / SiteSelectionViewModel**: Major refactor — two public inits, internal mode enum for branching
 - **SiteTreeRow**: Unchanged — continues to serve single-select and MoveToSite
 - **SiteCheckboxTreeRow (new)**: Shares tree indentation/layout with SiteTreeRow, uses checkbox icons
-- **AccessControlMessageSearchView**: `groupSection` switches from `MultipleSelectionView` to `SiteSelectionView(mode: .multi(...))`
+- **AccessControlMessageSearchView**: `groupSection` switches from `MultipleSelectionView` to `SiteSelectionView(selectedSites:items:)`
 - **SmartSensorMessageSearchView**: Same as above
-- **AddDeviceByMacView / AddVSSView**: Caller update to new `SiteSelectionMode.single(...)` init
+- **AddDeviceByMacView / AddVSSView**: Caller update to new `SiteSelectionView(selectedSiteID:)` init
 - **ToggleAllSectionHeader**: Reused as-is for multi mode control bar
 - **Prerequisite**: Depends on `move-to-ux-redesign` change (SiteSelectionView, SearchableTreeViewModel, SiteTreeRow)

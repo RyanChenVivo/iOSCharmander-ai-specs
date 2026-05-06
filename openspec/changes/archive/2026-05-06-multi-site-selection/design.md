@@ -26,18 +26,31 @@
 
 ## Decisions
 
-### Decision 1: SiteSelectionMode enum for single vs multi
+### Decision 1: Separate inits with internal SiteSelectionMode enum
+
+Public API exposes two distinct initializers — callers never see the mode enum:
 
 ```swift
+// Single mode (Add Device flow)
+SiteSelectionView(selectedSiteID: Binding<String?>)
+
+// Multi mode (Message filter flow)
+SiteSelectionView(selectedSites: Binding<[SiteItem]>, items: [SiteItem], allowEmptySelection: Bool = false)
+```
+
+Internally, both inits construct a `SiteSelectionMode` enum to drive view/viewModel branching:
+
+```swift
+// Internal only
 enum SiteSelectionMode {
     case single(Binding<String?>)
-    case multi(Binding<[SiteItem]>, allowEmptySelection: Bool = false)
+    case multi(Binding<[SiteItem]>, items: [SiteItem], allowEmptySelection: Bool)
 }
 ```
 
-**Why:** Single mode operates on siteID string (maps directly to `DeviceItem.siteID`). Multi mode operates on `[SiteItem]` array (maps directly to filter ViewModels and `ToggleAllSectionHeader`). No forced symmetry — each mode uses the type natural to its caller.
+**Why:** Each init only exposes parameters relevant to its use case — impossible to create invalid combinations (e.g., single mode with `items`, or multi mode without `items`). Callers get clear, type-safe signatures without understanding an internal abstraction. Follows SwiftUI convention of multiple inits on a single View type.
 
-**Alternative considered:** Unified `Binding<[SiteItem]>` for both modes (single just limits to count 1). Rejected because single-select callers work with siteID strings, forcing conversion at every call site.
+**Alternative considered:** Single init with `SiteSelectionMode` enum as public parameter. Rejected because it exposes internal branching logic to callers and allows nonsensical parameter combinations.
 
 ### Decision 2: Separate SiteCheckboxTreeRow for multi mode
 
@@ -49,10 +62,10 @@ Create `SiteCheckboxTreeRow` that shares tree layout logic (depth indentation, `
 
 ### Decision 3: ViewModel mode-aware state management
 
-`SiteSelectionViewModel` holds both state types but only uses one based on mode:
+`SiteSelectionViewModel` accepts the internal `SiteSelectionMode` enum and holds both state types, using only the active one:
 - `selectedSiteID: String?` — active in single mode
 - `selectedSites: [SiteItem]` — active in multi mode
-- `mode: SiteSelectionMode` stored to determine behavior
+- `mode: SiteSelectionMode` stored internally to determine behavior
 
 `tapSiteRow(_:)` becomes mode-aware:
 - Single: sets `selectedSiteID = site.id`
@@ -78,15 +91,13 @@ Create `SiteCheckboxTreeRow` that shares tree layout logic (depth indentation, `
 
 No modification needed — the component already handles count display, "Select all" / "Deselect all" toggle, and the "No items selected yet" empty state.
 
-### Decision 6: Optional items parameter for caller-provided site source
+### Decision 6: Data source determined by init (not a shared parameter)
 
-`SiteSelectionView` accepts an optional `items: [SiteItem]?` parameter (default `nil`):
-- `nil` → uses `deviceManager.sites` with `onChange` listener for live updates (Add Device scenario)
-- Caller-provided array → uses that as the tree source (Message filter scenario where sites are pre-filtered by `featureProvider.accessibleSitesFor...()`)
+Each init has its own data source strategy — no shared optional parameter:
+- **Single init** (`selectedSiteID:`): always uses `deviceManager.sites` with `onChange` listener for live updates. This supports createSite — new sites appear immediately.
+- **Multi init** (`selectedSites:items:`): always uses the caller-provided `items` array as a static snapshot. No createSite button exists in multi mode, so live updates are unnecessary.
 
-This behavior is mode-independent — both single and multi mode respect the same items source logic.
-
-**Why:** Message tab filters only show sites accessible for the specific feature (Access Control, Smart Sensor). These are subsets of `deviceManager.sites` determined by `featureProvider`. The view cannot know which filter to apply, so the caller must provide the filtered list.
+**Why:** Single mode needs live data because it has createSite. Multi mode needs caller-filtered data because Message tab filters show feature-specific subsets (`featureProvider.accessibleSitesFor...()`). These are mutually exclusive scenarios — combining them into one optional parameter would create ambiguity and invalid states.
 
 ## Risks / Trade-offs
 
