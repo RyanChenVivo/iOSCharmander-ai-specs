@@ -93,6 +93,54 @@ public func findSite(id: String) -> SiteItem? { siteLookup[id] }
 
 **Rationale**: Currently `try? Regex(keyword)` silently fails on special characters like `(`, `[`, `*`. This is a bug, not a performance issue, but it's a one-line fix worth including.
 
+### 6. SearchableTreeViewModel exposes `items` proxy and static factory
+
+**Decision**: Add a top-level `items` property on `SearchableTreeViewModel` that forwards to `treeVM.items`, and a constrained `static func make(sites:)` for `SiteItem` usage.
+
+**Rationale**: Consumers currently write `searchVM.treeVM.items = newSites` which leaks internal structure. The proxy hides the dual-VM implementation. The static factory eliminates explicit generic parameter `<SiteItem>` at call sites and provides a pattern for future item types.
+
+```swift
+// SearchableTreeViewModel
+var items: [Item] {
+    get { treeVM.items }
+    set { treeVM.items = newValue }
+}
+
+// Constrained extension
+extension SearchableTreeViewModel where Item == SiteItem {
+    static func make(sites: [SiteItem]) -> SearchableTreeViewModel<SiteItem> {
+        let vm = SearchableTreeViewModel<SiteItem>()
+        vm.items = sites
+        return vm
+    }
+}
+```
+
+### 7. Replace `managesExpandState: Bool` with `ExpansionMode` enum
+
+**Decision**: Introduce an `ExpansionMode` enum to express expansion behavior instead of a Bool controlling optional state.
+
+**Why over alternative**: `managesExpandState: Bool` requires readers to understand that `nil expandedState` means "always expanded" — a non-obvious convention. An enum makes the behavior self-documenting.
+
+```swift
+enum ExpansionMode {
+    case alwaysExpanded
+    case managed
+}
+
+init(expansionMode: ExpansionMode = .alwaysExpanded) {
+    self.expandedState = expansionMode == .managed ? ExpandedState() : nil
+}
+```
+
+### 8. SearchableTreeView shows empty state when searching but no text entered
+
+**Decision**: Add `@Environment(\.isSearching)` to `SearchableTreeView`. When `isSearching == true` and `searchText` is empty, render empty content instead of the full tree.
+
+**Rationale**: All other search UIs in the app (ViewTab `SiteList`, `CustomizedViewTabView`) show an empty state when search is activated but no text is typed. The current SearchableTreeView shows the full tree, which is inconsistent.
+
+**Fallback**: If `isSearching` doesn't trigger correctly with `displayMode: .always`, fall back to a custom environment key (e.g., `\.isSearchingActive`) set by `customSearchable`.
+
 ## Risks / Trade-offs
 
 **[TreeView API is breaking]** → All current TreeView consumers (MoveToSiteView) must adapt to the new init signature. Mitigation: The migration is mechanical (wrap items + expandedState into a ViewModel). ViewTabSiteView (on a separate branch) will adopt the new API when that branch is updated.

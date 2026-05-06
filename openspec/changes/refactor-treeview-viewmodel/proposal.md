@@ -21,8 +21,9 @@ TreeView and SearchableTreeView currently duplicate lookup construction and flat
 ## Impact
 
 - **TreeView.swift**: API changes — init accepts `TreeViewModel` instead of `items` + `expandedState` + `lookup`. **BREAKING** for all current TreeView consumers (MoveToSiteView, ViewTabSiteView).
-- **SearchableTreeView**: Becomes a thin View wrapper; search logic moves to TreeViewModel. Internal-only change, external API can remain compatible.
+- **SearchableTreeView**: Becomes a thin View wrapper; search logic moves to TreeViewModel. Internal-only change, external API can remain compatible. Adds `isSearching` empty state for UX consistency.
+- **SearchableTreeViewModel**: Adds `items` proxy property. Adds `static func make(sites:)` factory for SiteItem. Replaces `managesExpandState: Bool` with `ExpansionMode` enum.
 - **DeviceManager**: Adds `siteLookup` dictionary property and changes `findSite(id:)` to O(1) lookup. Non-breaking — same public interface, better performance.
-- **MoveToSiteView / MoveToSiteViewModel**: Minor adaptation to use TreeViewModel. No user-facing behavior change.
+- **MoveToSiteView / SiteSelectionView / SitePickerSheet**: Migrated to use `.make(sites:)` and `.items` proxy instead of `searchVM.treeVM.items`.
 - **HighlightedText**: Regex input escaping. No API change.
 - **Unit tests**: New tests for TreeViewModel caching behavior; existing TreeView tests need adaptation for new init signature.

@@ -45,8 +45,28 @@
 - [x] 8.1 Escape keyword with `NSRegularExpression.escapedPattern(for:)` before constructing Regex
 - [x] 8.2 Add unit test for special character keyword (e.g., `(test)` matches literal `(test)`)
 
-## 8. Verification
+## 9. API refinement
 
-- [ ] 8.1 Build project and verify no compilation errors
-- [ ] 8.2 Run existing unit tests and verify all pass
-- [ ] 8.3 Manual test MoveToSiteView: search, select site, expand/collapse, create site
+- [x] 9.1 Add `items` proxy to `SearchableTreeViewModel` (get/set forwarding to `treeVM.items`)
+- [x] 9.2 Add `SearchableTreeViewModel.make(sites:)` static factory (`where Item == SiteItem`)
+- [x] 9.3 Migrate `MoveToSiteView` to use `.make(sites:)` and `.items` proxy
+- [x] 9.4 Migrate `SiteSelectionView` to use `.make(sites:)` and `.items` proxy
+- [x] 9.5 Migrate `SitePickerSheet` (in SiteInformationView) to use `.make(sites:)` and `.items` proxy
+- [x] 9.6 Change `rebuildFlatList()` to `private`
+- [x] 9.7 Replace `managesExpandState: Bool` with `ExpansionMode` enum
+- [x] 9.8 Update all call sites for new `ExpansionMode` API
+
+## 10. Search UX consistency
+
+- [x] 10.1 Add `@Environment(\.isSearching)` to `SearchableTreeView`
+- [x] 10.2 When `isSearching == true` && `searchText` is empty → show empty state (not full tree)
+- [x] 10.3 Hide MoveToSiteView controlBar when `isSearching`
+- [x] 10.4 Verify `isSearching` behavior with `displayMode: .always` (manual test task)
+
+## 11. Verification
+
+- [x] 11.1 Build project and verify no compilation errors
+- [ ] 11.2 Run existing unit tests and verify all pass (blocked by pre-existing VortexFeaturesTests SharedLink error)
+- [x] 11.3 Manual test MoveToSiteView: search, select site, expand/collapse, create site
+- [x] 11.4 Manual test SiteSelectionView (single + multi mode)
+- [x] 11.5 Manual test SitePickerSheet in SiteInformationView
