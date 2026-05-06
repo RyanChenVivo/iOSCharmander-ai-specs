@@ -99,3 +99,17 @@
 ## 16. Localization
 
 - [x] 16.1 All localized strings reused from existing keys: "Site", "Save", "Cancel", "Search_site", "Create_site_or_area", "Site_information", "Delete", "No_sites_create_one_to_get_started".
+
+## 17. SiteSelectionConfiguration Refactor
+
+- [x] 17.1 Add `SiteSelectionPresentation` enum (`.push`, `.sheet`) and `SiteSelectionConfiguration` struct with properties: `navigationTitle`, `showCreateSite`, `showContextMenu`, `showToggleAll`, `showSaveButton`, `allowEmptySelection`, `presentation`. Add preset factory methods: `.default`, `.picker(title:)`, `.multiSelect(allowEmpty:)`.
+- [x] 17.2 Refactor `SiteSelectionMode`: remove `allowEmptySelection` from `.multi` case (moved to config).
+- [x] 17.3 Refactor `SiteSelectionViewModel.init` to accept `config: SiteSelectionConfiguration`. Replace `isSingleMode`-based computed properties with config + permission intersection (`canCreateSite`, `canEditSite`, `canDeleteSite`). Remove `isSingleMode` property.
+- [x] 17.4 Refactor `SiteSelectionView` single mode: tap row → write binding + dismiss (tap-to-confirm). Remove Save button for single mode. Add `confirmAndDismiss()` method that handles dismiss based on `config.presentation`.
+- [x] 17.5 Refactor `SiteSelectionView` presentation: when `.sheet`, wrap in NavigationStack + ToolbarItemCancel; when `.push`, no wrapping.
+- [x] 17.6 Update `SiteSelectionView` init signatures: `init(selectedSiteID:config:)` default `.default`; `init(selectedSites:items:config:)` default `.multiSelect()`.
+- [x] 17.7 Update `SheetManager.showSitePicker` to present `SiteSelectionView(selectedSiteID:config: .picker(title:))`. Update `SiteInformationView` caller to pass `Binding<String?>` instead of `Binding<SiteItem?>`.
+- [x] 17.8 Delete `SitePickerSheet` from `SiteInformationView.swift`.
+- [x] 17.9 Update `AddDeviceByMacView` and `AddVSSView` call sites to use new init signature (config default is `.default`, no change needed unless explicit).
+- [x] 17.10 Update `SiteSelectionViewModelTest`: test config + permission intersection, test tap-to-confirm in single mode, test multi mode unchanged.
+- [x] 17.11 Build and verify no compilation errors. Manual test single mode (AddDevice + showSitePicker) and multi mode.
