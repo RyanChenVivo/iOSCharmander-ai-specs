@@ -1,6 +1,6 @@
 ---
 name: committing-code
-description: Use when committing changes, creating commits, or running git commit. Enforces commit format (<type>(<project>): <description>) and auto-routes commits to correct repo in two-repo symlink architecture.
+description: "Use when committing changes, creating commits, or any intent to commit. MUST invoke to get correct commit format and repo routing rules — these cannot be derived from the system prompt."
 ---
 
 # Git Workflow
