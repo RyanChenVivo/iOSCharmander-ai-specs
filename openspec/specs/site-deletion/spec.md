@@ -1,13 +1,13 @@
 # site-deletion Specification
 
 ## Purpose
-TBD - Covers site/subsite deletion functionality including permission gating, confirmation flow, API error handling, and state updates.
+Covers site/area deletion functionality including permission gating, confirmation flow, API error handling, and state updates.
 
 ## Requirements
 
 ### Requirement: Delete site permission gating
 
-The system SHALL only show the delete option for sites/subsites when `FeatureProvider.canDelete(for:)` returns true for the given site.
+The system SHALL only show the delete option for sites/areas when `FeatureProvider.canDelete(for:)` returns true for the given site.
 
 #### Scenario: User with delete permission sees delete option
 
@@ -61,67 +61,87 @@ The system SHALL dismiss the sheet and update state after successful deletion.
 
 ### Requirement: API-layer error conversion for site deletion
 
-The `VortexRestfulApi` SHALL convert site-specific `BackendErrorType` to `VortexError` using a `siteAPIErrorHandle` method (following the `downgradeAPIErrorHandle` pattern).
+The `siteAPIErrorHandle` SHALL convert all site-specific `BackendErrorType` cases to `VortexError`.
 
 #### Scenario: Site-specific error types are converted
 
-- **WHEN** the delete API returns a site-specific error
+- **WHEN** the API returns a site-specific error
 - **THEN** `siteAPIErrorHandle` SHALL convert:
   - `.restfulError(type: .siteHasDevices)` → `VortexError.siteHasDevices`
-  - `.restfulError(type: .cannotDeleteSiteWithSubSites)` → `VortexError.cannotDeleteSiteWithSubSites`
+  - `.restfulError(type: .cannotDeleteSiteWithAreas)` → `VortexError.cannotDeleteSiteWithAreas`
   - `.restfulError(type: .cannotDeleteDefaultSite)` → `VortexError.cannotDeleteDefaultSite`
+  - `.restfulError(type: .siteNotFound)` → `VortexError.siteNotFound`
 - **AND** non-site errors SHALL pass through unchanged
 
 ---
 
 ### Requirement: Site deletion error message display
 
-The `DeleteConfirmation` SHALL display localized error messages corresponding to the specific `VortexError` when site deletion fails.
+The `DeleteConfirmation` SHALL display distinct localized error messages when site/area deletion fails, matching high-level spec scenario language.
 
-#### Scenario: Site has devices (409)
+#### Scenario: Site/Area has devices (409)
 
 - **WHEN** deletion fails with `VortexError.siteHasDevices`
-- **THEN** the system SHALL display a localized message indicating the site cannot be deleted because it still contains devices
+- **THEN** the system SHALL display alert with title `"Failed to delete"` and message `"Devices must be moved or removed first before deletion."`
 
-#### Scenario: Site has sub-sites (409)
+#### Scenario: Site has areas (409)
 
-- **WHEN** deletion fails with `VortexError.cannotDeleteSiteWithSubSites`
-- **THEN** the system SHALL display a localized message indicating the site cannot be deleted because it has child subsites
+- **WHEN** deletion fails with `VortexError.cannotDeleteSiteWithAreas`
+- **THEN** the system SHALL display alert with title `"Failed to delete"` and message `"All areas must be deleted first before deletion."`
 
 #### Scenario: Cannot delete default site (409)
 
 - **WHEN** deletion fails with `VortexError.cannotDeleteDefaultSite`
-- **THEN** the system SHALL display a localized message indicating the default site cannot be deleted
+- **THEN** the system SHALL display alert with title `"Failed to delete"` and message `"The default site cannot be deleted."`
+
+#### Scenario: Site not found (404)
+
+- **WHEN** deletion fails with `VortexError.siteNotFound`
+- **THEN** the system SHALL display alert with title `"Failed to delete"` and message `"This site no longer exists."`
 
 #### Scenario: Other errors
 
 - **WHEN** deletion fails with any other error
-- **THEN** the system SHALL display a generic "Failed to delete" message
+- **THEN** the system SHALL display a generic "Failed to delete" message with retry guidance
 
 ---
 
-### Requirement: BackendErrorType extension for site deletion errors
+### Requirement: Localized keys for delete errors
+
+Each deletion error SHALL have its own localized key following the localization-guide convention (EN text with underscores, no punctuation).
+
+#### Scenario: Localized key mapping
+
+- **THEN** `AlertItem.getErrorMessage` SHALL return:
+  - `.siteHasDevices` → `"Devices_must_be_moved_or_removed_first_before_deletion"`
+  - `.cannotDeleteSiteWithAreas` → `"All_areas_must_be_deleted_first_before_deletion"`
+  - `.cannotDeleteDefaultSite` → `"The_default_site_cannot_be_deleted"`
+  - `.siteNotFound` → `"This_site_no_longer_exists"`
+
+---
+
+### Requirement: BackendErrorType for site deletion errors
 
 The `BackendErrorType` enum SHALL include cases for site deletion-specific error types.
 
-#### Scenario: New error type cases
+#### Scenario: Error type cases
 
-- **WHEN** the backend returns a site deletion error
-- **THEN** `BackendErrorType` SHALL decode the following types:
-  - `cannotDeleteSiteWithSubSites` = `/problems/cannot-delete-site-with-sub-sites`
+- **THEN** `BackendErrorType` SHALL decode:
+  - `cannotDeleteSiteWithAreas` = `/problems/cannot-delete-site-with-sub-sites`
   - `siteHasDevices` = `/problems/site-has-devices`
   - `cannotDeleteDefaultSite` = `/problems/role-name-exist`
+  - `siteNotFound` = `/problems/site-not-found`
 
 ---
 
-### Requirement: VortexError extension for site deletion
+### Requirement: VortexError for site deletion
 
 The `VortexError` enum SHALL include specific cases for site deletion failures.
 
-#### Scenario: New VortexError cases
+#### Scenario: VortexError cases
 
-- **WHEN** site deletion fails with a known reason
 - **THEN** the following `VortexError` cases SHALL be available:
   - `.cannotDeleteDefaultSite`
-  - `.cannotDeleteSiteWithSubSites`
+  - `.cannotDeleteSiteWithAreas`
   - `.siteHasDevices`
+  - `.siteNotFound`

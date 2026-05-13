@@ -116,9 +116,9 @@ SiteInformationView SHALL allow the user to choose between creating a Site or an
 
 #### Scenario: Navigation title changes with mode and type
 - **WHEN** in create mode with "Site" type selected
-- **THEN** the navigation title SHALL be "Create Site"
+- **THEN** the navigation title SHALL be "Create site or area"
 - **WHEN** in create mode with "Area" type selected
-- **THEN** the navigation title SHALL be "Create Area"
+- **THEN** the navigation title SHALL be "Create site or area"
 - **WHEN** in edit mode with a site (no parentId)
 - **THEN** the navigation title SHALL be "Site Information"
 - **WHEN** in edit mode with an area (has parentId)
@@ -177,19 +177,27 @@ The `createSite` function SHALL accept an optional `parentId` parameter and pass
 - **AND** `AddSiteInput` SHALL include `parentId` in the request body
 
 ### Requirement: Site creation error handling
-The system SHALL handle backend 403 errors during site/area creation and display user-friendly messages.
+The system SHALL handle all backend 403 errors during site/area creation and display user-friendly messages, including xlite-specific errors and the general organization-level limit.
 
-#### Scenario: Site limit exceeded
+#### Scenario: Organization-level site and area limit exceeded
 - **WHEN** backend returns 403 with type `/problems/site-limit-exceeded`
-- **THEN** system SHALL display an error message indicating the site limit has been reached
+- **THEN** system SHALL display error message `"The organization-level site and area limit has been reached."`
 
 #### Scenario: Hierarchy depth exceeded
 - **WHEN** backend returns 403 with type `/problems/hierarchy-depth-exceeded`
-- **THEN** system SHALL display an error message indicating the maximum area nesting depth has been reached
+- **THEN** system SHALL display error message `"The maximum area nesting depth has been reached. You cannot create a deeper level."`
 
 #### Scenario: Area count exceeded
 - **WHEN** backend returns 403 with type `/problems/subsite-count-exceeded`
-- **THEN** system SHALL display an error message indicating the maximum number of areas under this parent has been reached
+- **THEN** system SHALL display error message `"The maximum number of areas under this parent has been reached."`
+
+#### Scenario: xlite area not allowed
+- **WHEN** backend returns 403 with type `/problems/xlite-area-not-allowed`
+- **THEN** system SHALL display error message `"Multi-level hierarchy is not available on the xLite plan. Contact your reseller to upgrade."`
+
+#### Scenario: xlite site limit exceeded
+- **WHEN** backend returns 403 with type `/problems/xlite-site-limit-exceeded`
+- **THEN** system SHALL display error message `"Maximum 10 sites reached. Contact your reseller to upgrade your service."`
 
 ### Requirement: SiteInformationView supports editing areas
 SiteInformationView SHALL support editing areas (sites with non-empty parentId) in addition to root-level sites. Editing an area SHALL only allow changing the name.
