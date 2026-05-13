@@ -8,7 +8,7 @@ The current MoveToSiteView implementation uses a TreeView with expand/collapse b
 - Add "Select a destination" label and "Create site or area" text button as a section header row
 - Add "Current" label on the row matching the device's current site/area
 - Add blue-background text highlighting for search keyword matches in site/area names
-- Replace the move confirmation alert dialog with a dedicated full-page confirmation view (warning icon, attention message, "Move Device" button, Cancel)
+- Keep the move confirmation as a system Alert dialog via `alertControl.showAlert` (reverted from full-page confirmation view)
 - Move the "Move device" action button to a fixed bottom position (outside scroll area)
 - Create a new `SiteSelectionView` + `SiteSelectionViewModel` for the Add Device flow: navigation title "Site", Cancel/Save toolbar, search bar, "Create site or area", tree list with single-select checkmark. Save confirms selection and pops back; Cancel discards change and pops back. Presented via NavigationLink push (same as today)
 - Replace `MoveToSiteView(source: .add)` references in `AddDeviceByMacView` and `AddVSSView` with the new `SiteSelectionView`
@@ -18,7 +18,7 @@ The current MoveToSiteView implementation uses a TreeView with expand/collapse b
 ## Capabilities
 
 ### New Capabilities
-- `move-confirmation-page`: Full-page move device confirmation view with warning icon, attention message, and action buttons — replacing the current alert-based confirmation
+- `move-confirmation-page`: Alert-based move device confirmation — system Alert with site name, Move/Cancel buttons (reverted from full-page view)
 - `search-text-highlighting`: Blue-background highlighting of matched keyword text in site/area names during search
 - `site-selection-page`: Standalone site picker page for Add Device flow — navigation title "Site", Cancel/Save toolbar, search, create site/area, tree list with checkmark selection
 
@@ -33,7 +33,7 @@ The current MoveToSiteView implementation uses a TreeView with expand/collapse b
 - **MoveToSiteView**: Layout restructured — new section header, current-site indicator, bottom-fixed button. Remove all `.add` source branching, becomes move-only.
 - **MoveToSiteViewModel**: Needs to accept and expose `currentSiteID` for the "Current" label. Remove `source` enum and `.add` case logic.
 - **SearchableTreeView**: Needs attributed string or overlay-based text highlighting for search matches.
-- **Navigation flow**: Move confirmation changes from `.alert` modifier to a pushed/presented full-page view.
+- **Navigation flow**: Move confirmation remains as a system Alert via `alertControl.showAlert`.
 - **AddDeviceByMacView / AddVSSView**: NavigationLink destination changes from `MoveToSiteView(source: .add)` to new `SiteSelectionView`.
 - **Shared components**: `SiteTreeRow`, `SearchableTreeView`, `HighlightedText`, `SiteInformationView` reused as-is by the new page.
 - **Analytics**: Review whether `AddDeviceGroupSource.add` is still needed or can be replaced with a new event.

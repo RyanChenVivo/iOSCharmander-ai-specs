@@ -2,14 +2,14 @@
 
 ### Requirement: MoveToSite happy path moves device to selected site
 
-The UITest SHALL verify that a device can be moved from Organization Site to a target site using the redesigned MoveToSite flow (tree view selection → Move_device button → confirmation).
+The UITest SHALL verify that a device can be moved from Organization Site to a target site using the redesigned MoveToSite flow (tree view selection → Move_device button → Alert confirmation).
 
 #### Scenario: Move device to SiteC successfully
 - **WHEN** user opens device more menu and taps "Move to"
 - **AND** MoveToSiteView appears with tree view of sites
 - **AND** user taps "UAT SiteC" in the tree
 - **AND** user taps "Move_device" button
-- **AND** user confirms in DeleteConfirmation sheet by tapping "Move_Device"
+- **AND** user confirms in Alert dialog by tapping "Move"
 - **THEN** the device SHALL appear under UAT SiteC in View Tab
 - **AND** tearDown SHALL call `moveAllDevicesToOrganizationSite` to restore state
 
@@ -32,11 +32,11 @@ The `CommonOperation.move(device:toGroup:)` helper SHALL be updated to use the n
 3. Wait for MoveToSiteView navigation bar
 4. Tap target site name in tree view
 5. Tap "Move_device" button
-6. Confirm move in DeleteConfirmation sheet
+6. Confirm move in Alert dialog by tapping "Move"
 
 #### Scenario: CommonOperation move helper executes new flow
 - **WHEN** `move(device:toGroup:)` is called with a device name and site name
-- **THEN** it SHALL navigate through MoveToSite tree → tap site → tap Move_device → confirm
+- **THEN** it SHALL navigate through MoveToSite tree → tap site → tap Move_device → confirm Alert
 - **AND** the device SHALL no longer appear under the original site
 
 ### Requirement: ViewTabExpandCollapseUITest uses displayName identifiers

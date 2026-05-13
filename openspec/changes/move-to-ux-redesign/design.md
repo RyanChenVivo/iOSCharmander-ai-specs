@@ -70,17 +70,17 @@ When a search keyword is active, SiteTreeRow renders the site name as an `Attrib
 - When nil or empty, render plain `Text` as today.
 - `MoveToSiteView` passes the current search keyword down to each `SiteTreeRow`.
 
-### Decision 5: Full-page move confirmation as a pushed view
+### Decision 5: Alert-based move confirmation (revised)
 
-Replace the `AlertItem.checkToMoveDevice` alert with a dedicated `MoveDeviceConfirmationView` that is presented via navigation push or sheet.
+Use the existing `AlertItem.checkToMoveDevice` system Alert for move confirmation. The previous full-page `MoveDeviceConfirmationView` approach has been reverted per requirements change.
 
-**Why over keeping alert:** The mockup shows a full-page design with a warning icon, "Move this device" title, descriptive text, orange "ATTENTION!" section, blue "Move Device" button, and "Cancel" text button. This cannot be achieved with a system alert.
+**Why revert to alert:** The full-page confirmation was over-engineered for this use case. A system Alert provides sufficient confirmation UX — it blocks interaction, shows the destination site name, and offers Move/Cancel options. This simplifies the code by removing `MoveDeviceConfirmationView`, the `DeleteConfirmation.moveDevice` case, and related localization keys.
 
 **Implementation:**
-- New `MoveDeviceConfirmationView` that takes `siteName: String`, `onConfirm: () async -> Void`, and `onCancel: () -> Void`.
-- Layout: centered warning icon (triangle exclamation), "Move this device" title, subtitle "The device will be moved to \"{siteName}\".", orange "ATTENTION!" label, info card with permission warning text, blue full-width "Move Device" button, "Cancel" text button below.
-- Presented as a `.sheet` from MoveToSiteView (or fullScreenCover depending on mockup intent — the mockup appears to be a sheet/pushed view).
-- `MoveToSiteViewModel.tapSiteRow` for `.move` source now sets a published property to trigger this view instead of calling `alertControl.showAlert`.
+- `MoveToSiteViewModel.confirmMove()` calls `alertControl.showAlert(item: .checkToMoveDevice(to: site.name, action:))`.
+- Alert confirm action: calls `deviceManager.updateDevice(device, siteID:)`, then `sheetManager.dismissAll()` on success.
+- Alert cancel: no action, user remains on MoveToSiteView.
+- Error handling: `appManager.handleError(error, defaultAlert: .failToMove())`, no dismiss.
 
 ### Decision 6: Bottom-fixed "Move device" button in Move flow
 
@@ -91,8 +91,8 @@ In the `.move` flow, a "Move device" button is pinned to the bottom of the scree
 **Implementation:**
 - `MoveToSiteView` body becomes a `VStack` with the scrollable tree content on top and the "Move device" button at the bottom (outside `ScrollView`).
 - Button disabled when `viewModel.selectedSite == nil` or when selected site equals current site.
-- Tapping the button navigates to `MoveDeviceConfirmationView`.
-- In `.add` flow, this bottom button is hidden — site selection still immediately dismisses as today.
+- Tapping the button calls `viewModel.confirmMove()` which triggers the Alert confirmation.
+- MoveToSiteView is move-only (Add Device uses separate SiteSelectionView).
 
 ### Decision 7: Separate SiteSelectionView for Add Device flow
 

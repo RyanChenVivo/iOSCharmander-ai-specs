@@ -24,13 +24,13 @@
 - [x] 4.2 Implement AttributedString-based highlighting: when highlightKeyword is non-nil, build AttributedString from site name, find all case-insensitive occurrences, apply `.backgroundColor(.accentColor)` and `.foregroundColor(.white)` to matched ranges. Render with `Text(attributedString)`.
 - [x] 4.3 Pass current search keyword from MoveToSiteView through to SiteTreeRow's highlightKeyword parameter.
 
-## 5. Move Device Confirmation Page
+## 5. Move Device Confirmation (Alert-based, revised)
 
-- [x] 5.1 Create `MoveDeviceConfirmationView` with layout: centered orange warning triangle icon, "Move this device" title, subtitle with site name, orange "ATTENTION!" label, info card with permission warning text, blue full-width "Move Device" button, "Cancel" text button.
-- [x] 5.2 Add `confirmMoveSite: SiteItem?` published property to MoveToSiteViewModel. When the bottom "Move device" button is tapped, set this property to trigger the confirmation sheet.
-- [x] 5.3 Present MoveDeviceConfirmationView as a `.sheet` from MoveToSiteView, bound to `viewModel.confirmMoveSite`.
-- [x] 5.4 Wire confirm action: call `deviceManager.updateDevice(device, siteID:)`, dismiss all sheets on success, show error alert on failure. Wire cancel action: dismiss sheet, preserve selection.
-- [x] 5.5 Remove the old `AlertItem.checkToMoveDevice` usage from MoveToSiteViewModel's `tapSiteRow` method for the Move flow.
+- [x] 5.1 `MoveToSiteViewModel.confirmMove()` calls `alertControl.showAlert(item: .checkToMoveDevice(to: site.name, action:))`. Guard: skip if selectedSite is nil or equals currentSiteID.
+- [x] 5.2 Alert confirm action closure: call `deviceManager.updateDevice(device, siteID:)`, then `sheetManager.dismissAll()` on success. On error: `appManager.handleError(error, defaultAlert: .failToMove())`, no dismiss.
+- [x] 5.3 Bottom "Move device" button in MoveToSiteView calls `viewModel.confirmMove()` (synchronous, fire-and-forget).
+- [x] 5.4 Remove `MoveDeviceConfirmationView` and related `DeleteConfirmation.moveDevice` case (reverted full-page confirmation).
+- [x] 5.5 Inject `sheetManager` via `@Dependency(\.sheetManager)` in MoveToSiteViewModel for testability.
 
 ## 6. Localization
 
