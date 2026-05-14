@@ -1,3 +1,34 @@
 {
-  "observations": []
+  "observations": [
+    {
+      "id": "FloorPlanUITest.testCloseStreamingButton",
+      "firstSeen": "2026-05-14",
+      "lastSeen": "2026-05-14",
+      "occurrences": 1,
+      "pattern": "STREAMING_TIMEOUT",
+      "decision": "observe",
+      "expiresOn": "2026-05-15",
+      "notes": "\"streamingCloseButton\" Button is not exist. Streaming 未載入（spinner），可能是 CI 環境攝影機離線。"
+    },
+    {
+      "id": "FloorPlanUITest.testSplitScreenToFullScreenFloorPlan",
+      "firstSeen": "2026-05-14",
+      "lastSeen": "2026-05-14",
+      "occurrences": 1,
+      "pattern": "STREAMING_TIMEOUT",
+      "decision": "observe",
+      "expiresOn": "2026-05-15",
+      "notes": "\"streamingFullscreenToggle\" Button is not exist. 同 FloorPlan streaming 群組，spinner 持續轉。"
+    },
+    {
+      "id": "AIControlSettingUITest.testSPSLPRNotConfigure",
+      "firstSeen": "2026-05-14",
+      "lastSeen": "2026-05-14",
+      "occurrences": 1,
+      "pattern": "ENV_POLLUTED",
+      "decision": "observe",
+      "expiresOn": "2026-05-15",
+      "notes": "spstest@dsitip.com 組織被刪除，顯示 new to VORTEX。使用者手動重建中。"
+    }
+  ]
 }
