@@ -1,34 +1,3 @@
 {
-  "observations": [
-    {
-      "id": "AccessControlMessageUITest.testCanRemoteUnlockDoorAndFilterMessage",
-      "firstSeen": "2026-03-17",
-      "lastSeen": "2026-03-17",
-      "occurrences": 1,
-      "pattern": "timing-element-not-ready",
-      "decision": "observe",
-      "expiresOn": "2026-03-18",
-      "notes": "switchToMessage failed。首次出現，可能是 tab 切換時序問題。"
-    },
-    {
-      "id": "AccessControlMessageUITest.testCanSeeAccessMessageWithinAnHour",
-      "firstSeen": "2026-03-17",
-      "lastSeen": "2026-03-17",
-      "occurrences": 1,
-      "pattern": "timing-element-not-ready",
-      "decision": "observe",
-      "expiresOn": "2026-03-18",
-      "notes": "XCTAssertTrue failed。與同 class 另一測試同日失敗，可能同源。首次出現。"
-    },
-    {
-      "id": "UserPrivilegeUITest.test_listSites_user1_viewer",
-      "firstSeen": "2026-03-17",
-      "lastSeen": "2026-03-17",
-      "occurrences": 1,
-      "pattern": "timing-element-not-ready",
-      "decision": "observe",
-      "expiresOn": "2026-03-18",
-      "notes": "\"Ungrouped Cameras\" StaticText is not exist。首次出現，element not found。"
-    }
-  ]
+  "observations": []
 }
