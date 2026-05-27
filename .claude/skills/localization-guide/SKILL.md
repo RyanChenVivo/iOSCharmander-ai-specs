@@ -174,6 +174,41 @@ String(localized: "\(siteCount)_sites")  // Key handles plural variations
 
 ---
 
+### 6. File Format and Key Ordering (Localizable.xcstrings)
+
+**Rule:** When editing `Localizable.xcstrings`, preserve Xcode's native formatting to avoid noisy diffs.
+
+**Formatting rules:**
+- 2-space indent
+- Space before colon in key-value separators: `"key" : "value"` (NOT `"key": "value"`)
+- Preserve the existing key order — do NOT re-sort all keys
+- New keys should be appended at the end (Xcode will re-sort on next build)
+
+**When editing programmatically (Python/script):**
+```python
+import json, collections
+
+# Load preserving order
+with open('Localizable.xcstrings') as f:
+    data = json.load(f, object_pairs_hook=collections.OrderedDict)
+
+# ... make changes ...
+
+# Write with Xcode-style formatting
+output = json.dumps(data, indent=2, ensure_ascii=False)
+output = output.replace('": ', '" : ')
+with open('Localizable.xcstrings', 'w') as f:
+    f.write(output)
+    f.write('\n')
+```
+
+**NEVER do:**
+- `sort_keys=True` in json.dumps (destroys Xcode's ordering)
+- Use `"key": "value"` without space before colon
+- Reformat the entire file when only adding/modifying a few keys
+
+---
+
 ## Implementation Checklist
 
 - [ ] Identify countable nouns → Ask user if pluralization needed
